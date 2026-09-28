@@ -1,19 +1,22 @@
 {
   "name": "bolonki",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.5.0",
   "type": "module",
   "description": "Party game de arena para 4 jugadores con estética PS1.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "build:single": "vite build --mode single && node scripts/artifact.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "peer": "node scripts/peer-server.cjs"
   },
   "dependencies": {
+    "peerjs": "1.5.5",
     "three": "0.128.0"
   },
   "devDependencies": {
+    "peer": "1.0.2",
     "vite": "5.4.21",
     "vite-plugin-singlefile": "2.3.3"
   }

@@ -7,7 +7,7 @@ export const DEFAULTS = {
   fullscreen: true,      // pedir pantalla completa al empezar
   aspect: 'wide',        // 'wide' (se adapta a la pantalla) | '4:3'
   quality: '240',        // '240' (auténtico) | '480' | 'sharp' (nítida, resolución completa)
-  integer: false,        // escalado entero (píxeles perfectos, con borde)
+  integer: 'auto',       // escalado entero: 'auto' (solo si entra justo) | true | false
   scanlines: true,
   sfx: 8,                // volumen de efectos 0..10
   difficulty: 'intermedio',
@@ -27,6 +27,8 @@ function load() {
 }
 
 export const settings = Object.assign({}, DEFAULTS, load());
+// v0.5: el escalado entero pasa a ser automático por defecto
+if (!settings.v) { settings.integer = 'auto'; settings.v = 5; }
 if (!DIFF_ORDER.includes(settings.difficulty)) settings.difficulty = DEFAULTS.difficulty;
 
 export function saveSettings() {

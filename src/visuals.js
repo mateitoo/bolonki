@@ -8,6 +8,8 @@ import { updateParticles } from './fx/particles.js';
 const CAM = new THREE.Vector3(0, 24, 26), LOOK = new THREE.Vector3(0, 0, -1.6);
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
 const orbitPos = new THREE.Vector3(), ORBIT_LOOK = new THREE.Vector3(0, 0, 0);
+const camBase = new THREE.Vector3(), lookBase = new THREE.Vector3(), tmpOff = new THREE.Vector3();
+const FOCUS_OFF = new THREE.Vector3(0, 0, 10);
 let orbit = 1, orbitA = 0;
 
 export function updateVisuals(dt, rdt) {
@@ -21,11 +23,12 @@ export function updateVisuals(dt, rdt) {
       const d = p.death;
       if (!d.done) {
         d.t += dt; d.anim.update(p, d.st, d.t, dt);
-        if (d.t >= d.anim.dur) { d.done = true; m.root.visible = false; if (p.human) game.camFocusTarget = 0; }
+        if (d.t >= d.anim.dur) { d.done = true; m.root.visible = false; if (p.i === game.me) game.camFocusTarget = 0; }
       }
       m.sh.visible = false;
       continue;
     }
+    if (p.empty) { m.root.visible = false; m.sh.visible = false; continue; }
     if (p.spin > 0) p.spin = Math.max(0, p.spin - dt * 4.5);
     m.root.position.set(p.x, Math.sin(clock * 6 + p.i) * 0.05, p.z);
     m.root.rotation.y = m.baseRot + (p.spin > 0 ? (1 - p.spin) * Math.PI * 2 : 0);
@@ -62,9 +65,15 @@ export function updateVisuals(dt, rdt) {
   // cámara: se acerca suave al jugador cuando pierde
   game.camFocus += (game.camFocusTarget - game.camFocus) * Math.min(1, rdt * 3);
   game.shake *= Math.pow(0.02, rdt);
+  // en red, cada uno ve su propio arco abajo: se rota la cámara según el lugar del jugador
+  const side = game.me > 0 ? game.me : 0;
+  const ang = (side * Math.PI) / 2, ca = Math.cos(ang), sa = Math.sin(ang);
+  const rot = (v, out) => out.set(v.x * ca + v.z * sa, v.y, -v.x * sa + v.z * ca);
+  rot(CAM, camBase); rot(LOOK, lookBase);
+  const fDir = rot(FOCUS_OFF, tmpOff);
   const f = game.camFocus, fx = game.focus.x, fz = game.focus.z;
-  camPos.set(CAM.x + (fx - CAM.x) * f, CAM.y + (9 - CAM.y) * f, CAM.z + (fz + 10 - CAM.z) * f);
-  camLook.set(LOOK.x + (fx - LOOK.x) * f, LOOK.y + (1.2 - LOOK.y) * f, LOOK.z + (fz - LOOK.z) * f);
+  camPos.set(camBase.x + (fx + fDir.x - camBase.x) * f, camBase.y + (9 - camBase.y) * f, camBase.z + (fz + fDir.z - camBase.z) * f);
+  camLook.set(lookBase.x + (fx - lookBase.x) * f, lookBase.y + (1.2 - lookBase.y) * f, lookBase.z + (fz - lookBase.z) * f);
 
   // en el título y los menús la cámara gira lento alrededor de la arena
   const demo = game.state === 'title' || game.state === 'menu';

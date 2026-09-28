@@ -15,6 +15,8 @@ import { initHud, drawHud, showToast } from './hud.js';
 import { initDisplay, toHud, toggleFullscreen } from './display.js';
 import { input, initInput, pollInput, bindTouch, pushEvent } from './input.js';
 import { initFlow, updateFlow, onMatchEnd, inDemo } from './flow.js';
+import { hostTick, guestFrame } from './net/online.js';
+import { room } from './net/room.js';
 import { settings, saveSettings } from './settings.js';
 
 const stage = document.getElementById('stage');
@@ -27,7 +29,7 @@ const renderer = initRenderer(glc);
 buildArena();
 initParticles();
 game.players = CHARS.map((ch, i) => ({
-  i, ch, side: SIDES[i], s: 0, v: 0, x: 0, z: 0, vx: 0, vz: 0, score: 0, alive: true, human: false,
+  i, ch, side: SIDES[i], s: 0, v: 0, x: 0, z: 0, vx: 0, vz: 0, score: 0, alive: true, ctrl: 'ai', empty: false, net: null,
   swing: 0, cd: 0, hitDone: false, target: 0, thinkT: 0, err: 0, errT: 0, flash: 0, spin: 0, death: null,
   mesh: buildPod(i),
 }));
@@ -71,11 +73,15 @@ function frame(now) {
   const dt = rdt * ts;
   const frozen = game.state === 'paused';
 
-  if (!frozen) {
+  if (game.online === 'guest') {
+    // invitado: la partida la corre el anfitrión; acá se interpola y se mueve la nave propia
+    guestFrame(rdt);
+  } else if (!frozen) {
     acc += dt;
     let n = 0;
     while (acc >= STEP && n < 16) { step(STEP); acc -= STEP; n++; }
     if (n >= 16) acc = 0;
+    if (game.online === 'host') hostTick(rdt);
 
     // la partida termina (o sale "ELIMINADO") recién cuando terminan las animaciones de derrota
     if (game.pendingEnd && !deathsRunning()) {
@@ -83,14 +89,16 @@ function frame(now) {
       if (inDemo()) game.demoResetT = 2.2;
       else if (game.state === 'play') { game.state = 'end'; game.timeScale = 1; onMatchEnd(); }
     }
-    const me = game.players[0];
-    if (game.state === 'play' && !game.humanOut && !me.alive && me.death && me.death.done && !game.pendingEnd) {
-      game.humanOut = true; game.timeScale = 1.7;
-    }
     if (inDemo() && game.demoResetT > 0) {
       game.demoResetT -= rdt;
       if (game.demoResetT <= 0) { const st = game.state; resetMatch(st); }
     }
+  }
+
+  // tu nave terminó su animación de derrota: queda el cartel de ELIMINADO (y solo, se acelera el resto)
+  const me = game.players[game.me];
+  if (me && game.state === 'play' && !game.humanOut && !me.alive && me.death && me.death.done && !game.pendingEnd) {
+    game.humanOut = true; if (game.online === 'off') game.timeScale = 1.7;
   }
 
   updateVisuals(frozen ? 0 : dt, frozen ? 0 : rdt);
@@ -104,3 +112,6 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+// ?debug en la URL deja el estado a mano en la consola (para pruebas)
+try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { game, room, settings }; } catch (e) { /* nada */ }

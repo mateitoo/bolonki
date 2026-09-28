@@ -8,23 +8,33 @@ import { SFX, setVolume } from './audio.js';
 import { resetMatch, startSwing, eliminate, deathsRunning } from './game/match.js';
 import { DEATH_ANIMS } from './deaths/index.js';
 import { openMenu, replaceMenus, closeMenu, closeAllMenus, menuOpen, menuInput } from './ui/menu.js';
+import { MULTI, ONLINE_PAUSE, onlineEndMenu, initMultiplayer } from './multiplayer.js';
+import { guestHit } from './net/online.js';
 
 const yesNo = [{ v: true, label: 'SÍ' }, { v: false, label: 'NO' }];
 const set = (key, after) => (v) => { settings[key] = v; saveSettings(); if (after) after(v); };
 
 /* ---------- pantallas ---------- */
-const MAIN = {
+export const MAIN = {
   id: 'main', style: 'big',
   items: [
-    { kind: 'action', label: 'JUGAR', action: () => openMenu(PLAY) },
+    { kind: 'action', label: 'JUGAR', action: () => openMenu(JUGAR) },
     { kind: 'action', label: 'OPCIONES', action: () => openMenu(OPTIONS) },
     { kind: 'action', label: 'SALIR', corner: true, action: () => quit() },
   ],
   onBack: () => goTitle(),
 };
 
-const PLAY = {
-  id: 'play', title: 'PARTIDA', width: 250,
+export const JUGAR = {
+  id: 'jugar', title: 'JUGAR', width: 240,
+  items: [
+    { kind: 'action', label: 'SOLITARIO', action: () => openMenu(SOLO) },
+    { kind: 'action', label: 'MULTIJUGADOR', action: () => openMenu(MULTI) },
+  ],
+};
+
+const SOLO = {
+  id: 'solo', title: 'SOLITARIO', width: 250,
   items: [
     { kind: 'info', label: 'PERSONAJE', value: `${CHARS[0].name} (PRONTO MÁS)` },
     { kind: 'choice', label: 'CPU', values: DIFF_ORDER.map((d) => ({ v: d, label: DIFFICULTIES[d].label })),
@@ -35,7 +45,7 @@ const PLAY = {
   ],
 };
 
-const OPTIONS = {
+export const OPTIONS = {
   id: 'options', title: 'OPCIONES', width: 290,
   tabs: [
     { label: 'VIDEO', items: [
@@ -45,7 +55,8 @@ const OPTIONS = {
         get: () => settings.aspect, set: set('aspect', applyDisplay) },
       { kind: 'choice', label: 'CALIDAD', values: [{ v: '240', label: '240P' }, { v: '480', label: '480P' }, { v: 'sharp', label: 'NÍTIDA' }],
         get: () => settings.quality, set: set('quality', applyDisplay) },
-      { kind: 'choice', label: 'ESCALADO ENTERO', values: yesNo, get: () => settings.integer, set: set('integer', applyDisplay) },
+      { kind: 'choice', label: 'ESCALADO ENTERO', values: [{ v: 'auto', label: 'AUTOMÁTICO' }].concat(yesNo),
+        get: () => settings.integer, set: set('integer', applyDisplay) },
       { kind: 'choice', label: 'SCANLINES', values: yesNo, get: () => settings.scanlines, set: set('scanlines', applyDisplay) },
     ] },
     { label: 'AUDIO', items: [
@@ -127,7 +138,8 @@ function maybeFullscreen() { if (settings.fullscreen && wantFullscreen && !isFul
 
 /* ---------- por frame ---------- */
 export function updateFlow() {
-  if (has('blur') && (game.state === 'play' || game.state === 'count')) pause();
+  const online = game.online !== 'off';
+  if (has('blur') && !online && (game.state === 'play' || game.state === 'count')) pause();
 
   // "ver derrota": el menú se esconde mientras dura la animación
   if (game.showcaseT > 0) {
@@ -135,28 +147,33 @@ export function updateFlow() {
     return;
   }
 
-  if (menuOpen()) { menuInput(); return; }
+  if (menuOpen()) {
+    menuInput();
+    // en red la partida no se frena: mientras el menú está abierto tu nave se queda quieta
+    if (online) input.axis = 0;
+    return;
+  }
 
   switch (game.state) {
     case 'title':
-      if (has('confirm') || has('start') || has('click')) { SFX.confirm(); maybeFullscreen(); goMainMenu(); }
+      if (has('any')) { SFX.confirm(); maybeFullscreen(); goMainMenu(); }
       break;
     case 'count':
     case 'play': {
-      if (has('pause')) { pause(); break; }
-      const me = game.players[0];
-      if (game.humanOut) { if (has('confirm') || has('start')) startMatch(); break; }
-      if (has('hit') && me.alive && me.cd <= 0) startSwing(me);
+      if (has('pause')) { if (online) { SFX.back(); replaceMenus(ONLINE_PAUSE); } else pause(); break; }
+      const me = game.players[game.me];
+      if (game.humanOut) { if (!online && (has('confirm') || has('start'))) startMatch(); break; }
+      if (has('hit') && me && me.alive && me.cd <= 0) { if (game.online === 'guest') guestHit(); else startSwing(me); }
       break;
     }
     case 'end':
-      replaceMenus(endMenu());
+      replaceMenus(online ? onlineEndMenu() : endMenu());
       break;
     default: break;
   }
 }
 
-export function onMatchEnd() { replaceMenus(endMenu()); }
-export function initFlow() { setVolume(settings.sfx / 10); game.difficulty = settings.difficulty; }
+export function onMatchEnd() { replaceMenus(game.online !== 'off' ? onlineEndMenu() : endMenu()); }
+export function initFlow() { setVolume(settings.sfx / 10); game.difficulty = settings.difficulty; initMultiplayer(); }
 export const inDemo = () => game.state === 'title' || game.state === 'menu';
 export { input };

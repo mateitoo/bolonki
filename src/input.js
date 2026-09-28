@@ -2,7 +2,7 @@
 // Cada frame se llama pollInput(dt) y el resto del juego lee:
 //   input.axis   -> movimiento del pod (-1..1)
 //   input.events -> acciones de este frame: up, down, left, right, confirm, back, start, pause, hit,
-//                   tabPrev, tabNext, click
+//                   tabPrev, tabNext, click, any (cualquier tecla/botón), char (letra A-Z)
 import { clamp } from './config.js';
 
 export const input = {
@@ -17,6 +17,7 @@ export const input = {
 const held = new Set();
 const queue = [];
 const NAV = ['up', 'down', 'left', 'right'];
+const IGNORE_ANY = /^(Shift|Control|Alt|Meta|Tab|CapsLock|F\d+|Escape|Dead|Unidentified|OS|ContextMenu)$/;
 
 const KEYMAP = {
   ArrowUp: ['up'], KeyW: ['up'],
@@ -36,13 +37,20 @@ export function initInput(stage, h) {
 
   window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyF' && !e.repeat) { hooks.onFullscreenKey(); hooks.onGesture(); return; }
+    // letras sueltas (para escribir el código de sala) y "cualquier tecla" (pantalla de título)
+    if (!e.repeat && !IGNORE_ANY.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      queue.push({ a: 'any' });
+      if (/^Key[A-Z]$/.test(e.code)) queue.push({ a: 'char', c: e.code.slice(3) });
+      hooks.onGesture();
+    }
     const acts = KEYMAP[e.code];
     if (!acts) return;
     e.preventDefault();
     held.add(e.code);
     input.device = 'keyboard';
-    if (e.repeat) { acts.filter((a) => NAV.includes(a)).forEach((a) => queue.push({ a })); return; }
-    acts.forEach((a) => queue.push({ a }));
+    const fromChar = /^Key[A-Z]$/.test(e.code);   // WASD, Q, E… también son letras del código
+    if (e.repeat) { acts.filter((a) => NAV.includes(a)).forEach((a) => queue.push({ a, fromChar })); return; }
+    acts.forEach((a) => queue.push({ a, fromChar, key: e.code }));
     hooks.onGesture();
   });
   window.addEventListener('keyup', (e) => held.delete(e.code));
@@ -58,6 +66,7 @@ export function initInput(stage, h) {
     if (e.target.closest && e.target.closest('.touch')) return;   // los botones táctiles se manejan aparte
     const p = hooks.toHud(e.clientX, e.clientY);
     queue.push({ a: 'click', x: p.x, y: p.y });
+    queue.push({ a: 'any' });
     input.device = 'pointer';
     hooks.onGesture();
   });
@@ -91,6 +100,7 @@ function pollPad(dt, out) {
   const down = (i) => now[i] && !pad.prev[i];
   const push = (a) => { out.push({ a }); input.device = 'gamepad'; };
 
+  if (now.some((b, i) => b && !pad.prev[i])) push('any');
   if (down(B.A)) { push('confirm'); push('hit'); }
   if (down(B.X)) push('hit');
   if (down(B.B)) push('back');

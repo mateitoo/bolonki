@@ -26,11 +26,16 @@ export function applyDisplay() {
   const hw = Math.round((BASE_H * aspect) / 2) * 2;
 
   // tamaño en pantalla
+  // (el escalado entero se calcula en píxeles reales del monitor, no en píxeles CSS)
   let boxW, boxH;
-  const k = Math.floor(Math.min(winW / hw, winH / BASE_H));
-  if (settings.integer && k >= 1) { boxW = hw * k; boxH = BASE_H * k; }
-  else { boxH = Math.min(winH, winW / aspect); boxW = boxH * aspect; }
-  boxW = Math.floor(boxW); boxH = Math.floor(boxH);
+  const dprAll = window.devicePixelRatio || 1;
+  const k = Math.floor(Math.min((winW * dprAll) / hw, (winH * dprAll) / BASE_H));
+  const fitH = Math.min(winH, winW / aspect);
+  // automático: escalado entero solo si se pierde menos del 5% de la imagen
+  const useInt = settings.integer === 'auto' ? k >= 1 && (BASE_H * k) / dprAll / fitH >= 0.95 : !!settings.integer;
+  if (useInt && k >= 1) { boxW = (hw * k) / dprAll; boxH = (BASE_H * k) / dprAll; }
+  else { boxH = fitH; boxW = boxH * aspect; }
+  if (!(useInt && k >= 1)) { boxW = Math.floor(boxW); boxH = Math.floor(boxH); }
 
   // resolución interna del render
   let iw, ih;
@@ -55,7 +60,7 @@ export function applyDisplay() {
   els.gl.style.imageRendering = retro ? 'pixelated' : 'auto';
   els.screen.classList.toggle('scanlines', !!settings.scanlines);
 
-  Object.assign(view, { hw, iw, ih, aspect, boxW, boxH });
+  Object.assign(view, { hw, iw, ih, aspect, boxW, boxH, intScale: useInt && k >= 1 ? k : 0 });
 }
 
 // Convierte coordenadas del mouse/táctil a coordenadas del HUD (hw x 240)

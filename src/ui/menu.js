@@ -20,6 +20,7 @@ const stack = [];
 let rects = [];      // zonas clickeables de ítems
 let tabRects = [];   // zonas clickeables de solapas
 let footRects = [];  // zonas clickeables de la barra de abajo
+export const customRects = [];   // zonas clickeables de pantallas propias
 
 export const menuOpen = () => stack.length > 0;
 export const topMenu = () => stack[stack.length - 1] || null;
@@ -76,6 +77,7 @@ export function menuInput() {
 
   for (const e of input.events) {
     if (topMenu() !== top) break;            // una acción abrió o cerró otro menú
+    if (top.def.onEvent && top.def.onEvent(e, top)) continue;   // pantallas con entrada propia (código de sala)
     const it = itemsOf(top)[top.sel];
     switch (e.a) {
       case 'up': move(top, -1); break;
@@ -88,7 +90,12 @@ export function menuInput() {
       case 'back': back(top); break;
       case 'click': {
         const f = hit(footRects, e.x, e.y);
-        if (f) { if (f.act === 'back') back(top); else if (f.act === 'tabNext') switchTab(top, 1); else activate(it); break; }
+        if (f) {
+          if (f.act === 'back') back(top);
+          else if (f.act === 'tabNext') switchTab(top, 1);
+          else if (!(top.def.onEvent && top.def.onEvent({ a: 'confirm' }, top))) activate(it);
+          break;
+        }
         const t = hit(tabRects, e.x, e.y);
         if (t) { if (t.i !== top.tab) { top.tab = t.i; top.sel = firstSel(top); SFX.move(); } break; }
         const r = hit(rects, e.x, e.y);
@@ -116,7 +123,8 @@ function drawValue(it, sel, vx, iy) {
     const max = it.max || 10, v = it.get();
     for (let k = 0; k < max; k++) rect(vx - (max - k) * 7, iy, 5, 8, k < v ? (sel ? COL.gold : COL.teal) : '#2a3150');
   } else if (it.kind === 'info' && it.value) {
-    txt(it.value, vx, iy, 8, COL.text, 'right');
+    const v = typeof it.value === 'function' ? it.value() : it.value;
+    txt(v, vx, iy, 8, it.valueColor ? it.valueColor() : COL.text, 'right');
   }
 }
 
@@ -162,17 +170,18 @@ function drawPanel(top, hw) {
   const tabs = def.tabs;
   const rowsMax = tabs ? Math.max(...tabs.map((t) => t.items.length)) : itemsOf(top).length;
   const items = itemsOf(top);
-  const ROW = 15;
+  const ROW = def.rowH || 15;
   const w = Math.min(hw - 24, def.width || 240);
   const titleH = def.title ? 30 : 8;
   const tabsH = tabs ? 20 : 0;
-  const h = titleH + tabsH + rowsMax * ROW + 10;
+  const headH = def.headerH || 0;
+  const h = titleH + headH + tabsH + (def.body ? def.bodyH : rowsMax * ROW) + 10;
   const x = Math.round((hw - w) / 2), y = Math.round(Math.max(20, (221 - h) / 2 + (def.offsetY || 0)));
   panel(x, y, w, h);
   if (def.title) txt(def.title, hw / 2, y + 9, 16, def.titleColor || COL.gold, 'center', COL.goldShadow);
 
   if (tabs) {
-    const ty = y + titleH;
+    const ty = y + titleH + headH;
     const widths = tabs.map((t) => textWidth(t.label, 8) + 12);
     const total = widths.reduce((a, b) => a + b, 0) + (tabs.length - 1) * 4;
     let tx = hw / 2 - total / 2;
@@ -191,7 +200,9 @@ function drawPanel(top, hw) {
     rect(x + 6, ty + 14, w - 12, 1, '#1d6e68');
   }
 
-  const y0 = y + titleH + tabsH + 4;
+  if (def.header) def.header(x, y + titleH, w, hw);
+  if (def.body) { def.body(x, y + titleH + headH, w, hw, top); return; }
+  const y0 = y + titleH + headH + tabsH + 4;
   items.forEach((it, i) => {
     const iy = y0 + i * ROW;
     const sel = i === top.sel && selectable(it);
@@ -238,7 +249,7 @@ function drawFooter(top, hw) {
 
 export function drawMenu(hw) {
   const top = topMenu(); if (!top) return;
-  rects = []; tabRects = []; footRects = [];
+  rects = []; tabRects = []; footRects = []; customRects.length = 0;
   if (top.def.style === 'big') drawBig(top, hw); else drawPanel(top, hw);
   drawFooter(top, hw);
 }

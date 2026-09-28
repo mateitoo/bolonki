@@ -2,11 +2,20 @@
 import { H, R, G, PL, PRc, BR, SMAX, SIDES, CORN, BALL, HUMAN_SPEED, rnd, clamp } from '../config.js';
 import { game, world } from '../state.js';
 import { removeBall } from '../world/balls.js';
-import { burst, dropDot, P } from '../fx/particles.js';
-import { SFX } from '../audio.js';
+import { dropDot } from '../fx/particles.js';
+import { FX } from './fx.js';
 import { aiMove } from './ai.js';
 import { input } from '../input.js';
-import { podPos, fireFrom, scoreGoal } from './match.js';
+import { podPos, fireFrom, scoreGoal, startSwing } from './match.js';
+
+// Mueve un pod hacia la velocidad pedida (tv). Lo usan el jugador local, los bots y los invitados.
+export function movePod(p, tv, dt) {
+  p.v += (tv - p.v) * Math.min(1, dt * (p.ctrl === 'local' ? 24 : 15));
+  p.s += p.v * dt;
+  if (p.s > SMAX) { p.s = SMAX; p.v = 0; }
+  if (p.s < -SMAX) { p.s = -SMAX; p.v = 0; }
+  podPos(p);
+}
 
 const playing = () => game.state === 'play' || game.state === 'title' || game.state === 'menu';
 
@@ -17,19 +26,18 @@ export function step(dt) {
   for (const p of game.players) {
     p.cd -= dt; if (p.swing > 0) p.swing -= dt;
     if (!p.alive) { p.v = 0; continue; }
-    let tv = 0;
-    if (p.human) tv = input.axis * HUMAN_SPEED;
-    else if (game.state !== 'end') tv = aiMove(p, dt);
-    p.v += (tv - p.v) * Math.min(1, dt * (p.human ? 24 : 15));
-    p.s += p.v * dt;
-    if (p.s > SMAX) { p.s = SMAX; p.v = 0; }
-    if (p.s < -SMAX) { p.s = -SMAX; p.v = 0; }
-    podPos(p);
+    if (p.ctrl === 'remote') {
+      // lo maneja un invitado: usamos la última posición que mandó
+      if (p.net) { p.s = clamp(p.net.s, -SMAX, SMAX); p.v = p.net.v; if (p.net.hit) { p.net.hit = false; if (p.cd <= 0) startSwing(p); } }
+      podPos(p); continue;
+    }
+    const tv = p.ctrl === 'local' ? input.axis * HUMAN_SPEED : p.ctrl === 'ai' && game.state !== 'end' ? aiMove(p, dt) : 0;
+    movePod(p, tv, dt);
   }
 
   if (game.state === 'count') {
     const before = Math.ceil(game.countT); game.countT -= dt; const after = Math.ceil(game.countT);
-    if (after !== before) { if (after > 0) SFX.tick(); else { SFX.go(); game.state = 'play'; } }
+    if (after !== before) { if (after > 0) FX.tick(); else { FX.go(); game.state = 'play'; } }
     return;
   }
 
@@ -47,7 +55,7 @@ export function step(dt) {
       game.spawnT -= dt;
       if (game.spawnT <= 0) {
         const ci = (Math.random() * 4) | 0;
-        game.pending = { ci, t: 0.7 }; world.chevSets[ci].warn = 0.7; SFX.warn();
+        game.pending = { ci, t: 0.7 }; FX.warn(ci);
       }
     }
   }
@@ -73,7 +81,7 @@ export function step(dt) {
           b.vx -= 2 * vn * mx; b.vz -= 2 * vn * mz;
           const a = rnd(-0.08, 0.08), ca = Math.cos(a), sa = Math.sin(a), vx = b.vx;
           b.vx = vx * ca - b.vz * sa; b.vz = vx * sa + b.vz * ca;
-          SFX.bounce();
+          FX.bounce();
         }
       }
     }
@@ -89,7 +97,7 @@ export function step(dt) {
         if (d > lim) {
           b.x -= s.nx * (d - lim); b.z -= s.nz * (d - lim);
           const vn = b.vx * s.nx + b.vz * s.nz;
-          if (vn > 0) { b.vx -= 2 * vn * s.nx; b.vz -= 2 * vn * s.nz; SFX.bounce(); }
+          if (vn > 0) { b.vx -= 2 * vn * s.nx; b.vz -= 2 * vn * s.nz; FX.bounce(); }
         }
       } else if (d > H + 0.6 && !b.fresh) {
         if (playing()) scoreGoal(i, b); else removeBall(b);
@@ -118,14 +126,13 @@ export function step(dt) {
         const aim = (p.v / HUMAN_SPEED) * 0.6;
         const ox = mx + ix * 0.9 + s.tx * aim, oz = mz + iz * 0.9 + s.tz * aim, l = Math.hypot(ox, oz);
         b.vx = (ox / l) * sp; b.vz = (oz / l) * sp; b.power = 1.4;
-        SFX.power(); burst(b.x, 0.6, b.z, { mat: P.WHITE, n: 6, sp: 5, life: [0.2, 0.4] });
-        game.shake = Math.max(game.shake, 0.15);
+        FX.power(b.x, b.z);
       } else if (rn < 0) {
         b.vx -= 2 * rn * mx; b.vz -= 2 * rn * mz; b.vx += p.vx * 0.35; b.vz += p.vz * 0.35;
         if (front) { const inn = b.vx * ix + b.vz * iz; if (inn < 5) { b.vx += ix * (5 - inn); b.vz += iz * (5 - inn); } }
         const sp = Math.hypot(b.vx, b.vz), ns = Math.min(sp * 1.03 + 0.2, BALL.maxNormal);
         b.vx *= ns / sp; b.vz *= ns / sp;
-        SFX.pod();
+        FX.pod();
       }
       const pr = PRc + BR;
       if (d < pr) { b.x = cx + mx * pr; b.z = cz + mz * pr; }
@@ -154,7 +161,7 @@ export function step(dt) {
         const d = Math.sqrt(d2), nx = dx / d, nz = dz / d, o = (rr - d) / 2;
         a.x += nx * o; a.z += nz * o; b.x -= nx * o; b.z -= nz * o;
         const rel = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz;
-        if (rel < 0) { a.vx -= rel * nx; a.vz -= rel * nz; b.vx += rel * nx; b.vz += rel * nz; SFX.bounce(); }
+        if (rel < 0) { a.vx -= rel * nx; a.vz -= rel * nz; b.vx += rel * nx; b.vz += rel * nz; FX.bounce(); }
       }
     }
   }

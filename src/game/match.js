@@ -1,28 +1,44 @@
-// Reglas de la partida: reinicio, disparos de torre, goles y eliminaciones.
+// Reglas de la partida: armado, disparos de torre, goles y eliminaciones.
+//
+// Cada lugar de la arena tiene un "control":
+//   'local'  -> lo maneja quien está en esta máquina
+//   'ai'     -> bot
+//   'remote' -> (anfitrión) lo maneja un invitado por red
+//   'net'    -> (invitado) lo mueve el anfitrión con sus snapshots
+//   'none'   -> lugar vacío: el arco queda cerrado con la barrera y la pelota rebota
 import { CORN, R, PD, BALL, rnd } from '../config.js';
 import { settings } from '../settings.js';
 import { game, world } from '../state.js';
 import { resetPodVisual } from '../world/pods.js';
 import { removeBall } from '../world/balls.js';
-import { burst, P } from '../fx/particles.js';
-import { SFX } from '../audio.js';
 import { pickDeath } from '../deaths/index.js';
+import { FX } from './fx.js';
 
-export function resetMatch(mode) {
+export function soloSetup() { return { ctrl: ['local', 'ai', 'ai', 'ai'], me: 0, points: settings.points }; }
+const demoSetup = () => ({ ctrl: ['ai', 'ai', 'ai', 'ai'], me: -1, points: 15 });
+
+export function resetMatch(mode, setup) {
   const demo = mode === 'title' || mode === 'menu';
+  const cfg = setup || (demo ? demoSetup() : soloSetup());
   Object.assign(game, {
     state: mode, elapsed: 0, spawnT: 0.8, pending: null, winner: -1, timeScale: 1, slowT: 0, slowK: 1,
     humanOut: false, pendingEnd: false, demoResetT: 0, camFocusTarget: 0, showcaseT: 0,
-  });
-  game.players.forEach((p) => {
-    Object.assign(p, { score: demo ? 15 : settings.points, alive: true, s: 0, v: 0, swing: 0, cd: 0, flash: 0, death: null, spin: 0 });
-    p.human = !demo && p.i === 0;
-    resetPodVisual(p);
+    me: cfg.me, setup: cfg,
   });
   world.barriers.forEach((b) => (b.y = -3));
+  game.players.forEach((p) => {
+    const ctrl = cfg.ctrl[p.i];
+    Object.assign(p, {
+      ctrl, empty: ctrl === 'none', alive: ctrl !== 'none', score: ctrl === 'none' ? 0 : cfg.points,
+      s: 0, v: 0, swing: 0, cd: 0, flash: 0, death: null, spin: 0, hitDone: false,
+    });
+    resetPodVisual(p);
+    if (p.empty) { p.mesh.root.visible = false; world.barriers[p.i].y = 0.55; }
+    podPos(p);
+  });
   world.chevSets.forEach((c) => (c.warn = 0));
   game.balls.forEach(removeBall);
-  if (mode === 'count') { game.countT = 3.999; SFX.tick(); }
+  if (mode === 'count') { game.countT = 3.999; FX.tick(); }
 }
 
 export function podPos(p) {
@@ -43,27 +59,24 @@ export function fireFrom(ci) {
   Object.assign(b, { on: true, x: c[0] + dx * (R - 0.3), z: c[1] + dz * (R - 0.3), fresh: true, power: 0, trailT: 0 });
   const sp = rnd(BALL.launchMin, BALL.launchMax); b.vx = ux * sp; b.vz = uz * sp;
   b.mesh.visible = true; b.sh.visible = true;
-  world.towers[ci].flash = 0.3; SFX.fire();
-  burst(b.x, 0.8, b.z, { mat: P.RED, n: 5, sp: 3, up: [1, 3], life: [0.15, 0.3] });
+  FX.fire(ci, b.x, b.z);
 }
 
 export function scoreGoal(i, b) {
   const p = game.players[i];
   removeBall(b);
-  p.score = Math.max(0, p.score - 1); p.flash = 0.6; world.goalLasers[i].t = 0.4;
-  burst(b.x, 0.5, b.z, { mat: i, n: 12, sp: 6 }); game.shake = Math.max(game.shake, 0.3);
-  SFX.goal();
+  p.score = Math.max(0, p.score - 1);
+  FX.goal(i, b.x, b.z);
   if (p.score === 0) eliminate(i);
 }
 
 export function eliminate(i, forcedAnim) {
   const p = game.players[i]; if (!p.alive) return;
   p.alive = false; p.score = 0;
-  world.barriers[i].y = 0.55; game.shake = Math.max(game.shake, 0.5);
   const anim = forcedAnim || pickDeath(settings.deathId);
-  p.death = { anim, t: 0, st: {}, done: false };
-  anim.start(p, p.death.st);
-  if (p.human) { game.slowT = 1.4; game.slowK = 0.35; game.camFocusTarget = 0.55; game.focus.x = p.x; game.focus.z = p.z; }
+  FX.elim(i, anim.id);
+  // cámara lenta: fuerte si perdiste vos jugando solo, cortita en el resto de los casos
+  if (i === game.me && game.online === 'off') { game.slowT = 1.4; game.slowK = 0.35; }
   else { game.slowT = Math.max(game.slowT, 0.35); game.slowK = Math.min(game.slowK, 0.6); }
   const alive = game.players.filter((q) => q.alive);
   if (alive.length <= 1) { game.winner = alive.length ? alive[0].i : i; game.pendingEnd = true; }

@@ -23,6 +23,7 @@ function pcircle(cx, cy, r, col) {
 }
 function face(i, x, y) {
   const ch = CHARS[i], p = game.players[i];
+  if (p.empty) { rect(x, y, 24, 24, '#000'); rect(x + 1, y + 1, 22, 22, '#20263a'); rect(x + 6, y + 11, 12, 2, '#3a4570'); return; }
   rect(x, y, 24, 24, '#000');
   rect(x + 1, y + 1, 22, 22, p.flash > 0 && ((game.clock * 16) | 0) % 2 ? '#fff' : ch.col);
   rect(x + 2, y + 2, 20, 20, ch.dark);
@@ -43,8 +44,10 @@ function drawScores(hw, st) {
   for (const [x, i] of pos) {
     face(i, x, 3);
     const p = game.players[i];
-    txt(String(p.score).padStart(2, '0'), x + 12, 29, 16, p.alive ? COL.gold : '#555b6e', 'center', COL.goldShadow);
-    if (i === 0 && st !== 'title' && st !== 'menu') txt('1P', x + 12, 48, 8, CHARS[0].col, 'center');
+    txt(p.empty ? '--' : String(p.score).padStart(2, '0'), x + 12, 29, 16, p.alive ? COL.gold : '#555b6e', 'center', COL.goldShadow);
+    // quién maneja cada lugar
+    const tag = i === game.me ? 'VOS' : p.empty ? '' : p.ctrl === 'ai' || (p.ctrl === 'net' && p.isBot) ? 'CPU' : 'JUG';
+    if (tag) txt(tag, x + 12, 48, 8, i === game.me ? CHARS[i].col : COL.dim, 'center');
   }
 }
 
@@ -53,7 +56,7 @@ function drawTitle(hw) {
   rect(0, 78, hw, 104, COL.dark);
   rect(0, 78, hw, 1, '#1d6e68'); rect(0, 181, hw, 1, '#1d6e68');
   txt('BOLONKI', hw / 2, 94, 32, COL.gold, 'center', COL.goldShadow);
-  if (blink) txt(input.device === 'gamepad' ? 'PULSA START' : 'PULSA ENTER', hw / 2, 144, 8, COL.white, 'center');
+  if (blink) txt(input.device === 'gamepad' ? 'PULSA CUALQUIER BOTÓN' : 'PULSA CUALQUIER TECLA', hw / 2, 144, 8, COL.white, 'center');
   txt('PARTY GAME DE ARENA · 4 JUGADORES', hw / 2, 162, 8, COL.teal, 'center');
 }
 
@@ -70,11 +73,14 @@ export function drawHud() {
   else if (st === 'count') {
     const n = Math.ceil(game.countT);
     txt(n > 0 ? String(n) : '¡YA!', hw / 2, 100, 32, COL.gold, 'center', COL.goldShadow);
-    txt(`CPU: ${DIFFICULTIES[game.difficulty].label}`, hw / 2, 142, 8, COL.teal, 'center');
+    const bots = game.players.some((p) => p.ctrl === 'ai' || p.isBot);
+    if (bots) txt(`CPU: ${DIFFICULTIES[game.difficulty].label}`, hw / 2, 142, 8, COL.teal, 'center');
+    if (game.online !== 'off') txt('PARTIDA ONLINE', hw / 2, 156, 8, COL.dim, 'center');
   }
   if (st === 'play' && game.humanOut) {
     txt('ELIMINADO', hw / 2, 190, 16, COL.red, 'center');
-    if (blink) txt(input.device === 'gamepad' ? 'A: REINTENTAR   START: PAUSA' : 'ENTER: REINTENTAR   ESC: PAUSA', hw / 2, 212, 8, COL.white, 'center');
+    if (game.online !== 'off') txt('MIRANDO LA PARTIDA', hw / 2, 212, 8, COL.dim, 'center');
+    else if (blink) txt(input.device === 'gamepad' ? 'A: REINTENTAR   START: PAUSA' : 'ENTER: REINTENTAR   ESC: PAUSA', hw / 2, 212, 8, COL.white, 'center');
   }
   if (st === 'play' && game.elapsed < 3 && !game.humanOut) {
     txt('TU ARCO', hw / 2, 170, 8, '#ffb31a', 'center');

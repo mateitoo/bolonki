@@ -18,11 +18,27 @@ Abre en la pantalla de título; al pulsar Enter/Start pasa a pantalla completa (
 
 También se puede usar el mouse en los menús, y en el celular aparecen botones táctiles.
 
+## Modos
+
+- **Solitario:** vos contra 3 bots (dificultad y puntos a elección).
+- **Multijugador → Crear sala:** te da un código de 4 letras para compartir. Hasta 4 jugadores. Elegís si hay bots en los lugares libres (y su dificultad) y a cuántos puntos se juega. Sin bots, los lugares vacíos quedan con el arco cerrado por la barrera y la pelota rebota ahí.
+- **Multijugador → Unirse a sala:** escribís el código (con teclado, o letra por letra con la cruceta).
+
+Cada jugador ve su propio arco abajo (la cámara se rota según su lugar).
+
+### Cómo funciona la red
+
+Es de navegador a navegador (WebRTC con [PeerJS](https://peerjs.com)). Quien crea la sala es el anfitrión: su máquina corre la partida
+(pelotas, goles, bots) y manda el estado 20 veces por segundo; cada invitado manda la posición de su nave 30 veces por segundo y
+dibuja 100 ms "en el pasado" para que todo se vea suave. Para encontrarse usa el servidor público gratuito de PeerJS.
+
+Para probar sin internet: `npm run peer` y abrir el juego con `?peer=127.0.0.1:9000` en dos pestañas.
+
 ## Opciones
 
 Menú principal a pantalla completa (Jugar, Opciones y Salir en la esquina). Las opciones van en solapas y en ningún menú hay fila "Volver": se vuelve con B / Esc o tocando VOLVER en la barra de abajo.
 
-- **Video:** pantalla completa, aspecto (panorámico o 4:3), calidad (240p, 480p o nítida), escalado entero, scanlines.
+- **Video:** pantalla completa, aspecto (panorámico o 4:3), calidad (240p, 480p o nítida), escalado entero (automático, sí o no), scanlines.
 - **Audio:** volumen de efectos.
 - **Partida:** dificultad de la CPU (fácil, intermedio, difícil, extremo) y puntos (5, 10 o 15).
 - **Extras:** animación de derrota y "ver derrota en CPU".
@@ -74,6 +90,10 @@ src/
   display.js         resolución, relación de aspecto y pantalla completa
   settings.js        opciones guardadas
   flow.js            título, menús, partida, pausa y fin
+  multiplayer.js     menús de sala: crear, unirse con código, sala de espera, fin online
+  net/room.js        conexión PeerJS, código de sala, lugares y opciones
+  net/online.js      sincronización: snapshots del anfitrión e interpolación del invitado
+  game/fx.js         efectos como eventos (se reproducen igual en todas las máquinas)
   ui/menu.js         motor de menús: lista grande, ventana y solapas; barra de botones al pie
   ui/draw.js         dibujo pixel del HUD y menús
   audio.js           sonidos sintetizados

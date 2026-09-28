@@ -2,6 +2,9 @@
 export const game = {
   state: 'title',          // title | menu | count | play | paused | end  (title y menu corren la demo)
   difficulty: 'intermedio',
+  online: 'off',           // off | host | guest
+  me: -1,                  // lugar (0-3) del jugador de esta máquina; -1 en la demo
+  setup: null,             // configuración de la partida actual (control de cada lugar, puntos)
   countT: 0,
   elapsed: 0,
   spawnT: 0,

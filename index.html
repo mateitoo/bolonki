@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bola Brava</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Chakra+Petch:wght@400;600&display=swap">
+  <link rel="stylesheet" href="./src/style.css">
+  <!-- three-cdn -->
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>BOLA BRAVA</h1>
+    <span class="tag">v0.3 · 320×240</span>
+  </header>
+
+  <div class="stage" id="stage" tabindex="0" aria-label="Juego: Bola Brava">
+    <canvas id="gl"></canvas>
+    <canvas id="hud" width="320" height="240"></canvas>
+  </div>
+
+  <div class="touch" id="touch">
+    <div class="dir">
+      <button id="tl" aria-label="Izquierda">◀</button>
+      <button id="tr" aria-label="Derecha">▶</button>
+    </div>
+    <button id="th" class="hit" aria-label="Golpe">GOLPE</button>
+  </div>
+
+  <div class="bar">
+    <div class="keys">
+      <span><kbd>←</kbd><kbd>→</kbd> mover</span>
+      <span><kbd>ESPACIO</kbd> golpe fuerte</span>
+      <span><kbd>P</kbd> pausa</span>
+      <span><kbd>R</kbd> reiniciar</span>
+    </div>
+    <div class="toggles">
+      <label for="sDiff">CPU</label>
+      <select id="sDiff">
+        <option value="facil">FÁCIL</option>
+        <option value="intermedio">INTERMEDIO</option>
+        <option value="dificil">DIFÍCIL</option>
+        <option value="extremo">EXTREMO</option>
+      </select>
+      <label for="sDeath">Derrota</label>
+      <select id="sDeath">
+        <option value="random">ALEATORIA</option>
+      </select>
+      <button id="bTest" class="test">PROBAR EN CPU</button>
+      <button id="bPsx" aria-pressed="true">MODO PS1</button>
+      <button id="bSnd" aria-pressed="true">SONIDO</button>
+    </div>
+  </div>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

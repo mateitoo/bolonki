@@ -5,7 +5,7 @@ import { removeBall } from '../world/balls.js';
 import { dropDot } from '../fx/particles.js';
 import { FX } from './fx.js';
 import { aiMove } from './ai.js';
-import { input } from '../input.js';
+import { localAxis } from './controls.js';
 import { podPos, fireFrom, scoreGoal, startSwing } from './match.js';
 
 // Mueve un pod hacia la velocidad pedida (tv). Lo usan el jugador local, los bots y los invitados.
@@ -31,7 +31,7 @@ export function step(dt) {
       if (p.net) { p.s = clamp(p.net.s, -SMAX, SMAX); p.v = p.net.v; if (p.net.hit) { p.net.hit = false; if (p.cd <= 0) startSwing(p); } }
       podPos(p); continue;
     }
-    const tv = p.ctrl === 'local' ? input.axis * HUMAN_SPEED : p.ctrl === 'ai' && game.state !== 'end' ? aiMove(p, dt) : 0;
+    const tv = p.ctrl === 'local' ? localAxis(p) * HUMAN_SPEED : p.ctrl === 'ai' && game.state !== 'end' ? aiMove(p, dt) : 0;
     movePod(p, tv, dt);
   }
 

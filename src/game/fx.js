@@ -39,7 +39,8 @@ export const FX = {
     world.barriers[i].y = 0.55; game.shake = Math.max(game.shake, 0.5);
     p.death = { anim, t: 0, st: {}, done: false };
     anim.start(p, p.death.st);
-    if (i === game.me) { game.camFocusTarget = 0.55; game.focus.x = p.x; game.focus.z = p.z; }
+    // la cámara se acerca a tu nave (no en el local: los demás siguen jugando en la misma pantalla)
+    if (i === game.me && game.mode !== 'local') { game.camFocusTarget = 0.55; game.focus.x = p.x; game.focus.z = p.z; }
     emit(['e', i, anim.id]);
   },
 };

@@ -1,13 +1,13 @@
 // Partida online: el anfitrión simula y manda snapshots; el invitado los interpola y mueve su propia nave.
 import { HUMAN_SPEED, clamp } from '../config.js';
-import { game } from '../state.js';
-import { room, broadcast, broadcastLobby, sendInput, slotKinds } from './room.js';
+import { game, world } from '../state.js';
+import { room, broadcast, broadcastLobby, sendInput, slotKinds, resetLobbyFlags } from './room.js';
 import { resetMatch, podPos, startSwing, eliminate } from '../game/match.js';
 import { setRecording, outbox, playEvent } from '../game/fx.js';
 import { movePod } from '../game/physics.js';
 import { removeBall } from '../world/balls.js';
 import { dropDot } from '../fx/particles.js';
-import { input } from '../input.js';
+import { localAxis } from '../game/controls.js';
 
 const SNAP_RATE = 1 / 20;    // snapshots por segundo que manda el anfitrión
 const SEND_RATE = 1 / 30;    // posición propia que manda el invitado
@@ -21,15 +21,19 @@ let snapT = 0;
 
 export function hostStart() {
   const kinds = slotKinds();
+  const names = room.slots.map((s) => (s.kind === 'empty' ? null : s.name));
   const setup = {
+    mode: 'online', names,
     ctrl: kinds.map((k, i) => (i === 0 ? 'local' : k === 'guest' ? 'remote' : k === 'bot' ? 'ai' : 'none')),
     me: 0, points: room.opts.points,
   };
-  room.inGame = true;
+  room.inGame = true; room.votes = [];
   game.online = 'host';
   game.difficulty = room.opts.difficulty;
   setRecording(true);
-  broadcast({ t: 'start', kinds, points: room.opts.points, difficulty: room.opts.difficulty });
+  room.startInfo = { t: 'start', kinds, names, points: room.opts.points, difficulty: room.opts.difficulty };
+  broadcast(room.startInfo);
+  broadcast({ t: 'votes', v: [] });
   broadcastLobby();
   resetMatch('count', setup);
   game.players.forEach((p) => { p.net = room.guests.get(p.i) || null; p.isBot = kinds[p.i] === 'bot'; });
@@ -45,6 +49,7 @@ export function hostTick(rdt) {
     p: game.players.map((p) => [r2(p.s), r1(p.v), p.alive ? 1 : 0, p.score, p.swing > 0 ? 1 : 0]),
     b: game.balls.map((b) => (b.on ? [r2(b.x), r2(b.z), b.power > 0 ? 1 : 0] : 0)),
     ev: outbox.splice(0),
+    pg: room.slots.map((s) => (s && s.ping) || 0),
   });
 }
 
@@ -58,6 +63,7 @@ export function hostGuestLeft(slot) {
 
 export function hostBackToLobby() {
   room.inGame = false;
+  resetLobbyFlags();
   broadcast({ t: 'toLobby' });
   broadcastLobby();
   endOnline();
@@ -68,10 +74,13 @@ export function endOnline() { setRecording(false); game.online = 'off'; }
 /* ================= INVITADO ================= */
 const buf = [];      // snapshots recibidos { time, m }
 const evq = [];      // eventos a reproducir { time, ev }
-let sendT = 0, hitCount = 0;
+let sendT = 0, hitCount = 0, resumed = false;
 
 export function guestStart(m) {
+  // volvió después de un corte: la partida sigue, solo se limpia lo recibido
+  if (m.resume && game.online === 'guest') { buf.length = 0; evq.length = 0; resumed = true; return; }
   const setup = {
+    mode: 'online', names: m.names || null,
     ctrl: m.kinds.map((k, i) => (i === room.mySlot ? 'local' : k === 'none' ? 'none' : 'net')),
     me: room.mySlot, points: m.points,
   };
@@ -121,12 +130,16 @@ export function guestFrame(rdt) {
     game.players.forEach((p, i) => {
       const pa = A.p[i], pb = Bm.p[i];
       p.alive = !!pa[2]; p.score = pa[3];
+      // eliminado antes de que llegaras (al reconectarte): arco cerrado sin animación
+      if (resumed && !p.alive && !p.death && !p.empty) { p.death = { anim: { dur: 0, update() {} }, t: 0, st: {}, done: true }; p.mesh.root.visible = false; world.barriers[i].y = 0.55; }
       if (p.ctrl !== 'net') return;
       p.s = pa[0] + (pb[0] - pa[0]) * f; p.v = pa[1];
       if (pa[4] && !(p.swing > 0)) p.spin = 1;
       p.swing = pa[4] ? 0.1 : 0;
       podPos(p);
     });
+
+    resumed = false;
 
     // pelotas
     game.balls.forEach((ball, k) => {
@@ -147,7 +160,7 @@ export function guestFrame(rdt) {
   if (me) {
     me.cd -= rdt; if (me.swing > 0) me.swing -= rdt;
     const canMove = me.alive && (game.state === 'play' || game.state === 'count');
-    movePod(me, canMove ? input.axis * HUMAN_SPEED : 0, rdt);
+    movePod(me, canMove ? localAxis(me) * HUMAN_SPEED : 0, rdt);
     sendT -= rdt;
     if (sendT <= 0) { sendT = SEND_RATE; sendInput(me.s, me.v, hitCount); }
   }

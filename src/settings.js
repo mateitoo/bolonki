@@ -6,13 +6,16 @@ const KEY = 'bolonki:settings';
 export const DEFAULTS = {
   fullscreen: true,      // pedir pantalla completa al empezar
   aspect: 'wide',        // 'wide' (se adapta a la pantalla) | '4:3'
-  quality: '240',        // '240' (auténtico) | '480' | 'sharp' (nítida, resolución completa)
+  quality: '480',        // '240' (auténtico) | '480' | 'sharp' (HD, resolución completa)
   integer: 'auto',       // escalado entero: 'auto' (solo si entra justo) | true | false
   scanlines: true,
   sfx: 8,                // volumen de efectos 0..10
   difficulty: 'intermedio',
   points: 15,
   deathId: 'random',
+  name: '',              // apodo para el online (vacío = se pide la primera vez)
+  localPlayers: 2,       // multijugador local: cantidad de jugadores
+  localBots: true,       // multijugador local: bots en los lugares libres
 };
 
 function load() {
@@ -29,6 +32,8 @@ function load() {
 export const settings = Object.assign({}, DEFAULTS, load());
 // v0.5: el escalado entero pasa a ser automático por defecto
 if (!settings.v) { settings.integer = 'auto'; settings.v = 5; }
+// v0.6: 480p pasa a ser la calidad por defecto
+if (settings.v < 6) { if (settings.quality === '240') settings.quality = '480'; settings.v = 6; }
 if (!DIFF_ORDER.includes(settings.difficulty)) settings.difficulty = DEFAULTS.difficulty;
 
 export function saveSettings() {

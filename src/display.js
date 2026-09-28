@@ -77,7 +77,9 @@ export function enterFullscreen() {
   const el = document.documentElement;
   try {
     const p = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : null;
-    if (p && p.catch) p.catch(() => {});
+    // en Chrome/Edge el juego "atrapa" el teclado: Esc pausa (se mantiene apretado para salir)
+    // y atajos como Ctrl+W no cierran la pestaña en medio de la partida
+    if (p && p.then) p.then(() => { try { if (navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock().catch(() => {}); } catch (e) { /* nada */ } }).catch(() => {});
   } catch (e) { /* el navegador no lo permite acá */ }
 }
 export function exitFullscreen() {

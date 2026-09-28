@@ -6,6 +6,9 @@ import { view } from './display.js';
 import { ui, txt, rect, tri, COL, PX } from './ui/draw.js';
 import { drawMenu, menuOpen } from './ui/menu.js';
 import { input } from './input.js';
+import { camera } from './render/psx.js';
+import { room } from './net/room.js';
+import * as THREE from 'three';
 
 let hx = null;
 const toast = { text: '', t: 0 };
@@ -46,8 +49,28 @@ function drawScores(hw, st) {
     const p = game.players[i];
     txt(p.empty ? '--' : String(p.score).padStart(2, '0'), x + 12, 29, 16, p.alive ? COL.gold : '#555b6e', 'center', COL.goldShadow);
     // quién maneja cada lugar
-    const tag = i === game.me ? 'VOS' : p.empty ? '' : p.ctrl === 'ai' || (p.ctrl === 'net' && p.isBot) ? 'CPU' : 'JUG';
-    if (tag) txt(tag, x + 12, 48, 8, i === game.me ? CHARS[i].col : COL.dim, 'center');
+    const bot = p.ctrl === 'ai' || (p.ctrl === 'net' && p.isBot);
+    const tag = game.mode === 'local' ? (p.empty ? '' : bot ? 'CPU' : p.name)
+      : i === game.me ? 'VOS' : p.empty ? '' : bot ? 'CPU' : 'JUG';
+    const mine = game.mode === 'local' ? !bot && !p.empty : i === game.me;
+    if (tag) txt(tag, x + 12, 48, 8, mine ? CHARS[i].col : COL.dim, 'center');
+  }
+}
+
+export const pingColor = (ms) => (ms < 90 ? '#39d98a' : ms < 170 ? '#ffd23a' : COL.red);
+
+// Nombre arriba de cada nave: J1..J4 en el local, apodos en el online (menos el tuyo)
+const v3 = new THREE.Vector3();
+function drawNameTags(hw, st) {
+  if (game.mode !== 'local' && game.mode !== 'online') return;
+  if (st !== 'play' && st !== 'count' && st !== 'end' && st !== 'paused') return;
+  for (const p of game.players) {
+    if (p.empty || !p.name || (p.death && p.death.done)) continue;
+    if (game.mode === 'online' && p.i === game.me) continue;
+    v3.set(p.x, 4.1, p.z).project(camera);
+    if (v3.z > 1) continue;
+    const x = Math.round((v3.x + 1) / 2 * hw), y = Math.round((1 - v3.y) / 2 * 240) - 4;
+    txt(p.name, x, Math.max(58, Math.min(214, y)), 8, CHARS[p.i].col, 'center');
   }
 }
 
@@ -82,9 +105,16 @@ export function drawHud() {
     if (game.online !== 'off') txt('MIRANDO LA PARTIDA', hw / 2, 212, 8, COL.dim, 'center');
     else if (blink) txt(input.device === 'gamepad' ? 'A: REINTENTAR   START: PAUSA' : 'ENTER: REINTENTAR   ESC: PAUSA', hw / 2, 212, 8, COL.white, 'center');
   }
-  if (st === 'play' && game.elapsed < 3 && !game.humanOut) {
+  if (st === 'play' && game.elapsed < 3 && !game.humanOut && game.mode !== 'local') {
     txt('TU ARCO', hw / 2, 170, 8, '#ffb31a', 'center');
     tri(hw / 2 - 4, 182, 'd', '#ffb31a');
+  }
+  if (!demo) drawNameTags(hw, st);
+  if (game.online === 'guest' && room.status === 'reconnecting' && blink) txt('RECONECTANDO...', hw / 2, 120, 16, COL.red, 'center');
+  // tu ping con el anfitrión (online, como invitado)
+  if (game.online === 'guest' && (st === 'play' || st === 'count')) {
+    const ms = room.myPing || 0;
+    txt(`${ms} MS`, hw - 8, 228, 8, pingColor(ms), 'right');
   }
 
   if (menuOpen() && !(game.showcaseT > 0)) {

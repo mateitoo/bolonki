@@ -27,6 +27,7 @@ export const topMenu = () => stack[stack.length - 1] || null;
 
 const itemsOf = (e) => (e.def.tabs ? e.def.tabs[e.tab].items : e.def.items).filter((it) => !(it.hidden && it.hidden()));
 const selectable = (it) => it.kind !== 'info';
+const L = (it) => (typeof it.label === 'function' ? it.label() : it.label);   // el texto puede cambiar en vivo
 function firstSel(e) { const v = itemsOf(e); return Math.max(0, v.findIndex(selectable)); }
 
 export function openMenu(def) { const e = { def, sel: 0, tab: 0 }; e.sel = firstSel(e); stack.push(e); }
@@ -122,9 +123,9 @@ function drawValue(it, sel, vx, iy) {
   } else if (it.kind === 'slider') {
     const max = it.max || 10, v = it.get();
     for (let k = 0; k < max; k++) rect(vx - (max - k) * 7, iy, 5, 8, k < v ? (sel ? COL.gold : COL.teal) : '#2a3150');
-  } else if (it.kind === 'info' && it.value) {
+  } else if ((it.kind === 'info' || it.kind === 'action') && it.value) {
     const v = typeof it.value === 'function' ? it.value() : it.value;
-    txt(v, vx, iy, 8, it.valueColor ? it.valueColor() : COL.text, 'right');
+    txt(v, vx, iy, 8, it.valueColor ? it.valueColor() : sel ? COL.white : COL.text, 'right');
   }
 }
 
@@ -140,16 +141,16 @@ function drawBig(top, hw) {
     const y = 96 + k * 32;
     const sel = i === top.sel;
     if (sel) {
-      const w = textWidth(it.label, 24) + 44, x = hw / 2 - w / 2, jump = Math.abs(Math.sin(ui.clock * 5)) * -2;
+      const w = textWidth(L(it), 24) + 44, x = hw / 2 - w / 2, jump = Math.abs(Math.sin(ui.clock * 5)) * -2;
       rect(x, y - 7 + jump, w, 38, 'rgba(6,10,22,.9)');
       rect(x, y - 7 + jump, w, 2, COL.gold); rect(x, y + 29 + jump, w, 2, COL.gold);
       rect(x, y - 7 + jump, 2, 38, COL.gold); rect(x + w - 2, y - 7 + jump, 2, 38, COL.gold);
       tri(x + 10, y + 8 + jump, 'r', COL.gold);
-      txt(it.label, hw / 2 + 6, y + jump, 24, COL.white, 'center', COL.goldShadow);
+      txt(L(it), hw / 2 + 6, y + jump, 24, COL.white, 'center', COL.goldShadow);
       rects.push({ i, x, y: y - 7, w, h: 38 });
     } else {
-      const w = textWidth(it.label, 16);
-      txt(it.label, hw / 2, y + 4, 16, COL.text, 'center');
+      const w = textWidth(L(it), 16);
+      txt(L(it), hw / 2, y + 4, 16, COL.text, 'center');
       rects.push({ i, x: hw / 2 - w / 2 - 10, y: y - 2, w: w + 20, h: 26 });
     }
   });
@@ -178,7 +179,8 @@ function drawPanel(top, hw) {
   const h = titleH + headH + tabsH + (def.body ? def.bodyH : rowsMax * ROW) + 10;
   const x = Math.round((hw - w) / 2), y = Math.round(Math.max(20, (221 - h) / 2 + (def.offsetY || 0)));
   panel(x, y, w, h);
-  if (def.title) txt(def.title, hw / 2, y + 9, 16, def.titleColor || COL.gold, 'center', COL.goldShadow);
+  const title = typeof def.title === 'function' ? def.title() : def.title;
+  if (title) txt(title, hw / 2, y + 9, textWidth(title, 16) > w - 16 ? 8 : 16, def.titleColor || COL.gold, 'center', COL.goldShadow);
 
   if (tabs) {
     const ty = y + titleH + headH;
@@ -210,9 +212,9 @@ function drawPanel(top, hw) {
       rect(x + 4, iy - 3, w - 8, ROW - 1, 'rgba(45,224,200,.16)');
       if (((ui.clock * 3) | 0) % 2 === 0) tri(x + 9, iy, 'r', COL.teal);
     }
-    const centered = it.kind === 'action' && !it.left;
-    const col = it.kind === 'info' ? COL.dim : sel ? (it.danger ? COL.red : COL.white) : COL.text;
-    txt(it.label, centered ? hw / 2 : x + 20, iy, 8, col, centered ? 'center' : 'left');
+    const centered = it.kind === 'action' && !it.left && !it.value;
+    const col = it.labelColor ? it.labelColor() : it.kind === 'info' ? COL.dim : sel ? (it.danger ? COL.red : COL.white) : COL.text;
+    txt(L(it), centered ? hw / 2 : x + 20, iy, 8, col, centered ? 'center' : 'left');
     drawValue(it, sel, x + w - 14, iy);
     if (selectable(it)) rects.push({ i, x: x + 4, y: iy - 3, w: w - 8, h: ROW - 1 });
   });
@@ -251,5 +253,5 @@ export function drawMenu(hw) {
   const top = topMenu(); if (!top) return;
   rects = []; tabRects = []; footRects = []; customRects.length = 0;
   if (top.def.style === 'big') drawBig(top, hw); else drawPanel(top, hw);
-  drawFooter(top, hw);
+  if (!top.def.noFooter) drawFooter(top, hw);   // el menú principal no lleva barra de botones
 }

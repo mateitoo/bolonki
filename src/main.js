@@ -8,7 +8,7 @@ import { buildPod } from './world/pods.js';
 import { buildBalls } from './world/balls.js';
 import { initParticles } from './fx/particles.js';
 import { ensureAudio } from './audio.js';
-import { resetMatch, deathsRunning } from './game/match.js';
+import { resetMatch, deathsRunning, eliminate } from './game/match.js';
 import { step } from './game/physics.js';
 import { updateVisuals } from './visuals.js';
 import { initHud, drawHud, showToast } from './hud.js';
@@ -16,7 +16,7 @@ import { initDisplay, toHud, toggleFullscreen } from './display.js';
 import { input, initInput, pollInput, bindTouch, pushEvent } from './input.js';
 import { initFlow, updateFlow, onMatchEnd, inDemo } from './flow.js';
 import { hostTick, guestFrame } from './net/online.js';
-import { room } from './net/room.js';
+import { room, browse } from './net/room.js';
 import { settings, saveSettings } from './settings.js';
 
 const stage = document.getElementById('stage');
@@ -46,7 +46,7 @@ initInput(stage, {
 });
 bindTouch('tl', () => (input.touch.l = true), () => (input.touch.l = false));
 bindTouch('tr', () => (input.touch.r = true), () => (input.touch.r = false));
-bindTouch('th', () => pushEvent('hit'));
+bindTouch('th', () => (input.touch.hit = true));
 bindTouch('tp', () => pushEvent('pause'));
 document.addEventListener('fullscreenchange', () => {
   // si el jugador sale de pantalla completa con ESC, lo recordamos
@@ -97,7 +97,7 @@ function frame(now) {
 
   // tu nave terminó su animación de derrota: queda el cartel de ELIMINADO (y solo, se acelera el resto)
   const me = game.players[game.me];
-  if (me && game.state === 'play' && !game.humanOut && !me.alive && me.death && me.death.done && !game.pendingEnd) {
+  if (me && game.mode !== 'local' && game.state === 'play' && !game.humanOut && !me.alive && me.death && me.death.done && !game.pendingEnd) {
     game.humanOut = true; if (game.online === 'off') game.timeScale = 1.7;
   }
 
@@ -114,4 +114,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // ?debug en la URL deja el estado a mano en la consola (para pruebas)
-try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { game, room, settings }; } catch (e) { /* nada */ }
+try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { game, room, browse, settings, eliminate }; } catch (e) { /* nada */ }

@@ -10,7 +10,7 @@ Abre en la pantalla de título; al pulsar Enter/Start pasa a pantalla completa (
 | Acción | Teclado | Joystick |
 |---|---|---|
 | Mover / navegar menús | Flechas o WASD | Stick izquierdo o cruceta |
-| Aceptar / golpe fuerte | Enter / Espacio | A (golpe también con X) |
+| Aceptar / golpe fuerte | Enter / Espacio / Ctrl | A (golpe también con X) |
 | Volver | Esc / Backspace | B |
 | Pausa | Esc / P | Start |
 | Cambiar solapa (Opciones) | Q / E | LB / RB |
@@ -21,8 +21,14 @@ También se puede usar el mouse en los menús, y en el celular aparecen botones 
 ## Modos
 
 - **Solitario:** vos contra 3 bots (dificultad y puntos a elección).
-- **Multijugador → Crear sala:** te da un código de 4 letras para compartir. Hasta 4 jugadores. Elegís si hay bots en los lugares libres (y su dificultad) y a cuántos puntos se juega. Sin bots, los lugares vacíos quedan con el arco cerrado por la barrera y la pelota rebota ahí.
+- **Multijugador → Local:** 2 a 4 jugadores en la misma compu. J1 usa flechas + espacio/ctrl (o joystick 1), J2 usa WASD + E/Q (o joystick 2), J3 y J4 usan los joysticks 3 y 4. Los lugares libres pueden tener bots o quedar con el arco cerrado. Los controles son relativos a la pantalla: los de arriba y abajo se mueven con izquierda/derecha, los de los costados con arriba/abajo.
+- **Multijugador → Crear sala:** te da un código de 4 letras. Hasta 4 jugadores; bots sí/no (y su dificultad), puntos y sala privada o pública. Sin bots, los lugares vacíos quedan con el arco cerrado.
 - **Multijugador → Unirse a sala:** escribís el código (con teclado, o letra por letra con la cruceta).
+- **Multijugador → Salas públicas:** lista de salas abiertas para entrar sin código.
+- **Apodo:** se pide la primera vez que entrás al online y se ve en la sala y arriba de tu nave.
+
+En la sala cada invitado marca **LISTO** y se ve el **ping** de cada uno. Al terminar, la **revancha se vota**: cuando votan todos, arranca sola.
+Si a alguien se le corta la conexión, se le guarda el lugar 12 segundos y el juego intenta **reconectarlo** solo.
 
 Cada jugador ve su propio arco abajo (la cámara se rota según su lugar).
 
@@ -32,13 +38,16 @@ Es de navegador a navegador (WebRTC con [PeerJS](https://peerjs.com)). Quien cre
 (pelotas, goles, bots) y manda el estado 20 veces por segundo; cada invitado manda la posición de su nave 30 veces por segundo y
 dibuja 100 ms "en el pasado" para que todo se vea suave. Para encontrarse usa el servidor público gratuito de PeerJS.
 
-Para probar sin internet: `npm run peer` y abrir el juego con `?peer=127.0.0.1:9000` en dos pestañas.
+Las **salas públicas** no necesitan servidor propio: cada sala pública ocupa uno de 12 "carteles" (ids fijos en el servidor de PeerJS)
+y quien busca les pregunta a los 12. Es una solución provisoria (máximo 12 salas públicas a la vez) hasta pasar a los lobbies de Steam.
+
+Para probar sin internet: `npm run peer` y abrir el juego con `?peer=127.0.0.1:9000` en dos pestañas (`&debug` deja el estado en `window.__bolonki`).
 
 ## Opciones
 
 Menú principal a pantalla completa (Jugar, Opciones y Salir en la esquina). Las opciones van en solapas y en ningún menú hay fila "Volver": se vuelve con B / Esc o tocando VOLVER en la barra de abajo.
 
-- **Video:** pantalla completa, aspecto (panorámico o 4:3), calidad (240p, 480p o nítida), escalado entero (automático, sí o no), scanlines.
+- **Video:** pantalla completa, aspecto (panorámico o 4:3), calidad (240p, 480p por defecto, o HD), escalado entero (automático, sí o no), scanlines.
 - **Audio:** volumen de efectos.
 - **Partida:** dificultad de la CPU (fácil, intermedio, difícil, extremo) y puntos (5, 10 o 15).
 - **Extras:** animación de derrota y "ver derrota en CPU".
@@ -90,10 +99,12 @@ src/
   display.js         resolución, relación de aspecto y pantalla completa
   settings.js        opciones guardadas
   flow.js            título, menús, partida, pausa y fin
-  multiplayer.js     menús de sala: crear, unirse con código, sala de espera, fin online
-  net/room.js        conexión PeerJS, código de sala, lugares y opciones
+  multiplayer.js     menús de multijugador: local, crear sala, unirse, salas públicas, apodo, sala de espera, fin online
+  net/room.js        conexión PeerJS: código, lugares, listo, ping, votos, reconexión y salas públicas
   net/online.js      sincronización: snapshots del anfitrión e interpolación del invitado
   game/fx.js         efectos como eventos (se reproducen igual en todas las máquinas)
+  game/controls.js   controles de cada nave local relativos a la pantalla
+  ui/textEntry.js    pantalla para escribir (código de sala, apodo)
   ui/menu.js         motor de menús: lista grande, ventana y solapas; barra de botones al pie
   ui/draw.js         dibujo pixel del HUD y menús
   audio.js           sonidos sintetizados

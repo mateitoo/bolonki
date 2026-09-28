@@ -14,8 +14,17 @@ import { removeBall } from '../world/balls.js';
 import { pickDeath } from '../deaths/index.js';
 import { FX } from './fx.js';
 
-export function soloSetup() { return { ctrl: ['local', 'ai', 'ai', 'ai'], me: 0, points: settings.points }; }
-const demoSetup = () => ({ ctrl: ['ai', 'ai', 'ai', 'ai'], me: -1, points: 15 });
+export function soloSetup() { return { mode: 'solo', ctrl: ['local', 'ai', 'ai', 'ai'], me: 0, points: settings.points }; }
+const demoSetup = () => ({ mode: 'demo', ctrl: ['ai', 'ai', 'ai', 'ai'], me: -1, points: 15 });
+
+// Multijugador local: J1 abajo, J2 enfrente, J3 y J4 a los costados
+const LOCAL_SLOTS = { 2: [0, 2], 3: [0, 2, 1], 4: [0, 2, 1, 3] };
+export function localSetup(n, bots, points) {
+  const ctrl = [0, 1, 2, 3].map(() => (bots ? 'ai' : 'none'));
+  const pads = [null, null, null, null], names = [null, null, null, null];
+  LOCAL_SLOTS[n].forEach((slot, j) => { ctrl[slot] = 'local'; pads[slot] = `p${j + 1}`; names[slot] = `J${j + 1}`; });
+  return { mode: 'local', ctrl, pads, names, me: 0, points };
+}
 
 export function resetMatch(mode, setup) {
   const demo = mode === 'title' || mode === 'menu';
@@ -23,7 +32,7 @@ export function resetMatch(mode, setup) {
   Object.assign(game, {
     state: mode, elapsed: 0, spawnT: 0.8, pending: null, winner: -1, timeScale: 1, slowT: 0, slowK: 1,
     humanOut: false, pendingEnd: false, demoResetT: 0, camFocusTarget: 0, showcaseT: 0,
-    me: cfg.me, setup: cfg,
+    me: cfg.me, setup: cfg, mode: cfg.mode || (demo ? 'demo' : 'solo'),
   });
   world.barriers.forEach((b) => (b.y = -3));
   game.players.forEach((p) => {
@@ -31,6 +40,7 @@ export function resetMatch(mode, setup) {
     Object.assign(p, {
       ctrl, empty: ctrl === 'none', alive: ctrl !== 'none', score: ctrl === 'none' ? 0 : cfg.points,
       s: 0, v: 0, swing: 0, cd: 0, flash: 0, death: null, spin: 0, hitDone: false,
+      pad: cfg.pads ? cfg.pads[p.i] : 'all', name: cfg.names ? cfg.names[p.i] : null,
     });
     resetPodVisual(p);
     if (p.empty) { p.mesh.root.visible = false; world.barriers[p.i].y = 0.55; }
@@ -76,7 +86,7 @@ export function eliminate(i, forcedAnim) {
   const anim = forcedAnim || pickDeath(settings.deathId);
   FX.elim(i, anim.id);
   // cámara lenta: fuerte si perdiste vos jugando solo, cortita en el resto de los casos
-  if (i === game.me && game.online === 'off') { game.slowT = 1.4; game.slowK = 0.35; }
+  if (i === game.me && game.mode === 'solo') { game.slowT = 1.4; game.slowK = 0.35; }
   else { game.slowT = Math.max(game.slowT, 0.35); game.slowK = Math.min(game.slowK, 0.6); }
   const alive = game.players.filter((q) => q.alive);
   if (alive.length <= 1) { game.winner = alive.length ? alive[0].i : i; game.pendingEnd = true; }

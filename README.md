@@ -13,11 +13,14 @@ Abre en la pantalla de título; al pulsar Enter/Start pasa a pantalla completa (
 | Aceptar / golpe fuerte | Enter / Espacio | A (golpe también con X) |
 | Volver | Esc / Backspace | B |
 | Pausa | Esc / P | Start |
+| Cambiar solapa (Opciones) | Q / E | LB / RB |
 | Pantalla completa | F | |
 
 También se puede usar el mouse en los menús, y en el celular aparecen botones táctiles.
 
 ## Opciones
+
+Menú principal a pantalla completa (Jugar, Opciones y Salir en la esquina). Las opciones van en solapas y en ningún menú hay fila "Volver": se vuelve con B / Esc o tocando VOLVER en la barra de abajo.
 
 - **Video:** pantalla completa, aspecto (panorámico o 4:3), calidad (240p, 480p o nítida), escalado entero, scanlines.
 - **Audio:** volumen de efectos.
@@ -71,7 +74,7 @@ src/
   display.js         resolución, relación de aspecto y pantalla completa
   settings.js        opciones guardadas
   flow.js            título, menús, partida, pausa y fin
-  ui/menu.js         motor de menús (navegable con teclado, joystick y mouse)
+  ui/menu.js         motor de menús: lista grande, ventana y solapas; barra de botones al pie
   ui/draw.js         dibujo pixel del HUD y menús
   audio.js           sonidos sintetizados
 ```

@@ -7,6 +7,8 @@ import { updateParticles } from './fx/particles.js';
 
 const CAM = new THREE.Vector3(0, 24, 26), LOOK = new THREE.Vector3(0, 0, -1.6);
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
+const orbitPos = new THREE.Vector3(), ORBIT_LOOK = new THREE.Vector3(0, 0, 0);
+let orbit = 1, orbitA = 0;
 
 export function updateVisuals(dt, rdt) {
   game.clock += dt;
@@ -63,6 +65,16 @@ export function updateVisuals(dt, rdt) {
   const f = game.camFocus, fx = game.focus.x, fz = game.focus.z;
   camPos.set(CAM.x + (fx - CAM.x) * f, CAM.y + (9 - CAM.y) * f, CAM.z + (fz + 10 - CAM.z) * f);
   camLook.set(LOOK.x + (fx - LOOK.x) * f, LOOK.y + (1.2 - LOOK.y) * f, LOOK.z + (fz - LOOK.z) * f);
+
+  // en el título y los menús la cámara gira lento alrededor de la arena
+  const demo = game.state === 'title' || game.state === 'menu';
+  orbit += ((demo ? 1 : 0) - orbit) * Math.min(1, rdt * 2);
+  if (orbit > 0.001) {
+    orbitA += rdt * 0.12;
+    orbitPos.set(Math.sin(orbitA) * 27, 17, Math.cos(orbitA) * 27);
+    camPos.lerp(orbitPos, orbit);
+    camLook.lerp(ORBIT_LOOK, orbit);
+  }
   camera.position.set(camPos.x + rnd(-1, 1) * game.shake, camPos.y + rnd(-1, 1) * game.shake * 0.5, camPos.z);
   camera.lookAt(camLook);
 }

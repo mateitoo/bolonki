@@ -1,7 +1,8 @@
 // Entrada unificada: teclado, joystick (Gamepad API) y mouse/táctil.
 // Cada frame se llama pollInput(dt) y el resto del juego lee:
 //   input.axis   -> movimiento del pod (-1..1)
-//   input.events -> acciones de este frame: up, down, left, right, confirm, back, start, pause, hit, click
+//   input.events -> acciones de este frame: up, down, left, right, confirm, back, start, pause, hit,
+//                   tabPrev, tabNext, click
 import { clamp } from './config.js';
 
 export const input = {
@@ -25,6 +26,7 @@ const KEYMAP = {
   Space: ['confirm', 'hit'], KeyJ: ['hit'], KeyK: ['hit'],
   Enter: ['confirm', 'start'], NumpadEnter: ['confirm', 'start'],
   Escape: ['back', 'pause'], Backspace: ['back'], KeyP: ['pause'],
+  KeyQ: ['tabPrev'], KeyE: ['tabNext'], PageUp: ['tabPrev'], PageDown: ['tabNext'],
 };
 
 let hooks = { onGesture() {}, onFullscreenKey() {}, onPadConnect() {}, toHud: null };
@@ -78,7 +80,7 @@ export function pushEvent(a) { queue.push({ a }); }
 
 /* ---------- joystick (mapeo estándar: Xbox / PlayStation / Steam Deck) ---------- */
 const pad = { prev: [], navDir: null, navT: 0 };
-const B = { A: 0, B: 1, X: 2, Y: 3, SELECT: 8, START: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
+const B = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, SELECT: 8, START: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
 
 function pollPad(dt, out) {
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -93,6 +95,8 @@ function pollPad(dt, out) {
   if (down(B.X)) push('hit');
   if (down(B.B)) push('back');
   if (down(B.SELECT)) push('back');
+  if (down(B.LB)) push('tabPrev');
+  if (down(B.RB)) push('tabNext');
   if (down(B.START)) { push('start'); push('pause'); }
 
   // navegación de menú con cruceta o stick, con repetición al mantener

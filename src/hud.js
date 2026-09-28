@@ -62,7 +62,8 @@ export function drawHud() {
   ui.clock = game.clock;
   hx.clearRect(0, 0, hw, 240);
 
-  drawScores(hw, st);
+  const demo = st === 'title' || st === 'menu';
+  if (!demo) drawScores(hw, st);
   const blink = ((game.clock * 2.2) | 0) % 2 === 0;
 
   if (st === 'title') drawTitle(hw);
@@ -81,7 +82,7 @@ export function drawHud() {
   }
 
   if (menuOpen() && !(game.showcaseT > 0)) {
-    rect(0, 0, hw, 240, st === 'menu' ? 'rgba(4,6,14,.45)' : COL.dark);
+    rect(0, 0, hw, 240, st === 'menu' ? 'rgba(4,6,14,.4)' : COL.dark);
     drawMenu(hw);
   }
 

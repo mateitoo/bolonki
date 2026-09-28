@@ -5,6 +5,7 @@ import { game, world } from '../state.js';
 import { burst, P } from '../fx/particles.js';
 import { SFX } from '../audio.js';
 import { DEATH_ANIMS } from '../deaths/index.js';
+import FALL from '../deaths/fall.js';
 
 export const outbox = [];
 let recording = false;
@@ -43,6 +44,29 @@ export const FX = {
     if (i === game.me && game.mode !== 'local') { game.camFocusTarget = 0.55; game.focus.x = p.x; game.focus.z = p.z; }
     emit(['e', i, anim.id]);
   },
+
+  /* ---------- Empujón ---------- */
+  dash(i, x, z) {
+    SFX.dash(); burst(x, 0.4, z, { mat: P.WHITE, n: 5, sp: 3, up: [0.5, 2], life: [0.15, 0.3] });
+    emit(['D', i, r2(x), r2(z)]);
+  },
+  bump(x, z, hard) {
+    SFX.bump(); burst(x, 0.9, z, { mat: P.YELLOW, n: hard ? 9 : 5, sp: hard ? 6 : 4, up: [1, 4], life: [0.1, 0.25] });
+    game.shake = Math.max(game.shake, hard ? 0.28 : 0.12);
+    emit(['u', r2(x), r2(z), hard ? 1 : 0]);
+  },
+  // se cayó de la plataforma: animación de caída (vx, vz: con qué velocidad salió)
+  fall(i, vx, vz) {
+    const p = game.players[i];
+    if (p.death && p.death.anim === FALL) return;       // ya se está cayendo
+    p.vx = vx; p.vz = vz;
+    p.death = { anim: FALL, t: 0, st: {}, done: false };
+    FALL.start(p, p.death.st);
+    game.shake = Math.max(game.shake, 0.2);
+    emit(['F', i, r2(vx), r2(vz)]);
+  },
+  round(w) { SFX.roundWin(); emit(['R', w]); },
+  shrinkWarn() { SFX.warnShrink(); emit(['W']); },
 };
 
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -58,6 +82,11 @@ export function playEvent(ev) {
     case 'k': FX.tick(); break;
     case 'o': FX.go(); break;
     case 'e': FX.elim(ev[1], ev[2]); break;
+    case 'D': FX.dash(ev[1], ev[2], ev[3]); break;
+    case 'u': FX.bump(ev[1], ev[2], !!ev[3]); break;
+    case 'F': FX.fall(ev[1], ev[2], ev[3]); break;
+    case 'R': FX.round(ev[1]); break;
+    case 'W': FX.shrinkWarn(); break;
     default: break;
   }
 }

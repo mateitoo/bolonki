@@ -5,7 +5,11 @@ import { scene, mat, scaleUV, add, rotT } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { world } from '../state.js';
 
+// Todo lo de esta arena queda en un grupo para poder mostrarla u ocultarla según el minijuego
+export const arenaGroup = new THREE.Group();
+
 export function buildArena() {
+  const before = new Set(scene.children);
   // piso y suelo exterior
   const fg = scaleUV(new THREE.PlaneGeometry(2 * H, 2 * H, 12, 12), 2); fg.rotateX(-Math.PI / 2);
   add(fg, mat({ map: TX.floor, color: 0xe8eef0 }));
@@ -65,4 +69,7 @@ export function buildArena() {
     add(new THREE.RingGeometry(0.85, 1.1, 6), mat({ color: 0x8a6a3c }), 0, 0.8, R + 0.03, mouth);
     world.towers.push({ holeM, flash: 0 });
   });
+
+  scene.children.filter((c) => !before.has(c)).forEach((c) => arenaGroup.add(c));
+  scene.add(arenaGroup);
 }

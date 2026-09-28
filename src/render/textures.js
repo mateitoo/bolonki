@@ -61,5 +61,18 @@ export const TX = {
     }
   }),
   pit: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#05070b', 0.3); }),
+  // Empujón: hielo de la plataforma, roca de abajo y magma del fondo
+  ice: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#9fd4e6'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 40; i++) { x.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,.18)' : 'rgba(40,90,120,.12)'; x.fillRect(Math.random() * w, Math.random() * h, rnd(3, 12), rnd(1, 3)); }
+    x.fillStyle = 'rgba(30,70,100,.55)';
+    for (let k = 0; k < 3; k++) { let cx = Math.random() * w, cy = Math.random() * h; for (let i = 0; i < 12; i++) { cx += rnd(-2, 2.5); cy += rnd(-1, 2); x.fillRect(cx | 0, cy | 0, 1, 1); } }
+    x.fillStyle = '#e8fbff'; x.fillRect(3, 3, 2, 1); x.fillRect(20, 14, 3, 1);
+  }),
+  rock: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#3a3440', 0.3); x.fillStyle = '#26212b'; x.fillRect(0, 5, w, 1); x.fillRect(0, 12, w, 1); }),
+  magma: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#3a0a04'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 70; i++) { x.fillStyle = ['#7a1a06', '#b8320a', '#ff6a14', '#ffb040'][(Math.random() * 4) | 0]; x.fillRect(Math.random() * w, Math.random() * h, rnd(1, 5), rnd(1, 3)); }
+  }),
 };
 setWhiteTexture(TX.white);

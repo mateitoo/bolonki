@@ -1,0 +1,33 @@
+// Registro de minijuegos. Cada minijuego es un objeto con esta forma:
+//
+//   id, name, desc                         nombre y descripción corta para los menús
+//   points: { label, values, key, demo }   "puntos" o "rondas" (key = campo de settings / opciones de sala)
+//   cam: { pos, look, rotate }             cámara de la partida (rotate: cada jugador ve su lado abajo)
+//   build()                                crea sus objetos 3D (una vez, al arrancar)
+//   show(on)                               muestra u oculta su mundo
+//   reset(cfg)                             prepara una partida nueva
+//   step(dt)                               simulación (solitario, local y anfitrión online)
+//   visuals(dt, rdt)                       animación por frame (naves que no están cayendo/explotando, etc.)
+//   onLocalHit(p)                          el jugador de esta máquina apretó golpe
+//   drawScore(p, x, y), hud(hw, st)        HUD propio
+//   snapshot(), applySnap(A, B, f, rdt)    online: lo que manda el anfitrión y cómo lo aplica el invitado
+//   guestLocal(rdt), guestHitFx(p)         online: lo que hace el invitado con su propia nave
+//   humanOut                               true si al perder se ve "ELIMINADO" hasta que termine la partida
+//
+// Importante: los métodos usan los imports solo adentro de funciones (hay imports circulares).
+import { game } from '../state.js';
+
+const REG = {};
+export const MINIGAMES = [];
+export function register(mg) { REG[mg.id] = mg; MINIGAMES.push(mg); }
+export const mgById = (id) => REG[id] || MINIGAMES[0];
+export const mg = () => mgById(game.minigame);
+
+let shown = null;
+// Muestra el mundo del minijuego pedido y esconde los demás
+export function activate(id) {
+  const next = mgById(id);
+  if (shown !== next) { MINIGAMES.forEach((m) => m.show(m === next)); shown = next; }
+  game.minigame = next.id;
+  return next;
+}

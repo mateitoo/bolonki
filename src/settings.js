@@ -16,6 +16,8 @@ export const DEFAULTS = {
   name: '',              // apodo para el online (vacío = se pide la primera vez)
   localPlayers: 2,       // multijugador local: cantidad de jugadores
   localBots: true,       // multijugador local: bots en los lugares libres
+  mg: 'bolas',           // último minijuego elegido
+  rounds: 2,             // Empujón: rondas para ganar
 };
 
 function load() {

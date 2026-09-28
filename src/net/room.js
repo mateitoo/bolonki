@@ -11,6 +11,7 @@
 // Para probar con un servidor PeerJS propio: ?peer=127.0.0.1:9000 en la URL (npm run peer).
 import { Peer } from 'peerjs';
 import { settings } from '../settings.js';
+import { mgById } from '../minigames/registry.js';
 
 export const NET_VERSION = 2;
 export const MAX_PLAYERS = 4;
@@ -28,7 +29,7 @@ export const room = {
   mySlot: 0,
   myPing: 0,
   slots: [],            // [{ kind: 'host' | 'guest' | 'empty', name, ready, ping, away }]
-  opts: { bots: true, difficulty: 'intermedio', points: 15, public: false },
+  opts: { mg: 'bolas', bots: true, difficulty: 'intermedio', points: 15, rounds: 2, public: false },
   inGame: false,
   votes: [],            // lugares que votaron revancha
   startInfo: null,
@@ -108,7 +109,7 @@ export function createRoom() {
   Object.assign(room, {
     role: 'host', status: 'opening', code: genCode(), mySlot: 0, inGame: false, votes: [],
     slots: [{ kind: 'host', name: myName(), ready: true, ping: 0 }, empty(), empty(), empty()],
-    opts: { bots: true, difficulty: settings.difficulty, points: settings.points, public: false },
+    opts: { mg: settings.mg, bots: true, difficulty: settings.difficulty, points: settings.points, rounds: settings.rounds, public: false },
   });
   openHostPeer(0);
   startTicker(hostTicker);
@@ -165,7 +166,7 @@ function hostOnData(conn, m) {
       broadcastLobby(); changed();
       break;
     }
-    case 'i': if (g) { g.s = m.s; g.v = m.v; if (m.h > g.h) { g.h = m.h; g.hit = true; } } break;
+    case 'i': if (g) { g.s = m.s; g.v = m.v; g.x = m.x || 0; g.y = m.y || 0; if (m.h > g.h) { g.h = m.h; g.hit = true; } } break;
     case 'ready': if (g) { room.slots[conn.slot].ready = !!m.v; broadcastLobby(); changed(); } break;
     case 'vote': if (g) { setVote(conn.slot, !!m.v); } break;
     case 'pong': if (g && room.slots[conn.slot]) { room.slots[conn.slot].ping = Math.max(1, Math.round(now() - m.ts)); } break;
@@ -269,7 +270,7 @@ export const allVoted = () => { const h = presentHumans(); return h.length > 0 &
 let beacon = null, beaconTries = 0;
 function publicInfo() {
   return { t: 'info', v: NET_VERSION, code: room.code, host: room.slots[0] ? room.slots[0].name : '', players: humanCount(),
-    max: MAX_PLAYERS, bots: room.opts.bots, points: room.opts.points, inGame: room.inGame };
+    max: MAX_PLAYERS, bots: room.opts.bots, mg: room.opts.mg, points: room.opts[mgById(room.opts.mg).points.key], inGame: room.inGame };
 }
 function startBeacon() {
   if (beacon || room.role !== 'host' || room.status !== 'ready') return;
@@ -403,9 +404,10 @@ function guestOnData(m) {
   }
 }
 
-export function sendInput(s, v, h) {
+// Lo que manda el invitado sobre su nave (cada minijuego decide qué: posición, dirección, golpes)
+export function sendInput(data) {
   const c = room.hostConn;
-  if (c && c.open) { try { c.send({ t: 'i', s: Math.round(s * 100) / 100, v: Math.round(v * 10) / 10, h }); } catch (e) { /* nada */ } }
+  if (c && c.open) { try { c.send(Object.assign({ t: 'i' }, data)); } catch (e) { /* nada */ } }
 }
 export function sendReady(v) {
   const me = room.slots[room.mySlot]; if (me) me.ready = v;

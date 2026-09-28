@@ -5,12 +5,13 @@ import { settings, saveSettings, IS_DESKTOP } from './settings.js';
 import { input, has, freezeControls } from './input.js';
 import { applyDisplay, enterFullscreen, exitFullscreen, isFullscreen } from './display.js';
 import { SFX, setVolume } from './audio.js';
-import { resetMatch, startSwing, eliminate, deathsRunning, soloSetup, localSetup } from './game/match.js';
+import { resetMatch, eliminate, deathsRunning, soloSetup, localSetup, demoSetup, pointsFor } from './game/match.js';
 import { localHit } from './game/controls.js';
+import { mg, mgById } from './minigames/registry.js';
 import { DEATH_ANIMS } from './deaths/index.js';
 import { openMenu, replaceMenus, closeAllMenus, menuOpen, menuInput } from './ui/menu.js';
 import { COL } from './ui/draw.js';
-import { yesNo, diffValues, pointValues } from './ui/values.js';
+import { yesNo, diffValues, mgChoice, mgDesc, pointsChoice } from './ui/values.js';
 import { MULTI, ONLINE_PAUSE, onlineEndMenu, initMultiplayer } from './multiplayer.js';
 import { guestHit } from './net/online.js';
 
@@ -35,12 +36,16 @@ export const JUGAR = {
   ],
 };
 
+const setPoints = (v) => { settings[mgById(settings.mg).points.key] = v; saveSettings(); };
+
 const SOLO = {
-  id: 'solo', title: 'SOLITARIO', width: 250,
+  id: 'solo', title: 'SOLITARIO', width: 270,
   items: [
+    mgChoice(() => settings.mg, set('mg')),
+    mgDesc(() => settings.mg),
     { kind: 'info', label: 'PERSONAJE', value: `${CHARS[0].name} (PRONTO MÁS)` },
     { kind: 'choice', label: 'CPU', values: diffValues, get: () => settings.difficulty, set: set('difficulty', (v) => (game.difficulty = v)) },
-    { kind: 'choice', label: 'PUNTOS', values: pointValues, get: () => settings.points, set: set('points') },
+    pointsChoice(() => settings.mg, () => pointsFor(settings.mg), setPoints),
     { kind: 'action', label: 'COMENZAR', action: () => startMatch(soloSetup()) },
   ],
 };
@@ -50,6 +55,7 @@ const padStatus = (n) => (input.pads >= n ? `JOYSTICK ${n}` : `JOYSTICK ${n} (NO
 export const LOCAL = {
   id: 'local', title: 'MULTIJUGADOR LOCAL', width: 300, rowH: 13,
   items: [
+    mgChoice(() => settings.mg, set('mg')),
     { kind: 'choice', label: 'JUGADORES', values: [2, 3, 4].map((n) => ({ v: n, label: String(n) })),
       get: () => settings.localPlayers, set: set('localPlayers') },
     { kind: 'info', label: 'J1', labelColor: () => CHARS[0].col, value: () => (input.pads >= 1 ? 'FLECHAS+ESPACIO/CTRL O JOY 1' : 'FLECHAS · ESPACIO / CTRL') },
@@ -58,13 +64,13 @@ export const LOCAL = {
       value: () => padStatus(3), valueColor: () => (input.pads >= 3 ? COL.text : COL.red) },
     { kind: 'info', label: 'J4', labelColor: () => CHARS[3].col, hidden: () => settings.localPlayers < 4,
       value: () => padStatus(4), valueColor: () => (input.pads >= 4 ? COL.text : COL.red) },
-    { kind: 'info', label: 'COSTADOS', hidden: () => settings.localPlayers < 3, value: 'SE MUEVEN ARRIBA / ABAJO' },
+    { kind: 'info', label: 'COSTADOS', hidden: () => settings.localPlayers < 3 || settings.mg !== 'bolas', value: 'SE MUEVEN ARRIBA / ABAJO' },
     { kind: 'choice', label: 'BOTS EN LUGARES LIBRES', values: yesNo, hidden: () => settings.localPlayers >= 4,
       get: () => settings.localBots, set: set('localBots') },
     { kind: 'choice', label: 'DIFICULTAD BOTS', values: diffValues, hidden: () => settings.localPlayers >= 4 || !settings.localBots,
       get: () => settings.difficulty, set: set('difficulty', (v) => (game.difficulty = v)) },
-    { kind: 'choice', label: 'PUNTOS', values: pointValues, get: () => settings.points, set: set('points') },
-    { kind: 'action', label: 'COMENZAR', action: () => startMatch(localSetup(settings.localPlayers, settings.localBots, settings.points)) },
+    pointsChoice(() => settings.mg, () => pointsFor(settings.mg), setPoints),
+    { kind: 'action', label: 'COMENZAR', action: () => startMatch(localSetup(settings.localPlayers, settings.localBots, pointsFor(settings.mg), settings.mg)) },
   ],
 };
 
@@ -159,6 +165,7 @@ function quit() {
   exitFullscreen(); wantFullscreen = true; goTitle();
 }
 function showcaseDeath() {
+  if (game.minigame !== 'bolas') resetMatch('menu', demoSetup('bolas'));   // las derrotas de la lista son de Bola Brava
   const cpus = game.players.filter((p) => p.alive);
   if (cpus.length <= 1) { resetMatch('menu'); return; }
   game.showcaseT = 0.4;
@@ -196,7 +203,7 @@ export function updateFlow() {
       // golpe fuerte de cada nave de esta máquina (en el local, cada jugador con sus teclas)
       for (const p of game.players) {
         if (p.ctrl !== 'local' || !p.alive || p.cd > 0 || !localHit(p)) continue;
-        if (game.online === 'guest') guestHit(); else startSwing(p);
+        if (game.online === 'guest') guestHit(); else mg().onLocalHit(p);
       }
       break;
     }

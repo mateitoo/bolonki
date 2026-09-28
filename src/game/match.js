@@ -13,28 +13,39 @@ import { resetPodVisual } from '../world/pods.js';
 import { removeBall } from '../world/balls.js';
 import { pickDeath } from '../deaths/index.js';
 import { FX } from './fx.js';
+import { MINIGAMES, mgById, activate } from '../minigames/registry.js';
 
-export function soloSetup() { return { mode: 'solo', ctrl: ['local', 'ai', 'ai', 'ai'], me: 0, points: settings.points }; }
-const demoSetup = () => ({ mode: 'demo', ctrl: ['ai', 'ai', 'ai', 'ai'], me: -1, points: 15 });
+// "puntos" de cada minijuego (en Bola Brava son vidas; en Empujón, rondas para ganar)
+export const pointsFor = (id) => settings[mgById(id).points.key] || mgById(id).points.values[1];
+
+export function soloSetup() { return { mode: 'solo', mg: settings.mg, ctrl: ['local', 'ai', 'ai', 'ai'], me: 0, points: pointsFor(settings.mg) }; }
+
+// La demo del título y los menús va alternando entre los minijuegos
+let demoIdx = 0;
+export function nextDemo() { demoIdx = (demoIdx + 1) % MINIGAMES.length; }
+export function demoSetup(id) {
+  const m = id ? mgById(id) : MINIGAMES[demoIdx];
+  return { mode: 'demo', mg: m.id, ctrl: ['ai', 'ai', 'ai', 'ai'], me: -1, points: m.points.demo };
+}
 
 // Multijugador local: J1 abajo, J2 enfrente, J3 y J4 a los costados
 const LOCAL_SLOTS = { 2: [0, 2], 3: [0, 2, 1], 4: [0, 2, 1, 3] };
-export function localSetup(n, bots, points) {
+export function localSetup(n, bots, points, mgId) {
   const ctrl = [0, 1, 2, 3].map(() => (bots ? 'ai' : 'none'));
   const pads = [null, null, null, null], names = [null, null, null, null];
   LOCAL_SLOTS[n].forEach((slot, j) => { ctrl[slot] = 'local'; pads[slot] = `p${j + 1}`; names[slot] = `J${j + 1}`; });
-  return { mode: 'local', ctrl, pads, names, me: 0, points };
+  return { mode: 'local', mg: mgId || settings.mg, ctrl, pads, names, me: 0, points };
 }
 
 export function resetMatch(mode, setup) {
   const demo = mode === 'title' || mode === 'menu';
   const cfg = setup || (demo ? demoSetup() : soloSetup());
+  const m = activate(cfg.mg || game.minigame);
   Object.assign(game, {
     state: mode, elapsed: 0, spawnT: 0.8, pending: null, winner: -1, timeScale: 1, slowT: 0, slowK: 1,
     humanOut: false, pendingEnd: false, demoResetT: 0, camFocusTarget: 0, showcaseT: 0,
-    me: cfg.me, setup: cfg, mode: cfg.mode || (demo ? 'demo' : 'solo'),
+    me: cfg.me, setup: cfg, mode: cfg.mode || (demo ? 'demo' : 'solo'), target: cfg.points,
   });
-  world.barriers.forEach((b) => (b.y = -3));
   game.players.forEach((p) => {
     const ctrl = cfg.ctrl[p.i];
     Object.assign(p, {
@@ -43,11 +54,8 @@ export function resetMatch(mode, setup) {
       pad: cfg.pads ? cfg.pads[p.i] : 'all', name: cfg.names ? cfg.names[p.i] : null,
     });
     resetPodVisual(p);
-    if (p.empty) { p.mesh.root.visible = false; world.barriers[p.i].y = 0.55; }
-    podPos(p);
   });
-  world.chevSets.forEach((c) => (c.warn = 0));
-  game.balls.forEach(removeBall);
+  m.reset(cfg);
   if (mode === 'count') { game.countT = 3.999; FX.tick(); }
 }
 

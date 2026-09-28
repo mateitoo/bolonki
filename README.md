@@ -18,6 +18,18 @@ Abre en la pantalla de título; al pulsar Enter/Start pasa a pantalla completa (
 
 También se puede usar el mouse en los menús, y en el celular aparecen botones táctiles.
 
+## Minijuegos
+
+Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego al armar la partida (solitario, local u online).
+
+- **Bola Brava:** cada uno defiende su arco; las pelotas salen de las torres. Se juega a 5, 10 o 15 puntos (vidas).
+- **Empujón:** todos arriba de una plataforma de hielo sobre un abismo con magma. Las naves se mueven libres y patinan;
+  el botón de golpe es una **embestida**. Gana la ronda el último que queda arriba; gana la partida el primero que llega a 1, 2 o 3 rondas.
+  A los 14 segundos la plataforma empieza a achicarse.
+
+Para sumar un minijuego: crear `src/minigames/<nombre>.js` con la forma que describe `src/minigames/registry.js`,
+registrarlo con `register()` e importarlo en `src/main.js`. Los menús, el local, el online, la pausa y el HUD lo toman solos.
+
 ## Modos
 
 - **Solitario:** vos contra 3 bots (dificultad y puntos a elección).
@@ -91,7 +103,7 @@ src/
   game/physics.js    movimiento, rebotes, goles y colisiones
   game/ai.js         IA de la CPU
   game/match.js      reglas: reinicio, disparos de torre, goles, eliminación
-  deaths/            animaciones de derrota (una por archivo)
+  deaths/            animaciones de derrota (una por archivo; fall.js es la caída de Empujón)
   fx/particles.js    chispas, humo, escombros, estela de las pelotas
   visuals.js         animación por frame y cámara
   hud.js             retratos, puntajes, título y carteles
@@ -99,6 +111,7 @@ src/
   display.js         resolución, relación de aspecto y pantalla completa
   settings.js        opciones guardadas
   flow.js            título, menús, partida, pausa y fin
+  minigames/         cada minijuego (registry.js explica la forma; bolas.js y empujon.js)
   multiplayer.js     menús de multijugador: local, crear sala, unirse, salas públicas, apodo, sala de espera, fin online
   net/room.js        conexión PeerJS: código, lugares, listo, ping, votos, reconexión y salas públicas
   net/online.js      sincronización: snapshots del anfitrión e interpolación del invitado

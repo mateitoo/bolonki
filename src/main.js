@@ -3,13 +3,13 @@ import { game } from './state.js';
 import { CHARS, SIDES } from './config.js';
 import { scene, camera, initRenderer } from './render/psx.js';
 import './render/textures.js';
-import { buildArena } from './world/arena.js';
 import { buildPod } from './world/pods.js';
-import { buildBalls } from './world/balls.js';
 import { initParticles } from './fx/particles.js';
 import { ensureAudio } from './audio.js';
-import { resetMatch, deathsRunning, eliminate } from './game/match.js';
-import { step } from './game/physics.js';
+import { resetMatch, deathsRunning, eliminate, nextDemo, demoSetup } from './game/match.js';
+import { MINIGAMES, mg } from './minigames/registry.js';
+import './minigames/bolas.js';
+import './minigames/empujon.js';
 import { updateVisuals } from './visuals.js';
 import { initHud, drawHud, showToast } from './hud.js';
 import { initDisplay, toHud, toggleFullscreen } from './display.js';
@@ -26,14 +26,13 @@ const hud = document.getElementById('hud');
 const renderer = initRenderer(glc);
 
 // --- mundo ---
-buildArena();
 initParticles();
 game.players = CHARS.map((ch, i) => ({
   i, ch, side: SIDES[i], s: 0, v: 0, x: 0, z: 0, vx: 0, vz: 0, score: 0, alive: true, ctrl: 'ai', empty: false, net: null,
   swing: 0, cd: 0, hitDone: false, target: 0, thinkT: 0, err: 0, errT: 0, flash: 0, spin: 0, death: null,
   mesh: buildPod(i),
 }));
-buildBalls();
+MINIGAMES.forEach((m) => m.build());
 initHud(hud);
 initDisplay(stage, screen, glc, hud);
 
@@ -79,7 +78,8 @@ function frame(now) {
   } else if (!frozen) {
     acc += dt;
     let n = 0;
-    while (acc >= STEP && n < 16) { step(STEP); acc -= STEP; n++; }
+    const m = mg();
+    while (acc >= STEP && n < 16) { m.step(STEP); acc -= STEP; n++; }
     if (n >= 16) acc = 0;
     if (game.online === 'host') hostTick(rdt);
 
@@ -91,13 +91,13 @@ function frame(now) {
     }
     if (inDemo() && game.demoResetT > 0) {
       game.demoResetT -= rdt;
-      if (game.demoResetT <= 0) { const st = game.state; resetMatch(st); }
+      if (game.demoResetT <= 0) { const st = game.state; nextDemo(); resetMatch(st); }
     }
   }
 
   // tu nave terminó su animación de derrota: queda el cartel de ELIMINADO (y solo, se acelera el resto)
   const me = game.players[game.me];
-  if (me && game.mode !== 'local' && game.state === 'play' && !game.humanOut && !me.alive && me.death && me.death.done && !game.pendingEnd) {
+  if (me && mg().humanOut && game.mode !== 'local' && game.state === 'play' && !game.humanOut && !me.alive && me.death && me.death.done && !game.pendingEnd) {
     game.humanOut = true; if (game.online === 'off') game.timeScale = 1.7;
   }
 
@@ -114,4 +114,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // ?debug en la URL deja el estado a mano en la consola (para pruebas)
-try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { game, room, browse, settings, eliminate }; } catch (e) { /* nada */ }
+try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { game, room, browse, settings, eliminate, resetMatch, demoSetup }; } catch (e) { /* nada */ }

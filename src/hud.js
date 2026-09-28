@@ -9,6 +9,7 @@ import { input } from './input.js';
 import { camera } from './render/psx.js';
 import { room } from './net/room.js';
 import * as THREE from 'three';
+import { mg } from './minigames/registry.js';
 
 let hx = null;
 const toast = { text: '', t: 0 };
@@ -47,7 +48,7 @@ function drawScores(hw, st) {
   for (const [x, i] of pos) {
     face(i, x, 3);
     const p = game.players[i];
-    txt(p.empty ? '--' : String(p.score).padStart(2, '0'), x + 12, 29, 16, p.alive ? COL.gold : '#555b6e', 'center', COL.goldShadow);
+    mg().drawScore(p, x + 12, 29);
     // quién maneja cada lugar
     const bot = p.ctrl === 'ai' || (p.ctrl === 'net' && p.isBot);
     const tag = game.mode === 'local' ? (p.empty ? '' : bot ? 'CPU' : p.name)
@@ -62,15 +63,19 @@ export const pingColor = (ms) => (ms < 90 ? '#39d98a' : ms < 170 ? '#ffd23a' : C
 // Nombre arriba de cada nave: J1..J4 en el local, apodos en el online (menos el tuyo)
 const v3 = new THREE.Vector3();
 function drawNameTags(hw, st) {
-  if (game.mode !== 'local' && game.mode !== 'online') return;
+  if (game.mode === 'demo') return;
   if (st !== 'play' && st !== 'count' && st !== 'end' && st !== 'paused') return;
+  // en Empujón las naves se mezclan: se marca también la tuya con "VOS"
+  const markMe = game.minigame === 'empujon' && game.mode !== 'local';
   for (const p of game.players) {
-    if (p.empty || !p.name || (p.death && p.death.done)) continue;
-    if (game.mode === 'online' && p.i === game.me) continue;
+    if (p.empty || p.death) continue;
+    const mine = p.i === game.me && game.mode !== 'local';
+    const name = mine ? (markMe ? 'VOS' : null) : p.name;
+    if (!name) continue;
     v3.set(p.x, 4.1, p.z).project(camera);
     if (v3.z > 1) continue;
     const x = Math.round((v3.x + 1) / 2 * hw), y = Math.round((1 - v3.y) / 2 * 240) - 4;
-    txt(p.name, x, Math.max(58, Math.min(214, y)), 8, CHARS[p.i].col, 'center');
+    txt(name, x, Math.max(58, Math.min(214, y)), 8, CHARS[p.i].col, 'center');
   }
 }
 
@@ -105,7 +110,8 @@ export function drawHud() {
     if (game.online !== 'off') txt('MIRANDO LA PARTIDA', hw / 2, 212, 8, COL.dim, 'center');
     else if (blink) txt(input.device === 'gamepad' ? 'A: REINTENTAR   START: PAUSA' : 'ENTER: REINTENTAR   ESC: PAUSA', hw / 2, 212, 8, COL.white, 'center');
   }
-  if (st === 'play' && game.elapsed < 3 && !game.humanOut && game.mode !== 'local') {
+  if (!demo) mg().hud(hw, st);
+  if (game.minigame === 'bolas' && st === 'play' && game.elapsed < 3 && !game.humanOut && game.mode !== 'local') {
     txt('TU ARCO', hw / 2, 170, 8, '#ffb31a', 'center');
     tri(hw / 2 - 4, 182, 'd', '#ffb31a');
   }

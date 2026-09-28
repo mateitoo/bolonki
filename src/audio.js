@@ -1,6 +1,7 @@
 // Sonidos sintetizados con WebAudio (arrancan después de la primera interacción).
 import { rnd } from './config.js';
 
+let lastBump = 0, lastCrumble = 0;
 let ac = null, soundOn = true, lastBounce = 0, noiseBuf = null, master = null, volume = 0.8;
 
 export function ensureAudio() {
@@ -55,4 +56,12 @@ export const SFX = {
   zap() { beep(rnd(600, 1400), rnd(80, 200), 0.12, 'sawtooth', 0.05); noise(0.08, 0.08, 6000); },
   launch() { beep(200, 1600, 0.6, 'sawtooth', 0.07); noise(0.6, 0.12, 3000); },
   thud() { beep(90, 40, 0.3, 'square', 0.08); },
+  // Empujón
+  dash() { beep(220, 660, 0.12, 'sawtooth', 0.05); noise(0.12, 0.05, 3000); },
+  bump() { const n = performance.now(); if (n - lastBump < 70) return; lastBump = n; beep(160, 70, 0.12, 'square', 0.09); noise(0.08, 0.1, 1200); },
+  fall() { beep(900, 120, 0.9, 'triangle', 0.08); },
+  splash() { noise(0.7, 0.25, 1800); beep(90, 30, 0.5, 'sawtooth', 0.08); },
+  crumble() { const n = performance.now(); if (n - lastCrumble < 180) return; lastCrumble = n; noise(0.15, 0.05, 700); },
+  roundWin() { [523, 659, 784, 1046].forEach((f, k) => beep(f, f, 0.12, 'square', 0.05, k * 0.09)); },
+  warnShrink() { beep(300, 300, 0.1, 'square', 0.05); beep(300, 300, 0.1, 'square', 0.05, 0.2); },
 };

@@ -14,7 +14,8 @@ import { textEntry } from './ui/textEntry.js';
 import { SFX } from './audio.js';
 import { showToast, pingColor } from './hud.js';
 import { MAIN, JUGAR, OPTIONS, LOCAL, winnerTitle } from './flow.js';
-import { yesNo, diffValues, pointValues } from './ui/values.js';
+import { yesNo, diffValues, mgChoice, pointsChoice } from './ui/values.js';
+import { mgById } from './minigames/registry.js';
 
 /* ---------- apodo ---------- */
 let afterName = null;
@@ -50,7 +51,7 @@ const JOIN = textEntry({
 const roomRow = (k) => ({
   kind: 'action', left: true, hidden: () => !browse.list[k],
   label: () => (browse.list[k] ? `SALA DE ${browse.list[k].host}` : ''),
-  value: () => { const r = browse.list[k]; return r ? `${r.players}/${r.max} · ${r.points} PTS${r.inGame ? ' · JUGANDO' : ''}` : ''; },
+  value: () => { const r = browse.list[k]; return r ? `${mgById(r.mg).name} · ${r.players}/${r.max}${r.inGame ? ' · JUGANDO' : ''}` : ''; },
   valueColor: () => (browse.list[k] && browse.list[k].inGame ? COL.dim : COL.teal),
   action: () => {
     const r = browse.list[k]; if (!r) return;
@@ -138,14 +139,15 @@ const pingRow = () => ({
 });
 
 export const HOST_LOBBY = {
-  id: 'hostLobby', title: 'CREAR SALA', width: 300, headerH: 50, rowH: 12,
+  id: 'hostLobby', title: 'CREAR SALA', width: 300, headerH: 50, rowH: 11,
   header: roomHeader,
   items: [
     ...slotRows(),
+    mgChoice(() => room.opts.mg, (v) => setRoomOpt('mg', v)),
     { kind: 'choice', label: 'BOTS', values: yesNo, get: () => room.opts.bots, set: (v) => setRoomOpt('bots', v) },
     { kind: 'choice', label: 'DIFICULTAD BOTS', values: diffValues, hidden: () => !room.opts.bots,
       get: () => room.opts.difficulty, set: (v) => setRoomOpt('difficulty', v) },
-    { kind: 'choice', label: 'PUNTOS', values: pointValues, get: () => room.opts.points, set: (v) => setRoomOpt('points', v) },
+    pointsChoice(() => room.opts.mg, () => room.opts[mgById(room.opts.mg).points.key], (v) => setRoomOpt(mgById(room.opts.mg).points.key, v)),
     { kind: 'choice', label: 'SALA', values: [{ v: false, label: 'PRIVADA' }, { v: true, label: 'PÚBLICA' }],
       get: () => room.opts.public, set: (v) => setRoomOpt('public', v) },
     { kind: 'action', label: 'COMENZAR', action: () => {
@@ -163,7 +165,8 @@ export const GUEST_LOBBY = {
   items: [
     ...slotRows(),
     { kind: 'info', label: 'BOTS', value: () => (room.opts.bots ? `SÍ · ${DIFFICULTIES[room.opts.difficulty].label}` : 'NO') },
-    { kind: 'info', label: 'PUNTOS', value: () => String(room.opts.points) },
+    { kind: 'info', label: 'MINIJUEGO', value: () => mgById(room.opts.mg).name },
+    { kind: 'info', label: () => mgById(room.opts.mg).points.label, value: () => String(room.opts[mgById(room.opts.mg).points.key]) },
     pingRow(),
     { kind: 'choice', label: 'ESTOY LISTO', values: [{ v: false, label: 'NO' }, { v: true, label: 'SÍ' }],
       get: () => amReady(), set: (v) => sendReady(v) },

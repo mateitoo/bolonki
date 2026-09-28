@@ -23,6 +23,7 @@ const bolas = {
   points: { label: 'PUNTOS', values: [5, 10, 15], key: 'points', demo: 15 },
   cam: { pos: new THREE.Vector3(0, 24, 26), look: new THREE.Vector3(0, 0, -1.6), rotate: true },
   humanOut: true,
+  thumbSteps: 460,
 
   build() { buildArena(); buildBalls(); },
   show(on) {
@@ -52,11 +53,12 @@ const bolas = {
       if (p.empty) { m.root.visible = false; m.sh.visible = false; continue; }
       if (p.spin > 0) p.spin = Math.max(0, p.spin - dt * 4.5);
       m.root.position.set(p.x, Math.sin(clock * 6 + p.i) * 0.05, p.z);
+      m.root.scale.set(1, 1, 0.86);          // un poco menos profunda: queda justa con la línea del arco
       m.root.rotation.y = m.baseRot + (p.spin > 0 ? (1 - p.spin) * Math.PI * 2 : 0);
       m.veh.rotation.z = -p.v * 0.012;
       m.rider.rotation.z = -p.v * 0.02;
       const e = p.swing > 0 ? 0.8 : 0; m.hullM.uniforms.uEmissive.value.setRGB(e, e, e);
-      m.sh.position.set(p.x, 0.03, p.z); m.sh.rotation.y = m.baseRot; m.sh.visible = true;
+      m.sh.position.set(p.x, 0.03, p.z); m.sh.rotation.y = m.baseRot; m.sh.scale.set(1.95, 1, 1.4); m.sh.visible = true;
     }
     for (const b of game.balls) {
       if (!b.on) continue;

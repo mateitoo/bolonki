@@ -16,6 +16,7 @@ import { initDisplay, toHud, toggleFullscreen } from './display.js';
 import { input, initInput, pollInput, bindTouch, pushEvent } from './input.js';
 import { initFlow, updateFlow, onMatchEnd, inDemo } from './flow.js';
 import { hostTick, guestFrame } from './net/online.js';
+import { makeThumbs } from './render/thumbs.js';
 import { room, browse } from './net/room.js';
 import { settings, saveSettings } from './settings.js';
 
@@ -54,6 +55,7 @@ document.addEventListener('fullscreenchange', () => {
 });
 
 initFlow();
+makeThumbs();
 resetMatch('title');
 
 // --- loop: física a 120 Hz fijos, render a la tasa de la pantalla ---

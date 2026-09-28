@@ -66,3 +66,9 @@ export function updateParticles(dt) {
     if (p.life <= 0) p.me.visible = false;
   }
 }
+
+// Borra todas las partículas (por ejemplo, después de sacar las fotos de los minijuegos)
+export function clearParticles() {
+  for (const p of PARTS) { p.life = 0; p.me.visible = false; }
+  for (const d of DOTS) { d.life = 0; d.me.visible = false; }
+}

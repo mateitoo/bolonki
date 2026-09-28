@@ -11,7 +11,7 @@ import { mg, mgById } from './minigames/registry.js';
 import { DEATH_ANIMS } from './deaths/index.js';
 import { openMenu, replaceMenus, closeAllMenus, menuOpen, menuInput } from './ui/menu.js';
 import { COL } from './ui/draw.js';
-import { yesNo, diffValues, mgChoice, mgDesc, pointsChoice } from './ui/values.js';
+import { yesNo, diffValues, mgChoice, mgArt, mgDescCentered, pointsChoice, botValues } from './ui/values.js';
 import { MULTI, ONLINE_PAUSE, onlineEndMenu, initMultiplayer } from './multiplayer.js';
 import { guestHit } from './net/online.js';
 
@@ -42,7 +42,8 @@ const SOLO = {
   id: 'solo', title: 'SOLITARIO', width: 270,
   items: [
     mgChoice(() => settings.mg, set('mg')),
-    mgDesc(() => settings.mg),
+    mgArt(() => settings.mg),
+    mgDescCentered(() => settings.mg),
     { kind: 'info', label: 'PERSONAJE', value: `${CHARS[0].name} (PRONTO MÁS)` },
     { kind: 'choice', label: 'CPU', values: diffValues, get: () => settings.difficulty, set: set('difficulty', (v) => (game.difficulty = v)) },
     pointsChoice(() => settings.mg, () => pointsFor(settings.mg), setPoints),
@@ -53,9 +54,11 @@ const SOLO = {
 // Multijugador local: 2 a 4 en la misma compu (teclado compartido y/o joysticks)
 const padStatus = (n) => (input.pads >= n ? `JOYSTICK ${n}` : `JOYSTICK ${n} (NO HAY)`);
 export const LOCAL = {
-  id: 'local', title: 'MULTIJUGADOR LOCAL', width: 300, rowH: 13,
+  id: 'local', title: 'MULTIJUGADOR LOCAL', width: 300, rowH: 11,
   items: [
     mgChoice(() => settings.mg, set('mg')),
+    mgArt(() => settings.mg, 52),
+    mgDescCentered(() => settings.mg),
     { kind: 'choice', label: 'JUGADORES', values: [2, 3, 4].map((n) => ({ v: n, label: String(n) })),
       get: () => settings.localPlayers, set: set('localPlayers') },
     { kind: 'info', label: 'J1', labelColor: () => CHARS[0].col, value: () => (input.pads >= 1 ? 'FLECHAS+ESPACIO/CTRL O JOY 1' : 'FLECHAS · ESPACIO / CTRL') },
@@ -64,11 +67,9 @@ export const LOCAL = {
       value: () => padStatus(3), valueColor: () => (input.pads >= 3 ? COL.text : COL.red) },
     { kind: 'info', label: 'J4', labelColor: () => CHARS[3].col, hidden: () => settings.localPlayers < 4,
       value: () => padStatus(4), valueColor: () => (input.pads >= 4 ? COL.text : COL.red) },
-    { kind: 'info', label: 'COSTADOS', hidden: () => settings.localPlayers < 3 || settings.mg !== 'bolas', value: 'SE MUEVEN ARRIBA / ABAJO' },
-    { kind: 'choice', label: 'BOTS EN LUGARES LIBRES', values: yesNo, hidden: () => settings.localPlayers >= 4,
-      get: () => settings.localBots, set: set('localBots') },
-    { kind: 'choice', label: 'DIFICULTAD BOTS', values: diffValues, hidden: () => settings.localPlayers >= 4 || !settings.localBots,
-      get: () => settings.difficulty, set: set('difficulty', (v) => (game.difficulty = v)) },
+    { kind: 'choice', label: 'BOTS EN LUGARES LIBRES', values: botValues, hidden: () => settings.localPlayers >= 4,
+      get: () => (settings.localBots ? settings.difficulty : 'no'),
+      set: (v) => { settings.localBots = v !== 'no'; if (v !== 'no') { settings.difficulty = v; game.difficulty = v; } saveSettings(); } },
     pointsChoice(() => settings.mg, () => pointsFor(settings.mg), setPoints),
     { kind: 'action', label: 'COMENZAR', action: () => startMatch(localSetup(settings.localPlayers, settings.localBots, pointsFor(settings.mg), settings.mg)) },
   ],

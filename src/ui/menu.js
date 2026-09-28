@@ -26,7 +26,7 @@ export const menuOpen = () => stack.length > 0;
 export const topMenu = () => stack[stack.length - 1] || null;
 
 const itemsOf = (e) => (e.def.tabs ? e.def.tabs[e.tab].items : e.def.items).filter((it) => !(it.hidden && it.hidden()));
-const selectable = (it) => it.kind !== 'info';
+const selectable = (it) => it.kind !== 'info' && it.kind !== 'art';
 const L = (it) => (typeof it.label === 'function' ? it.label() : it.label);   // el texto puede cambiar en vivo
 function firstSel(e) { const v = itemsOf(e); return Math.max(0, v.findIndex(selectable)); }
 
@@ -169,14 +169,16 @@ function drawBig(top, hw) {
 function drawPanel(top, hw) {
   const def = top.def;
   const tabs = def.tabs;
-  const rowsMax = tabs ? Math.max(...tabs.map((t) => t.items.length)) : itemsOf(top).length;
   const items = itemsOf(top);
   const ROW = def.rowH || 15;
+  const hOf = (it) => it.h || ROW;                                       // las filas "art" tienen su propio alto
+  const sumH = (list) => list.filter((it) => !(it.hidden && it.hidden())).reduce((a, it) => a + hOf(it), 0);
+  const rowsH = tabs ? Math.max(...tabs.map((t) => sumH(t.items))) : sumH(items);
   const w = Math.min(hw - 24, def.width || 240);
   const titleH = def.title ? 30 : 8;
   const tabsH = tabs ? 20 : 0;
   const headH = def.headerH || 0;
-  const h = titleH + headH + tabsH + (def.body ? def.bodyH : rowsMax * ROW) + 10;
+  const h = titleH + headH + tabsH + (def.body ? def.bodyH : rowsH) + 10;
   const x = Math.round((hw - w) / 2), y = Math.round(Math.max(20, (221 - h) / 2 + (def.offsetY || 0)));
   panel(x, y, w, h);
   const title = typeof def.title === 'function' ? def.title() : def.title;
@@ -204,19 +206,20 @@ function drawPanel(top, hw) {
 
   if (def.header) def.header(x, y + titleH, w, hw);
   if (def.body) { def.body(x, y + titleH + headH, w, hw, top); return; }
-  const y0 = y + titleH + headH + tabsH + 4;
+  let iy = y + titleH + headH + tabsH + 4;
   items.forEach((it, i) => {
-    const iy = y0 + i * ROW;
+    if (it.kind === 'art') { it.draw(x, iy - 3, w, hw); iy += hOf(it); return; }
     const sel = i === top.sel && selectable(it);
     if (sel) {
       rect(x + 4, iy - 3, w - 8, ROW - 1, 'rgba(45,224,200,.16)');
       if (((ui.clock * 3) | 0) % 2 === 0) tri(x + 9, iy, 'r', COL.teal);
     }
-    const centered = it.kind === 'action' && !it.left && !it.value;
+    const centered = (it.kind === 'action' && !it.left && !it.value) || it.center;
     const col = it.labelColor ? it.labelColor() : it.kind === 'info' ? COL.dim : sel ? (it.danger ? COL.red : COL.white) : COL.text;
     txt(L(it), centered ? hw / 2 : x + 20, iy, 8, col, centered ? 'center' : 'left');
     drawValue(it, sel, x + w - 14, iy);
     if (selectable(it)) rects.push({ i, x: x + 4, y: iy - 3, w: w - 8, h: ROW - 1 });
+    iy += ROW;
   });
 }
 

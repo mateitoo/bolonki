@@ -104,6 +104,10 @@ export function drawHud() {
     const bots = game.players.some((p) => p.ctrl === 'ai' || p.isBot);
     if (bots) txt(`CPU: ${DIFFICULTIES[game.difficulty].label}`, hw / 2, 142, 8, COL.teal, 'center');
     if (game.online !== 'off') txt('PARTIDA ONLINE', hw / 2, 156, 8, COL.dim, 'center');
+    // local en Bola Brava: los de los costados se mueven con arriba/abajo
+    if (game.mode === 'local' && game.minigame === 'bolas' && game.players.some((p) => p.ctrl === 'local' && p.i % 2 === 1)) {
+      txt('LOS DE LOS COSTADOS: ARRIBA / ABAJO', hw / 2, 170, 8, '#ffb31a', 'center');
+    }
   }
   if (st === 'play' && game.humanOut) {
     txt('ELIMINADO', hw / 2, 190, 16, COL.red, 'center');

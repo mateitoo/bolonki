@@ -5,8 +5,8 @@ export const W = 320, HH = 240;       // resolución interna (PS1)
 export const H = 10;                  // medio lado de la arena
 export const R = 2.6;                 // radio de las torres de esquina
 export const G = H - R;               // medio ancho del arco (todo el lado entre torres)
-export const PL = 1.0;                // medio largo del pod (cápsula)
-export const PRc = 1.05;              // radio de la cápsula del pod
+export const PL = 0.8;                // medio largo del pod (cápsula)
+export const PRc = 1.25;              // radio de la cápsula del pod (nave redonda)
 export const BR = 0.5;                // radio de la pelota
 export const PD = H - 0.6;            // el pod va apoyado sobre la línea del arco
 export const SMAX = 5.4;              // recorrido máximo del pod sin chocar las torres

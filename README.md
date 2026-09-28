@@ -27,6 +27,8 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   el botón de golpe es una **embestida**. Gana la ronda el último que queda arriba; gana la partida el primero que llega a 1, 2 o 3 rondas.
   A los 14 segundos la plataforma empieza a achicarse.
 
+Al elegir el minijuego se ve una vista previa chiquita (una foto que el juego saca de cada minijuego al arrancar, `src/render/thumbs.js`) y su descripción.
+
 Para sumar un minijuego: crear `src/minigames/<nombre>.js` con la forma que describe `src/minigames/registry.js`,
 registrarlo con `register()` e importarlo en `src/main.js`. Los menús, el local, el online, la pausa y el HUD lo toman solos.
 

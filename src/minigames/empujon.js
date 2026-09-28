@@ -19,7 +19,8 @@ import { txt, rect, COL } from '../ui/draw.js';
 /* ---------- medidas ---------- */
 const R0 = 9.5;              // radio inicial de la plataforma
 const RMIN = 4.2;            // radio mínimo
-const PR = 1.15;             // radio de la nave para los choques
+const PR = 1.35;             // radio de la nave para los choques
+const POD_SCALE = 0.82;      // las naves van un poco más chicas en la plataforma
 const ACC = 22;              // aceleración
 const MAXV = 7.2;            // velocidad máxima normal
 const FRICTION = 2.0;        // cuánto frena sola (poco: es hielo)
@@ -261,6 +262,8 @@ const empujon = {
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: new THREE.Vector3(0, 24, 21), look: new THREE.Vector3(0, 0, -1.2), rotate: false },
   humanOut: false,
+  thumbSteps: 90,
+  thumbCam: { pos: new THREE.Vector3(0, 17, 16), look: new THREE.Vector3(0, -1, -0.5) },
 
   build: buildWorld,
   show(on) { if (W.grp) W.grp.visible = on; },
@@ -287,10 +290,11 @@ const empujon = {
       if (p.death || p.empty) { if (p.empty) { m.root.visible = false; m.sh.visible = false; } continue; }
       m.root.visible = true;
       m.root.position.set(p.x, Math.sin(clock * 6 + p.i) * 0.05, p.z);
+      m.root.scale.setScalar(POD_SCALE);
       m.root.rotation.set(0, p.ang || 0, 0);
       const e = p.dashT > 0 ? 0.9 : 0; m.hullM.uniforms.uEmissive.value.setRGB(e, e * 0.9, e * 0.6);
       m.veh.rotation.x = p.dashT > 0 ? -0.18 : 0;
-      m.sh.position.set(p.x, 0.03, p.z); m.sh.rotation.y = p.ang || 0; m.sh.visible = true;
+      m.sh.position.set(p.x, 0.03, p.z); m.sh.rotation.y = p.ang || 0; m.sh.scale.set(1.95 * POD_SCALE, 1, 1.6 * POD_SCALE); m.sh.visible = true;
     }
   },
 

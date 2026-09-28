@@ -12,17 +12,27 @@ export function buildPod(i) {
   const mats = [];
   const M = (o) => { const m = mat(o); mats.push({ m, base: m.uniforms.uColor.value.clone() }); return m; };
 
-  // nave: casco ovalado, cubierta, luces amarillas al frente y colmillos
+  // nave: autito chocador redondo — casco tipo bowl, paragolpes grueso con luces al frente,
+  // colmillos, aleta atrás (para ver para dónde mira) y un anillo de luz abajo (flota)
   const hullM = M({ map: TX.hull, color: 0x49b8a0 });
-  add(new THREE.CylinderGeometry(1.0, 1.15, 0.8, 12), hullM, 0, 0.45, 0, veh).scale.set(1.8, 1, 0.95);
-  add(new THREE.CylinderGeometry(0.85, 1.0, 0.28, 12), M({ color: 0x2a6e62 }), 0, 0.95, -0.15, veh).scale.set(1.6, 1, 0.8);
+  const bowl = new THREE.SphereGeometry(1.0, 14, 9, 0, Math.PI * 2, Math.PI * 0.36, Math.PI * 0.64);
+  add(bowl, hullM, 0, 1.12, 0, veh).scale.set(1.3, 1.12, 1.16);
+  const lip = new THREE.TorusGeometry(0.93, 0.1, 4, 14); lip.rotateX(Math.PI / 2);
+  add(lip, M({ color: 0x7fd6c4 }), 0, 1.58, 0, veh).scale.set(1.3, 1, 1.16);        // borde redondeado de la cabina
+  add(new THREE.CylinderGeometry(0.9, 0.9, 0.08, 14), M({ color: 0x1d4f47 }), 0, 1.52, 0, veh).scale.set(1.3, 1, 1.16);
+  const bump = new THREE.TorusGeometry(1.0, 0.24, 7, 16); bump.rotateX(Math.PI / 2);
+  add(bump, M({ color: new THREE.Color(ch.col).multiplyScalar(0.7) }), 0, 0.6, 0, veh).scale.set(1.36, 1.35, 1.18);
   const lightM = M({ color: 0xffd23a, unlit: true });
-  for (let k = 0; k < 9; k++) {
-    const a = (-0.5 + k / 8) * Math.PI * 0.85;
-    add(new THREE.BoxGeometry(0.22, 0.16, 0.12), lightM, Math.sin(a) * 2.08, 0.35, Math.cos(a) * 1.1, veh).rotation.y = a;
+  for (let k = 0; k < 7; k++) {
+    const a = (-0.5 + k / 6) * Math.PI * 0.8;
+    add(new THREE.BoxGeometry(0.2, 0.16, 0.1), lightM, Math.sin(a) * 1.66, 0.62, Math.cos(a) * 1.44, veh).rotation.y = a;
   }
-  const prongG = new THREE.ConeGeometry(0.12, 0.75, 4); prongG.rotateX(Math.PI / 2);
-  [-1.45, 1.45].forEach((px) => add(prongG, M({ color: 0xf2f2e8 }), px, 0.62, 0.95, veh));
+  const prongG = new THREE.ConeGeometry(0.12, 0.6, 4); prongG.rotateX(Math.PI / 2);
+  [-0.9, 0.9].forEach((px) => add(prongG, M({ color: 0xf2f2e8 }), px, 0.64, 1.5, veh));
+  add(new THREE.BoxGeometry(0.14, 0.62, 0.42), M({ color: 0x2a6e62 }), 0, 1.75, -1.02, veh).rotation.x = -0.35;
+  add(new THREE.SphereGeometry(0.13, 6, 4), M({ color: 0xff3a2a, unlit: true }), 0, 2.1, -1.18, veh);
+  const glow = new THREE.TorusGeometry(0.75, 0.08, 4, 14); glow.rotateX(Math.PI / 2);
+  add(glow, M({ color: 0x35f0ff, unlit: true }), 0, 0.1, 0, veh);
 
   // piloto
   add(new THREE.SphereGeometry(0.78, 8, 6), M({ color: col }), 0, 0, 0, rider).scale.set(1, 0.95, 0.9);
@@ -52,7 +62,7 @@ export function buildPod(i) {
   }
 
   const sh = new THREE.Mesh(new THREE.CircleGeometry(1, 10), new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: 0.35, depthWrite: false }));
-  sh.geometry.rotateX(-Math.PI / 2); sh.scale.set(2.2, 1, 1.25); scene.add(sh);
+  sh.geometry.rotateX(-Math.PI / 2); sh.scale.set(1.95, 1, 1.6); scene.add(sh);
   const scorch = new THREE.Mesh(new THREE.CircleGeometry(1.8, 8), new THREE.MeshBasicMaterial({ color: 0x0a0806, transparent: true, opacity: 0.7, depthWrite: false }));
   scorch.geometry.rotateX(-Math.PI / 2); scorch.visible = false; scene.add(scorch);
 
@@ -60,7 +70,7 @@ export function buildPod(i) {
   return {
     root, veh, rider, mats, hullM, lightM, sh, scorch,
     baseRot: root.rotation.y,
-    riderBase: new THREE.Vector3(0, 1.7, -0.25),
+    riderBase: new THREE.Vector3(0, 2.05, -0.1),
   };
 }
 

@@ -14,7 +14,8 @@ import { textEntry } from './ui/textEntry.js';
 import { SFX } from './audio.js';
 import { showToast, pingColor } from './hud.js';
 import { MAIN, JUGAR, OPTIONS, LOCAL, winnerTitle } from './flow.js';
-import { yesNo, diffValues, mgChoice, pointsChoice } from './ui/values.js';
+import { yesNo, mgChoice, pointsChoice, botValues } from './ui/values.js';
+import { drawThumb } from './render/thumbStore.js';
 import { mgById } from './minigames/registry.js';
 
 /* ---------- apodo ---------- */
@@ -90,20 +91,22 @@ export const MULTI = {
 /* ---------- sala de espera ---------- */
 function roomHeader(x, y, w, hw) {
   const st = room.status;
-  txt(room.opts.public ? 'CÓDIGO · SALA PÚBLICA' : 'CÓDIGO', hw / 2, y, 8, COL.dim, 'center');
+  const lx = Math.round(x + w * 0.3);               // columna del código
+  txt(room.opts.public ? 'CÓDIGO · PÚBLICA' : 'CÓDIGO', lx, y, 8, COL.dim, 'center');
   const c = room.code || '····';
-  const cw = 4 * 22 - 4, cx = hw / 2 - cw / 2;
+  const cw = 4 * 22 - 4, cx = lx - cw / 2;
   for (let i = 0; i < 4; i++) {
     rect(cx + i * 22, y + 10, 18, 20, 'rgba(45,224,200,.10)');
     rect(cx + i * 22, y + 28, 18, 2, COL.teal);
     txt(c[i] || '', cx + i * 22 + 9, y + 12, 16, COL.gold, 'center', COL.goldShadow);
   }
+  drawThumb(room.opts.mg, Math.round(x + w * 0.62), y + 1, 64, 36);   // vista previa del minijuego
   const msg = st === 'error' ? room.error
     : st === 'reconnecting' ? 'RECONECTANDO...'
     : room.role === 'host' ? (st === 'ready' ? `COMPARTÍ EL CÓDIGO · ${humanCount()}/${MAX_PLAYERS}` : 'CREANDO SALA...')
     : amReady() ? 'ESPERANDO AL ANFITRIÓN' : 'MARCÁ LISTO CUANDO QUIERAS';
-  txt(msg, hw / 2, y + 35, 8, st === 'error' || st === 'reconnecting' ? COL.red : COL.teal, 'center');
-  rect(x + 6, y + 46, w - 12, 1, '#1d6e68');
+  txt(msg, hw / 2, y + 42, 8, st === 'error' || st === 'reconnecting' ? COL.red : COL.teal, 'center');
+  rect(x + 6, y + 54, w - 12, 1, '#1d6e68');
 }
 
 // Cada lugar: nombre (con el color del personaje) y su estado
@@ -139,14 +142,13 @@ const pingRow = () => ({
 });
 
 export const HOST_LOBBY = {
-  id: 'hostLobby', title: 'CREAR SALA', width: 300, headerH: 50, rowH: 11,
+  id: 'hostLobby', title: 'CREAR SALA', width: 300, headerH: 58, rowH: 11,
   header: roomHeader,
   items: [
     ...slotRows(),
     mgChoice(() => room.opts.mg, (v) => setRoomOpt('mg', v)),
-    { kind: 'choice', label: 'BOTS', values: yesNo, get: () => room.opts.bots, set: (v) => setRoomOpt('bots', v) },
-    { kind: 'choice', label: 'DIFICULTAD BOTS', values: diffValues, hidden: () => !room.opts.bots,
-      get: () => room.opts.difficulty, set: (v) => setRoomOpt('difficulty', v) },
+    { kind: 'choice', label: 'BOTS', values: botValues, get: () => (room.opts.bots ? room.opts.difficulty : 'no'),
+      set: (v) => { if (v !== 'no') room.opts.difficulty = v; setRoomOpt('bots', v !== 'no'); } },
     pointsChoice(() => room.opts.mg, () => room.opts[mgById(room.opts.mg).points.key], (v) => setRoomOpt(mgById(room.opts.mg).points.key, v)),
     { kind: 'choice', label: 'SALA', values: [{ v: false, label: 'PRIVADA' }, { v: true, label: 'PÚBLICA' }],
       get: () => room.opts.public, set: (v) => setRoomOpt('public', v) },
@@ -160,7 +162,7 @@ export const HOST_LOBBY = {
 };
 
 export const GUEST_LOBBY = {
-  id: 'guestLobby', title: 'SALA', width: 300, headerH: 50, rowH: 12,
+  id: 'guestLobby', title: 'SALA', width: 300, headerH: 58, rowH: 11,
   header: roomHeader,
   items: [
     ...slotRows(),

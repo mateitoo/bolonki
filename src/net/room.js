@@ -13,7 +13,7 @@ import { Peer } from 'peerjs';
 import { settings } from '../settings.js';
 import { mgById } from '../minigames/registry.js';
 
-export const NET_VERSION = 2;
+export const NET_VERSION = 3;          // v3: modo Fiesta
 export const MAX_PLAYERS = 4;
 export const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const JOIN_ORDER = [2, 1, 3];          // el primer invitado va enfrente del anfitrión
@@ -29,7 +29,7 @@ export const room = {
   mySlot: 0,
   myPing: 0,
   slots: [],            // [{ kind: 'host' | 'guest' | 'empty', name, ready, ping, away }]
-  opts: { mg: 'bolas', bots: true, difficulty: 'intermedio', points: 15, rounds: 2, public: false },
+  opts: { mg: 'bolas', bots: true, difficulty: 'intermedio', points: 15, rounds: 2, public: false, mode: 'libre', turns: 10 },
   inGame: false,
   votes: [],            // lugares que votaron revancha
   startInfo: null,
@@ -109,7 +109,7 @@ export function createRoom() {
   Object.assign(room, {
     role: 'host', status: 'opening', code: genCode(), mySlot: 0, inGame: false, votes: [],
     slots: [{ kind: 'host', name: myName(), ready: true, ping: 0 }, empty(), empty(), empty()],
-    opts: { mg: settings.mg, bots: true, difficulty: settings.difficulty, points: settings.points, rounds: settings.rounds, public: false },
+    opts: { mg: settings.mg, bots: true, difficulty: settings.difficulty, points: settings.points, rounds: settings.rounds, public: false, mode: settings.mode, turns: settings.turns },
   });
   openHostPeer(0);
   startTicker(hostTicker);
@@ -270,7 +270,7 @@ export const allVoted = () => { const h = presentHumans(); return h.length > 0 &
 let beacon = null, beaconTries = 0;
 function publicInfo() {
   return { t: 'info', v: NET_VERSION, code: room.code, host: room.slots[0] ? room.slots[0].name : '', players: humanCount(),
-    max: MAX_PLAYERS, bots: room.opts.bots, mg: room.opts.mg, points: room.opts[mgById(room.opts.mg).points.key], inGame: room.inGame };
+    max: MAX_PLAYERS, bots: room.opts.bots, mg: room.opts.mode === 'fiesta' ? 'fiesta' : room.opts.mg, points: room.opts[mgById(room.opts.mg).points.key], inGame: room.inGame };
 }
 function startBeacon() {
   if (beacon || room.role !== 'host' || room.status !== 'ready') return;

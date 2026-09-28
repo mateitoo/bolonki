@@ -63,5 +63,14 @@ export const SFX = {
   splash() { noise(0.7, 0.25, 1800); beep(90, 30, 0.5, 'sawtooth', 0.08); },
   crumble() { const n = performance.now(); if (n - lastCrumble < 180) return; lastCrumble = n; noise(0.15, 0.05, 700); },
   roundWin() { [523, 659, 784, 1046].forEach((f, k) => beep(f, f, 0.12, 'square', 0.05, k * 0.09)); },
+  // Fiesta
+  dice() { beep(900, 900, 0.025, 'square', 0.02); },
+  hop() { beep(380, 620, 0.07, 'square', 0.035); },
+  coin() { beep(990, 990, 0.05, 'square', 0.04); beep(1320, 1320, 0.09, 'square', 0.04, 0.05); },
+  lose() { beep(400, 150, 0.25, 'sawtooth', 0.05); },
+  cup() { [659, 784, 988, 1318, 1568].forEach((f, k) => beep(f, f, 0.14, 'square', 0.05, k * 0.08)); },
+  event() { [523, 392, 659, 523].forEach((f, k) => beep(f, f, 0.08, 'triangle', 0.05, k * 0.07)); },
+  duel() { beep(220, 220, 0.18, 'sawtooth', 0.06); beep(165, 165, 0.3, 'sawtooth', 0.06, 0.2); },
+  fanfare() { [523, 659, 784, 1046, 784, 1046].forEach((f, k) => beep(f, f, 0.16, 'square', 0.05, k * 0.12)); },
   warnShrink() { beep(300, 300, 0.1, 'square', 0.05); beep(300, 300, 0.1, 'square', 0.05, 0.2); },
 };

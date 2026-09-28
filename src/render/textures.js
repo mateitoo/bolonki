@@ -69,6 +69,17 @@ export const TX = {
     for (let k = 0; k < 3; k++) { let cx = Math.random() * w, cy = Math.random() * h; for (let i = 0; i < 12; i++) { cx += rnd(-2, 2.5); cy += rnd(-1, 2); x.fillRect(cx | 0, cy | 0, 1, 1); } }
     x.fillStyle = '#e8fbff'; x.fillRect(3, 3, 2, 1); x.fillRect(20, 14, 3, 1);
   }),
+  // Fiesta: pasto de la isla, bloque del dado
+  grass: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#3f8a3a'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 90; i++) { x.fillStyle = ['#4fa246', '#357a31', '#5cb450', '#2e6b2a'][(Math.random() * 4) | 0]; x.fillRect(Math.random() * w, Math.random() * h, 1, rnd(1, 3)); }
+    x.fillStyle = '#e8e070'; x.fillRect(6, 9, 1, 1); x.fillRect(22, 25, 1, 1);
+  }),
+  dice: tex(16, 16, (x, w, h) => {
+    x.fillStyle = '#ffc83a'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#b8801a'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h); x.fillRect(0, h - 1, w, 1); x.fillRect(w - 1, 0, 1, h);
+    x.fillStyle = '#fff6d0'; [[6, 3], [7, 3], [8, 3], [9, 4], [9, 5], [8, 6], [7, 7], [7, 8], [7, 11], [7, 12]].forEach(([a, b]) => x.fillRect(a, b, 2, 1));
+  }),
   rock: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#3a3440', 0.3); x.fillStyle = '#26212b'; x.fillRect(0, 5, w, 1); x.fillRect(0, 12, w, 1); }),
   magma: tex(32, 32, (x, w, h) => {
     x.fillStyle = '#3a0a04'; x.fillRect(0, 0, w, h);

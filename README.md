@@ -32,9 +32,26 @@ Al elegir el minijuego se ve una vista previa chiquita (una foto que el juego sa
 Para sumar un minijuego: crear `src/minigames/<nombre>.js` con la forma que describe `src/minigames/registry.js`,
 registrarlo con `register()` e importarlo en `src/main.js`. Los menús, el local, el online, la pausa y el HUD lo toman solos.
 
+## Fiesta (modo tablero)
+
+En Solitario, Local y Crear sala hay una fila **MODO**: *Partida libre* (elegís un minijuego y se juega ese) o *Fiesta*.
+
+La Fiesta es un tablero estilo party game (`src/fiesta/board.js`):
+
+- 2 a 4 jugadores, 10, 15 o 20 turnos. Todos arrancan con 10 monedas.
+- En tu turno tirás el dado (golpe / Enter) y avanzás por un camino de 24 casilleros:
+  **azul** +3 monedas · **rojo** −3 · **evento** (lluvia de monedas, ladrón, turbo, cambio de lugar, la copa se muda, mala suerte) ·
+  **duelo** (elegís un rival y juegan un minijuego 1 contra 1; el que gana le saca hasta 10 monedas).
+- Al pasar por la **copa** la podés comprar por 20 monedas; después se muda a otro casillero.
+- Cuando juegan todos, sale sorteado un **minijuego para todos**: 10, 5, 3 y 1 monedas según el puesto.
+- Al final gana el que tiene más copas (si empatan, más monedas).
+
+En **Opciones → Juego** se elige qué minijuegos salen en la Fiesta (siempre queda al menos uno).
+En online, la Fiesta corre en la máquina del anfitrión y los invitados eligen y tiran el dado desde la suya; si alguien se va, su lugar pasa a un bot.
+
 ## Modos
 
-- **Solitario:** vos contra 3 bots (dificultad y puntos a elección).
+- **Solitario:** vos contra 3 bots (dificultad y puntos a elección), en partida libre o Fiesta.
 - **Multijugador → Local:** 2 a 4 jugadores en la misma compu. J1 usa flechas + espacio/ctrl (o joystick 1), J2 usa WASD + E/Q (o joystick 2), J3 y J4 usan los joysticks 3 y 4. Los lugares libres pueden tener bots o quedar con el arco cerrado. Los controles son relativos a la pantalla: los de arriba y abajo se mueven con izquierda/derecha, los de los costados con arriba/abajo.
 - **Multijugador → Crear sala:** te da un código de 4 letras. Hasta 4 jugadores; bots sí/no (y su dificultad), puntos y sala privada o pública. Sin bots, los lugares vacíos quedan con el arco cerrado.
 - **Multijugador → Unirse a sala:** escribís el código (con teclado, o letra por letra con la cruceta).
@@ -63,8 +80,8 @@ Menú principal a pantalla completa (Jugar, Opciones y Salir en la esquina). Las
 
 - **Video:** pantalla completa, aspecto (panorámico o 4:3), calidad (240p, 480p por defecto, o HD), escalado entero (automático, sí o no), scanlines.
 - **Audio:** volumen de efectos.
-- **Partida:** dificultad de la CPU (fácil, intermedio, difícil, extremo) y puntos (5, 10 o 15).
-- **Extras:** animación de derrota y "ver derrota en CPU".
+- **Controles:** resumen de teclas y botones.
+- **Juego:** qué minijuegos salen en la Fiesta, animación de derrota y "ver derrota en CPU".
 
 Todo se guarda en el navegador.
 
@@ -114,6 +131,7 @@ src/
   settings.js        opciones guardadas
   flow.js            título, menús, partida, pausa y fin
   minigames/         cada minijuego (registry.js explica la forma; bolas.js y empujon.js)
+  fiesta/board.js    modo Fiesta: tablero, dado, casilleros, copa, duelos y minijuegos sorteados
   multiplayer.js     menús de multijugador: local, crear sala, unirse, salas públicas, apodo, sala de espera, fin online
   net/room.js        conexión PeerJS: código, lugares, listo, ping, votos, reconexión y salas públicas
   net/online.js      sincronización: snapshots del anfitrión e interpolación del invitado

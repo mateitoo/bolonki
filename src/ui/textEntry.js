@@ -8,7 +8,7 @@ export function textEntry(o) {
   const st = { letters: [], pos: 0 };
   const val = () => st.letters.join('').trim();
   const def = {
-    id: o.id, title: o.title, width: Math.max(250, o.len * 28 + 40), bodyH: 70, items: [],
+    id: o.id, title: o.title, width: Math.max(250, o.len * 28 + 40), bodyH: 70, items: [], typing: true,
     reset(initial) { st.letters = Array.from({ length: o.len }, (_, i) => (initial && initial[i] ? initial[i] : '')); st.pos = Math.min(o.len - 1, (initial || '').length); },
     value: val,
     onEvent(e) {

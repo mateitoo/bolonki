@@ -67,6 +67,10 @@ export const FX = {
   },
   round(w) { SFX.roundWin(); emit(['R', w]); },
   shrinkWarn() { SFX.warnShrink(); emit(['W']); },
+
+  /* ---------- Fiesta ---------- */
+  snd(name) { if (SFX[name]) SFX[name](); emit(['S', name]); },
+  sparkle(x, y, z, m, n) { burst(x, y, z, { mat: m, n, sp: 3, up: [2, 6], life: [0.4, 0.8] }); emit(['X', r2(x), r2(y), r2(z), m, n]); },
 };
 
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -87,6 +91,8 @@ export function playEvent(ev) {
     case 'F': FX.fall(ev[1], ev[2], ev[3]); break;
     case 'R': FX.round(ev[1]); break;
     case 'W': FX.shrinkWarn(); break;
+    case 'S': FX.snd(ev[1]); break;
+    case 'X': FX.sparkle(ev[1], ev[2], ev[3], ev[4], ev[5]); break;
     default: break;
   }
 }

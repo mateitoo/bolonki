@@ -10,6 +10,7 @@ import { resetMatch, deathsRunning, eliminate, nextDemo, demoSetup } from './gam
 import { MINIGAMES, mg } from './minigames/registry.js';
 import './minigames/bolas.js';
 import './minigames/empujon.js';
+import fiesta, { S as fiestaState, startFiesta } from './fiesta/board.js';
 import { updateVisuals } from './visuals.js';
 import { initHud, drawHud, showToast } from './hud.js';
 import { initDisplay, toHud, toggleFullscreen } from './display.js';
@@ -34,6 +35,7 @@ game.players = CHARS.map((ch, i) => ({
   mesh: buildPod(i),
 }));
 MINIGAMES.forEach((m) => m.build());
+fiesta.build();                    // el tablero de la Fiesta (no es un minijuego elegible)
 initHud(hud);
 initDisplay(stage, screen, glc, hud);
 
@@ -116,4 +118,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // ?debug en la URL deja el estado a mano en la consola (para pruebas)
-try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { game, room, browse, settings, eliminate, resetMatch, demoSetup }; } catch (e) { /* nada */ }
+try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { game, room, browse, settings, eliminate, resetMatch, demoSetup, fiesta: fiestaState, startFiesta }; } catch (e) { /* nada */ }

@@ -44,7 +44,7 @@ export function resetMatch(mode, setup) {
   Object.assign(game, {
     state: mode, elapsed: 0, spawnT: 0.8, pending: null, winner: -1, timeScale: 1, slowT: 0, slowK: 1,
     humanOut: false, pendingEnd: false, demoResetT: 0, camFocusTarget: 0, showcaseT: 0,
-    me: cfg.me, setup: cfg, mode: cfg.mode || (demo ? 'demo' : 'solo'), target: cfg.points,
+    me: cfg.me, setup: cfg, mode: cfg.mode || (demo ? 'demo' : 'solo'), target: cfg.points, elimOrder: [],
   });
   game.players.forEach((p) => {
     const ctrl = cfg.ctrl[p.i];
@@ -91,6 +91,7 @@ export function scoreGoal(i, b) {
 export function eliminate(i, forcedAnim) {
   const p = game.players[i]; if (!p.alive) return;
   p.alive = false; p.score = 0;
+  game.elimOrder.push(i);
   const anim = forcedAnim || pickDeath(settings.deathId);
   FX.elim(i, anim.id);
   // cámara lenta: fuerte si perdiste vos jugando solo, cortita en el resto de los casos
@@ -98,6 +99,18 @@ export function eliminate(i, forcedAnim) {
   else { game.slowT = Math.max(game.slowT, 0.35); game.slowK = Math.min(game.slowK, 0.6); }
   const alive = game.players.filter((q) => q.alive);
   if (alive.length <= 1) { game.winner = alive.length ? alive[0].i : i; game.pendingEnd = true; }
+}
+
+// Puestos al terminar un minijuego: [1°, 2°, ...] (el ganador y después los eliminados, del último al primero)
+export function placement() {
+  const inGame = game.players.filter((p) => !p.empty).map((p) => p.i);
+  const order = [];
+  const put = (i) => { if (i >= 0 && inGame.includes(i) && !order.includes(i)) order.push(i); };
+  put(game.winner);
+  game.players.filter((p) => p.alive && !p.empty).sort((a, b) => b.score - a.score).forEach((p) => put(p.i));
+  game.elimOrder.slice().reverse().forEach(put);
+  inGame.forEach(put);
+  return order;
 }
 
 export const deathsRunning = () => game.players.some((p) => p.death && !p.death.done);

@@ -14,9 +14,10 @@ import { textEntry } from './ui/textEntry.js';
 import { SFX } from './audio.js';
 import { showToast, pingColor } from './hud.js';
 import { MAIN, JUGAR, OPTIONS, LOCAL, winnerTitle } from './flow.js';
-import { yesNo, mgChoice, pointsChoice, botValues } from './ui/values.js';
+import { yesNo, mgChoice, pointsChoice, botValues, modeChoice } from './ui/values.js';
 import { drawThumb } from './render/thumbStore.js';
 import { mgById } from './minigames/registry.js';
+import { fiestaRankArt } from './fiesta/board.js';
 
 /* ---------- apodo ---------- */
 let afterName = null;
@@ -89,6 +90,8 @@ export const MULTI = {
 };
 
 /* ---------- sala de espera ---------- */
+const roomFiesta = () => room.opts.mode === 'fiesta';
+const roomMg = () => (roomFiesta() ? 'fiesta' : room.opts.mg);       // en Fiesta, "puntos" = turnos
 function roomHeader(x, y, w, hw) {
   const st = room.status;
   const lx = Math.round(x + w * 0.3);               // columna del código
@@ -100,7 +103,7 @@ function roomHeader(x, y, w, hw) {
     rect(cx + i * 22, y + 28, 18, 2, COL.teal);
     txt(c[i] || '', cx + i * 22 + 9, y + 12, 16, COL.gold, 'center', COL.goldShadow);
   }
-  drawThumb(room.opts.mg, Math.round(x + w * 0.62), y + 1, 64, 36);   // vista previa del minijuego
+  drawThumb(roomMg(), Math.round(x + w * 0.62), y + 1, 64, 36);   // vista previa del minijuego
   const msg = st === 'error' ? room.error
     : st === 'reconnecting' ? 'RECONECTANDO...'
     : room.role === 'host' ? (st === 'ready' ? `COMPARTÍ EL CÓDIGO · ${humanCount()}/${MAX_PLAYERS}` : 'CREANDO SALA...')
@@ -146,10 +149,11 @@ export const HOST_LOBBY = {
   header: roomHeader,
   items: [
     ...slotRows(),
-    mgChoice(() => room.opts.mg, (v) => setRoomOpt('mg', v)),
+    modeChoice(() => room.opts.mode, (v) => { settings.mode = v; saveSettings(); setRoomOpt('mode', v); }),
+    Object.assign(mgChoice(() => room.opts.mg, (v) => setRoomOpt('mg', v)), { hidden: roomFiesta }),
     { kind: 'choice', label: 'BOTS', values: botValues, get: () => (room.opts.bots ? room.opts.difficulty : 'no'),
       set: (v) => { if (v !== 'no') room.opts.difficulty = v; setRoomOpt('bots', v !== 'no'); } },
-    pointsChoice(() => room.opts.mg, () => room.opts[mgById(room.opts.mg).points.key], (v) => setRoomOpt(mgById(room.opts.mg).points.key, v)),
+    pointsChoice(roomMg, () => room.opts[mgById(roomMg()).points.key], (v) => setRoomOpt(mgById(roomMg()).points.key, v)),
     { kind: 'choice', label: 'SALA', values: [{ v: false, label: 'PRIVADA' }, { v: true, label: 'PÚBLICA' }],
       get: () => room.opts.public, set: (v) => setRoomOpt('public', v) },
     { kind: 'action', label: 'COMENZAR', action: () => {
@@ -167,8 +171,9 @@ export const GUEST_LOBBY = {
   items: [
     ...slotRows(),
     { kind: 'info', label: 'BOTS', value: () => (room.opts.bots ? `SÍ · ${DIFFICULTIES[room.opts.difficulty].label}` : 'NO') },
-    { kind: 'info', label: 'MINIJUEGO', value: () => mgById(room.opts.mg).name },
-    { kind: 'info', label: () => mgById(room.opts.mg).points.label, value: () => String(room.opts[mgById(room.opts.mg).points.key]) },
+    { kind: 'info', label: 'MODO', value: () => (roomFiesta() ? 'FIESTA' : 'PARTIDA LIBRE') },
+    { kind: 'info', label: 'MINIJUEGO', hidden: roomFiesta, value: () => mgById(room.opts.mg).name },
+    { kind: 'info', label: () => mgById(roomMg()).points.label, value: () => String(room.opts[mgById(roomMg()).points.key] || '-') },
     pingRow(),
     { kind: 'choice', label: 'ESTOY LISTO', values: [{ v: false, label: 'NO' }, { v: true, label: 'SÍ' }],
       get: () => amReady(), set: (v) => sendReady(v) },
@@ -192,12 +197,17 @@ export const ONLINE_PAUSE = {
 export function onlineEndMenu() {
   const t = winnerTitle();
   const items = [
-    { kind: 'action', label: () => { const [v, n] = voteCount(); return `${iVoted() ? 'VOTASTE REVANCHA' : 'REVANCHA'} (${v}/${n})`; },
+    { kind: 'action', label: () => {
+      const [v, n] = voteCount(), what = game.minigame === 'fiesta' ? 'OTRA FIESTA' : 'REVANCHA';
+      return `${iVoted() ? `VOTASTE ${what}` : what} (${v}/${n})`;
+    },
       action: () => castVote(!iVoted()) },
   ];
   if (game.online === 'host') items.push({ kind: 'action', label: 'VOLVER A LA SALA', action: () => { hostBackToLobby(); toLobbyScreen(HOST_LOBBY); } });
   items.push({ kind: 'action', label: 'SALIR DE LA SALA', danger: true, action: () => exitRoom() });
-  return { id: 'endOnline', title: t.title, titleColor: t.color, offsetY: 16, items, onBack: () => {} };
+  const board = game.minigame === 'fiesta';        // fin de la Fiesta: la tabla de copas arriba de las opciones
+  if (board) items.unshift(fiestaRankArt());
+  return { id: 'endOnline', title: t.title, titleColor: t.color, offsetY: board ? 0 : 16, width: board ? 250 : undefined, items, onBack: () => {} };
 }
 function checkVotes() {
   if (room.role !== 'host' || !allVoted() || game.state !== 'end') return;
@@ -221,7 +231,8 @@ export function exitRoom() { leaveRoom(); toMultiMenu(); }
 const nameOf = (slot, fallback) => (fallback || (room.slots[slot] && room.slots[slot].name) || CHARS[slot].name);
 
 export function initMultiplayer() {
-  setGuestEndHandler(() => replaceMenus(onlineEndMenu()));
+  // en la Fiesta, al terminar un minijuego no hay menú: el anfitrión vuelve solo al tablero
+  setGuestEndHandler(() => { if (!(game.setup && game.setup.fiesta)) replaceMenus(onlineEndMenu()); });
   setRoomHandlers({
     onChange(what) {
       if (what === 'publicFull') { showToast('LA LISTA PÚBLICA ESTÁ LLENA'); return; }

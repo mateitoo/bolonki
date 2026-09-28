@@ -46,7 +46,8 @@ export function initInput(stage, h) {
   hooks = Object.assign(hooks, h);
 
   window.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyF' && !e.repeat && !e.ctrlKey) { hooks.onFullscreenKey(); hooks.onGesture(); return; }
+    // F = pantalla completa (salvo mientras se escribe un código o apodo: ahí es una letra más)
+    if (e.code === 'KeyF' && !e.repeat && !e.ctrlKey && !input.typing) { hooks.onFullscreenKey(); hooks.onGesture(); return; }
     held.add(e.code);
     if (!e.repeat) pressed.add(e.code);
     // ctrl + tecla: que el navegador no haga nada raro (Ctrl+D, Ctrl+S…) mientras se juega

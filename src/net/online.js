@@ -16,9 +16,33 @@ const r1 = (v) => Math.round(v * 10) / 10;
 /* ================= ANFITRIÓN ================= */
 let snapT = 0;
 
+// La Fiesta arranca desde su propio módulo (lo registra él, para no tener imports circulares)
+let fiestaStarter = null;
+export function setFiestaStarter(fn) { fiestaStarter = fn; }
+
+// Cambia de escena en toda la sala (minijuego o tablero): lo arma acá y les avisa a los invitados
+export function hostLaunch(setup, info) {
+  game.online = 'host';
+  room.startInfo = Object.assign({ t: 'start' }, info);
+  broadcast(room.startInfo);
+  resetMatch('count', setup);
+  game.players.forEach((p) => { p.net = room.guests.get(p.i) || null; p.isBot = info.kinds[p.i] === 'bot'; });
+  snapT = 0;
+}
+
 export function hostStart() {
   const kinds = slotKinds();
   const names = room.slots.map((s) => (s.kind === 'empty' ? null : s.name));
+  if (room.opts.mode === 'fiesta' && fiestaStarter) {
+    room.inGame = true; room.votes = [];
+    game.difficulty = room.opts.difficulty;
+    setRecording(true);
+    broadcast({ t: 'votes', v: [] });
+    broadcastLobby();
+    const ctrl = kinds.map((k, i) => (i === 0 ? 'local' : k === 'guest' ? 'remote' : k === 'bot' ? 'ai' : 'none'));
+    fiestaStarter({ mode: 'online', ctrl, names, kinds, me: 0 }, room.opts.turns);
+    return;
+  }
   const m = mgById(room.opts.mg);
   const points = room.opts[m.points.key];
   const setup = {
@@ -44,7 +68,7 @@ export function hostTick(rdt) {
   if (snapT > 0) return;
   snapT = SNAP_RATE;
   broadcast({
-    t: 's', st: game.state, c: r2(game.countT), el: r1(game.elapsed), w: game.winner,
+    t: 's', mg: game.minigame, st: game.state, c: r2(game.countT), el: r1(game.elapsed), w: game.winner,
     m: mg().snapshot(),
     ev: outbox.splice(0),
     pg: room.slots.map((s) => (s && s.ping) || 0),
@@ -56,7 +80,7 @@ export function hostGuestLeft(slot) {
   const p = game.players[slot];
   p.net = null;
   if (!p.alive) return;
-  if (room.opts.bots) { p.ctrl = 'ai'; p.isBot = true; }
+  if (room.opts.bots || game.minigame === 'fiesta' || (game.setup && game.setup.fiesta)) { p.ctrl = 'ai'; p.isBot = true; }
   else if (game.minigame === 'bolas') eliminate(slot);
   else { p.ctrl = 'none'; }        // en Empujón se queda quieto hasta que lo tiren
 }
@@ -78,11 +102,11 @@ let hitCount = 0, resumed = false;
 
 export function guestStart(m) {
   // volvió después de un corte: la partida sigue, solo se limpia lo recibido
-  if (m.resume && game.online === 'guest') { buf.length = 0; evq.length = 0; resumed = true; return; }
+  if (m.resume && game.online === 'guest' && (m.mg || 'bolas') === game.minigame) { buf.length = 0; evq.length = 0; resumed = true; return; }
   const setup = {
     mode: 'online', mg: m.mg || 'bolas', names: m.names || null,
-    ctrl: m.kinds.map((k, i) => (i === room.mySlot ? 'local' : k === 'none' ? 'none' : 'net')),
-    me: room.mySlot, points: m.points,
+    ctrl: m.kinds.map((k, i) => (k === 'none' ? 'none' : i === room.mySlot ? 'local' : 'net')),   // en un duelo de la Fiesta podés no jugar
+    me: room.mySlot, points: m.points, fiesta: !!m.fiesta, duel: !!m.duel,
   };
   game.online = 'guest';
   game.difficulty = m.difficulty;
@@ -118,6 +142,7 @@ export function guestFrame(rdt) {
     const a = buf[0], b = buf[1] || a;
     const f = b === a ? 0 : clamp((rt - a.time) / (b.time - a.time), 0, 1);
     const A = a.m, Bm = b.m;
+    if (A.mg && (A.mg !== game.minigame || Bm.mg !== game.minigame)) { mg().guestLocal(rdt, hitCount); return; }   // todavía no llegó el cambio de escena
     game.countT = A.c; game.elapsed = A.el;
     if (A.st !== game.state && game.state !== 'paused') {
       if (A.st === 'end' && game.state !== 'end') { game.winner = A.w; game.state = 'end'; onEnd(); }

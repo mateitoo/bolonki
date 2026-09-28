@@ -5,15 +5,17 @@ import { settings, saveSettings, IS_DESKTOP } from './settings.js';
 import { input, has, freezeControls } from './input.js';
 import { applyDisplay, enterFullscreen, exitFullscreen, isFullscreen } from './display.js';
 import { SFX, setVolume } from './audio.js';
-import { resetMatch, eliminate, deathsRunning, soloSetup, localSetup, demoSetup, pointsFor } from './game/match.js';
+import { resetMatch, eliminate, deathsRunning, soloSetup, localSetup, demoSetup, pointsFor, placement } from './game/match.js';
 import { localHit } from './game/controls.js';
-import { mg, mgById } from './minigames/registry.js';
+import { mg, mgById, MINIGAMES } from './minigames/registry.js';
 import { DEATH_ANIMS } from './deaths/index.js';
-import { openMenu, replaceMenus, closeAllMenus, menuOpen, menuInput } from './ui/menu.js';
+import { openMenu, replaceMenus, closeAllMenus, menuOpen, menuInput, topMenu } from './ui/menu.js';
 import { COL } from './ui/draw.js';
-import { yesNo, diffValues, mgChoice, mgArt, mgDescCentered, pointsChoice, botValues } from './ui/values.js';
+import { yesNo, diffValues, mgChoice, mgArt, mgDescCentered, pointsChoice, botValues, modeChoice } from './ui/values.js';
 import { MULTI, ONLINE_PAUSE, onlineEndMenu, initMultiplayer } from './multiplayer.js';
 import { guestHit } from './net/online.js';
+import { startFiesta, fiestaMinigameDone, fiestaRankArt } from './fiesta/board.js';
+import { showToast } from './hud.js';
 
 const set = (key, after) => (v) => { settings[key] = v; saveSettings(); if (after) after(v); };
 
@@ -36,18 +38,34 @@ export const JUGAR = {
   ],
 };
 
-const setPoints = (v) => { settings[mgById(settings.mg).points.key] = v; saveSettings(); };
+// En modo Fiesta las filas de minijuego muestran el tablero (y "puntos" pasa a ser TURNOS)
+const isFiestaMode = () => settings.mode === 'fiesta';
+const curMg = () => (isFiestaMode() ? 'fiesta' : settings.mg);
+const setPoints = (v) => { settings[mgById(curMg()).points.key] = v; saveSettings(); };
+const onlyLibre = (item) => Object.assign(item, { hidden: () => isFiestaMode() });
+// ¿estamos en la Fiesta? (en el tablero o en un minijuego que salió en el tablero)
+export const inFiesta = () => game.minigame === 'fiesta' || !!(game.setup && game.setup.fiesta);
+
+function beginFiesta(base) {
+  closeAllMenus();
+  game.difficulty = settings.difficulty;
+  startFiesta(base, settings.turns);
+}
 
 const SOLO = {
-  id: 'solo', title: 'SOLITARIO', width: 270,
+  id: 'solo', title: 'SOLITARIO', width: 270, rowH: 12,
   items: [
-    mgChoice(() => settings.mg, set('mg')),
-    mgArt(() => settings.mg),
-    mgDescCentered(() => settings.mg),
+    modeChoice(() => settings.mode, set('mode')),
+    onlyLibre(mgChoice(() => settings.mg, set('mg'))),
+    mgArt(curMg, 50),
+    mgDescCentered(curMg),
     { kind: 'info', label: 'PERSONAJE', value: `${CHARS[0].name} (PRONTO MÁS)` },
     { kind: 'choice', label: 'CPU', values: diffValues, get: () => settings.difficulty, set: set('difficulty', (v) => (game.difficulty = v)) },
-    pointsChoice(() => settings.mg, () => pointsFor(settings.mg), setPoints),
-    { kind: 'action', label: 'COMENZAR', action: () => startMatch(soloSetup()) },
+    pointsChoice(curMg, () => pointsFor(curMg()), setPoints),
+    { kind: 'action', label: 'COMENZAR', action: () => {
+      if (isFiestaMode()) beginFiesta({ mode: 'solo', ctrl: ['local', 'ai', 'ai', 'ai'], me: 0 });
+      else startMatch(soloSetup());
+    } },
   ],
 };
 
@@ -56,9 +74,10 @@ const padStatus = (n) => (input.pads >= n ? `JOYSTICK ${n}` : `JOYSTICK ${n} (NO
 export const LOCAL = {
   id: 'local', title: 'MULTIJUGADOR LOCAL', width: 300, rowH: 11,
   items: [
-    mgChoice(() => settings.mg, set('mg')),
-    mgArt(() => settings.mg, 52),
-    mgDescCentered(() => settings.mg),
+    modeChoice(() => settings.mode, set('mode')),
+    onlyLibre(mgChoice(() => settings.mg, set('mg'))),
+    mgArt(curMg, 46),
+    mgDescCentered(curMg),
     { kind: 'choice', label: 'JUGADORES', values: [2, 3, 4].map((n) => ({ v: n, label: String(n) })),
       get: () => settings.localPlayers, set: set('localPlayers') },
     { kind: 'info', label: 'J1', labelColor: () => CHARS[0].col, value: () => (input.pads >= 1 ? 'FLECHAS+ESPACIO/CTRL O JOY 1' : 'FLECHAS · ESPACIO / CTRL') },
@@ -70,11 +89,15 @@ export const LOCAL = {
     { kind: 'choice', label: 'BOTS EN LUGARES LIBRES', values: botValues, hidden: () => settings.localPlayers >= 4,
       get: () => (settings.localBots ? settings.difficulty : 'no'),
       set: (v) => { settings.localBots = v !== 'no'; if (v !== 'no') { settings.difficulty = v; game.difficulty = v; } saveSettings(); } },
-    pointsChoice(() => settings.mg, () => pointsFor(settings.mg), setPoints),
-    { kind: 'action', label: 'COMENZAR', action: () => startMatch(localSetup(settings.localPlayers, settings.localBots, pointsFor(settings.mg), settings.mg)) },
+    pointsChoice(curMg, () => pointsFor(curMg()), setPoints),
+    { kind: 'action', label: 'COMENZAR', action: () => {
+      if (isFiestaMode()) beginFiesta(localSetup(settings.localPlayers, settings.localBots, settings.turns, 'fiesta'));
+      else startMatch(localSetup(settings.localPlayers, settings.localBots, pointsFor(settings.mg), settings.mg));
+    } },
   ],
 };
 
+let gameTab = null;
 export const OPTIONS = {
   id: 'options', title: 'OPCIONES', width: 290,
   tabs: [
@@ -102,11 +125,14 @@ export const OPTIONS = {
       { kind: 'info', label: 'CAMBIAR SOLAPA', value: 'Q E / LB RB' },
       { kind: 'info', label: 'PANTALLA COMPLETA', value: 'F' },
     ] },
-    { label: 'EXTRAS', items: [
+    // JUEGO: qué minijuegos salen en la Fiesta y cómo se ve la derrota
+    { label: 'JUEGO', get items() { return gameTab || (gameTab = [
+      { kind: 'info', label: 'MINIJUEGOS QUE SALEN EN LA FIESTA', labelColor: () => COL.teal },
+      ...mgToggleItems(),
       { kind: 'choice', label: 'DERROTA', values: [{ v: 'random', label: 'ALEATORIA' }].concat(DEATH_ANIMS.map((a) => ({ v: a.id, label: a.name }))),
         get: () => settings.deathId, set: set('deathId') },
       { kind: 'action', label: 'VER DERROTA EN CPU', hidden: () => game.state !== 'menu', action: () => showcaseDeath() },
-    ] },
+    ]); } },
   ],
 };
 
@@ -114,7 +140,7 @@ const PAUSE = {
   id: 'pause', title: 'PAUSA',
   items: [
     { kind: 'action', label: 'CONTINUAR', action: () => resume() },
-    { kind: 'action', label: 'REINICIAR', action: () => startMatch(game.setup) },
+    { kind: 'action', label: 'REINICIAR', hidden: () => inFiesta(), action: () => startMatch(game.setup) },
     { kind: 'action', label: 'OPCIONES', action: () => openMenu(OPTIONS) },
     { kind: 'action', label: 'SALIR AL MENÚ', danger: true, action: () => goMainMenu() },
   ],
@@ -131,12 +157,13 @@ export function winnerTitle() {
 
 function endMenu() {
   const t = winnerTitle();
+  const board = game.minigame === 'fiesta';
   return {
-    id: 'end', title: t.title, titleColor: t.color, offsetY: 16,
-    items: [
-      { kind: 'action', label: 'REVANCHA', action: () => startMatch(game.setup) },
+    id: 'end', title: t.title, titleColor: t.color, offsetY: board ? 0 : 16, width: board ? 250 : undefined,
+    items: (board ? [fiestaRankArt()] : []).concat([
+      { kind: 'action', label: board ? 'OTRA FIESTA' : 'REVANCHA', action: () => startMatch(game.setup) },
       { kind: 'action', label: 'MENÚ PRINCIPAL', action: () => goMainMenu() },
-    ],
+    ]),
     onBack: () => goMainMenu(),
   };
 }
@@ -186,6 +213,13 @@ export function updateFlow() {
     return;
   }
 
+  // Fiesta: terminó un minijuego; se ve un ratito quién ganó y se vuelve al tablero
+  if (fiestaBack && performance.now() >= fiestaBack.at) {
+    const r = fiestaBack.ranking; fiestaBack = null;
+    if (game.state === 'end' && inFiesta()) fiestaMinigameDone(r);
+  }
+
+  input.typing = !!(menuOpen() && topMenu().def.typing);    // escribiendo: la F es una letra, no pantalla completa
   if (menuOpen()) {
     menuInput();
     // en red la partida no se frena: mientras el menú está abierto tu nave se queda quieta
@@ -200,22 +234,46 @@ export function updateFlow() {
     case 'count':
     case 'play': {
       if (has('pause')) { if (online) { SFX.back(); replaceMenus(ONLINE_PAUSE); } else pause(); break; }
-      if (game.humanOut) { if (!online && (has('confirm') || has('start'))) startMatch(game.setup); break; }
+      if (game.humanOut) { if (!online && !inFiesta() && (has('confirm') || has('start'))) startMatch(game.setup); break; }
       // golpe fuerte de cada nave de esta máquina (en el local, cada jugador con sus teclas)
+      // en el tablero de la Fiesta, ENTER también sirve para tirar el dado y elegir
+      const board = game.minigame === 'fiesta';
       for (const p of game.players) {
-        if (p.ctrl !== 'local' || !p.alive || p.cd > 0 || !localHit(p)) continue;
+        if (p.ctrl !== 'local' || !p.alive || p.cd > 0) continue;
+        if (!localHit(p) && !(board && (p.pad === 'all' || p.pad === 'p1' || !p.pad) && has('confirm'))) continue;
         if (game.online === 'guest') guestHit(); else mg().onLocalHit(p);
       }
       break;
     }
     case 'end':
+      if (inFiesta() && game.minigame !== 'fiesta') break;     // minijuego de la Fiesta: vuelve solo al tablero
       replaceMenus(online ? onlineEndMenu() : endMenu());
       break;
     default: break;
   }
 }
 
-export function onMatchEnd() { replaceMenus(game.online !== 'off' ? onlineEndMenu() : endMenu()); }
+let fiestaBack = null;
+export function onMatchEnd() {
+  if (inFiesta() && game.minigame !== 'fiesta') { fiestaBack = { at: performance.now() + 2200, ranking: placement() }; return; }
+  replaceMenus(game.online !== 'off' ? onlineEndMenu() : endMenu());
+}
+
+// Opciones > Minijuegos: cuáles salen en la Fiesta (siempre tiene que quedar al menos uno)
+function mgToggleItems() {
+  return MINIGAMES.map((m) => ({
+    kind: 'choice', label: m.name, values: yesNo,
+    get: () => !settings.mgOff.includes(m.id),
+    set: (v) => {
+      const off = settings.mgOff.filter((id) => id !== m.id);
+      if (!v) {
+        if (MINIGAMES.every((q) => q.id === m.id || off.includes(q.id))) { showToast('TIENE QUE QUEDAR AL MENOS UNO'); return; }
+        off.push(m.id);
+      }
+      settings.mgOff = off; saveSettings();
+    },
+  }));
+}
 export function initFlow() { setVolume(settings.sfx / 10); game.difficulty = settings.difficulty; initMultiplayer(); }
 export const inDemo = () => game.state === 'title' || game.state === 'menu';
 export { input };

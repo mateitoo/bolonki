@@ -18,6 +18,9 @@ export const DEFAULTS = {
   localBots: true,       // multijugador local: bots en los lugares libres
   mg: 'bolas',           // último minijuego elegido
   rounds: 2,             // Empujón: rondas para ganar
+  mode: 'libre',         // 'libre' (elegís el minijuego) | 'fiesta' (tablero)
+  turns: 10,             // Fiesta: cantidad de turnos
+  mgOff: [],             // minijuegos desactivados (no salen en la Fiesta)
 };
 
 function load() {
@@ -37,6 +40,8 @@ if (!settings.v) { settings.integer = 'auto'; settings.v = 5; }
 // v0.6: 480p pasa a ser la calidad por defecto
 if (settings.v < 6) { if (settings.quality === '240') settings.quality = '480'; settings.v = 6; }
 if (!DIFF_ORDER.includes(settings.difficulty)) settings.difficulty = DEFAULTS.difficulty;
+if (!Array.isArray(settings.mgOff)) settings.mgOff = [];
+if (settings.mode !== 'fiesta') settings.mode = 'libre';
 
 export function saveSettings() {
   try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) { /* sin storage */ }

@@ -65,14 +65,17 @@ const v3 = new THREE.Vector3();
 function drawNameTags(hw, st) {
   if (game.mode === 'demo') return;
   if (st !== 'play' && st !== 'count' && st !== 'end' && st !== 'paused') return;
-  // en Empujón las naves se mezclan: se marca también la tuya con "VOS"
-  const markMe = game.minigame === 'empujon' && game.mode !== 'local';
+  // en Empujón las naves se mezclan: se marca también la tuya con "VOS"; en el tablero, todos con su nombre
+  const board = game.minigame === 'fiesta';
+  const markMe = (game.minigame === 'empujon' || board) && game.mode !== 'local';
+  const m = mg(), tagY = m.tagY || 4.1;
+  if (m.showTags && !m.showTags()) return;
   for (const p of game.players) {
-    if (p.empty || p.death) continue;
+    if (p.empty || p.death || (board && !p.mesh.root.visible)) continue;
     const mine = p.i === game.me && game.mode !== 'local';
     const name = mine ? (markMe ? 'VOS' : null) : p.name;
     if (!name) continue;
-    v3.set(p.x, 4.1, p.z).project(camera);
+    v3.set(p.x, tagY, p.z).project(camera);
     if (v3.z > 1) continue;
     const x = Math.round((v3.x + 1) / 2 * hw), y = Math.round((1 - v3.y) / 2 * 240) - 4;
     txt(name, x, Math.max(58, Math.min(214, y)), 8, CHARS[p.i].col, 'center');
@@ -104,18 +107,37 @@ export function drawHud() {
     const bots = game.players.some((p) => p.ctrl === 'ai' || p.isBot);
     if (bots) txt(`CPU: ${DIFFICULTIES[game.difficulty].label}`, hw / 2, 142, 8, COL.teal, 'center');
     if (game.online !== 'off') txt('PARTIDA ONLINE', hw / 2, 156, 8, COL.dim, 'center');
+    // minijuego que salió en la Fiesta
+    if (game.setup && game.setup.fiesta) {
+      const duel = !!game.setup.duel;
+      txt(duel ? '¡DUELO!' : 'MINIJUEGO DE LA FIESTA', hw / 2, 64, 8, duel ? '#d8a0ff' : COL.teal, 'center');
+    }
     // local en Bola Brava: los de los costados se mueven con arriba/abajo
     if (game.mode === 'local' && game.minigame === 'bolas' && game.players.some((p) => p.ctrl === 'local' && p.i % 2 === 1)) {
       txt('LOS DE LOS COSTADOS: ARRIBA / ABAJO', hw / 2, 170, 8, '#ffb31a', 'center');
     }
   }
+  const fiestaMg = !!(game.setup && game.setup.fiesta);
+  const meP = game.players[game.me];
   if (st === 'play' && game.humanOut) {
     txt('ELIMINADO', hw / 2, 190, 16, COL.red, 'center');
-    if (game.online !== 'off') txt('MIRANDO LA PARTIDA', hw / 2, 212, 8, COL.dim, 'center');
+    if (game.online !== 'off' || fiestaMg) txt('MIRANDO LA PARTIDA', hw / 2, 212, 8, COL.dim, 'center');
     else if (blink) txt(input.device === 'gamepad' ? 'A: REINTENTAR   START: PAUSA' : 'ENTER: REINTENTAR   ESC: PAUSA', hw / 2, 212, 8, COL.white, 'center');
   }
   if (!demo) mg().hud(hw, st);
-  if (game.minigame === 'bolas' && st === 'play' && game.elapsed < 3 && !game.humanOut && game.mode !== 'local') {
+  // Fiesta: en un duelo en el que no jugás, mirás
+  if (fiestaMg && meP && meP.empty && game.mode !== 'local' && (st === 'play' || st === 'count')) txt('MIRANDO EL DUELO', hw / 2, 212, 8, COL.dim, 'center');
+  // Fiesta: terminó el minijuego, se ve quién ganó antes de volver al tablero
+  if (fiestaMg && st === 'end') {
+    const w = game.players[game.winner];
+    if (w) {
+      const me = game.winner === game.me && game.mode !== 'local';
+      rect(0, 90, hw, 40, 'rgba(4,6,14,.72)');
+      txt(me ? '¡GANASTE!' : `GANA ${w.name || CHARS[w.i].name}`, hw / 2, 96, 16, me ? COL.gold : CHARS[w.i].col, 'center', COL.goldShadow);
+      txt('VOLVIENDO AL TABLERO...', hw / 2, 117, 8, COL.dim, 'center');
+    }
+  }
+  if (game.minigame === 'bolas' && st === 'play' && game.elapsed < 3 && !game.humanOut && game.mode !== 'local' && meP && !meP.empty) {
     txt('TU ARCO', hw / 2, 170, 8, '#ffb31a', 'center');
     tri(hw / 2 - 4, 182, 'd', '#ffb31a');
   }

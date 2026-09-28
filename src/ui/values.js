@@ -25,5 +25,9 @@ export const mgArt = (get, h = 54) => ({
 });
 export const mgDescCentered = (get) => ({ kind: 'info', center: true, label: () => mgById(get()).desc, labelColor: () => COL.teal });
 
+// Modo: partida libre (elegís el minijuego) o Fiesta (tablero que va sorteando minijuegos)
+export const modeValues = [{ v: 'libre', label: 'PARTIDA LIBRE' }, { v: 'fiesta', label: 'FIESTA' }];
+export const modeChoice = (get, setFn) => ({ kind: 'choice', label: 'MODO', values: modeValues, get, set: setFn });
+
 // Bots y su dificultad en una sola fila: NO / FÁCIL / INTERMEDIO / DIFÍCIL / EXTREMO
 export const botValues = [{ v: 'no', label: 'NO' }].concat(DIFF_ORDER.map((d) => ({ v: d, label: DIFFICULTIES[d].label })));

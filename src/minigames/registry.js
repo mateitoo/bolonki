@@ -18,16 +18,18 @@
 import { game } from '../state.js';
 
 const REG = {};
-export const MINIGAMES = [];
-export function register(mg) { REG[mg.id] = mg; MINIGAMES.push(mg); }
+export const MINIGAMES = [];          // los que se pueden elegir y sortear
+export const SCENES = [];             // todo lo que tiene mundo propio (minijuegos + el tablero de la Fiesta)
+// hidden: escenas que no son minijuegos (el tablero): no aparecen en las listas
+export function register(mg, opts = {}) { REG[mg.id] = mg; SCENES.push(mg); if (!opts.hidden) MINIGAMES.push(mg); }
 export const mgById = (id) => REG[id] || MINIGAMES[0];
 export const mg = () => mgById(game.minigame);
 
 let shown = null;
-// Muestra el mundo del minijuego pedido y esconde los demás
+// Muestra el mundo pedido y esconde los demás
 export function activate(id) {
   const next = mgById(id);
-  if (shown !== next) { MINIGAMES.forEach((m) => m.show(m === next)); shown = next; }
+  if (shown !== next) { SCENES.forEach((m) => m.show(m === next)); shown = next; }
   game.minigame = next.id;
   return next;
 }

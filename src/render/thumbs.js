@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { renderer, scene, camera, U } from './psx.js';
 import { thumbs } from './thumbStore.js';
-import { MINIGAMES } from '../minigames/registry.js';
+import { SCENES } from '../minigames/registry.js';
 import { resetMatch, demoSetup } from '../game/match.js';
 import { game } from '../state.js';
 import { updateVisuals } from '../visuals.js';
@@ -15,9 +15,10 @@ export function makeThumbs() {
   const rt = new THREE.WebGLRenderTarget(TW, TH, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
   const px = new Uint8Array(TW * TH * 4);
   const saveRes = U.uRes.value.clone(), saveAspect = camera.aspect;
-  for (const m of MINIGAMES) {
+  for (const m of SCENES) {
     try {
       resetMatch('menu', demoSetup(m.id));
+      if (m.thumbPrep) m.thumbPrep();
       for (let k = 0; k < (m.thumbSteps || 150); k++) m.step(1 / 120);
       game.shake = 0;
       updateVisuals(0, 0);

@@ -91,6 +91,7 @@ let warned = false;
 function startRound() {
   game.round = { n: game.round.n + 1, over: false, winner: -1, t: 0 };
   game.timeScale = 1;
+  game.elimOrder = [];
   placeAll();
   if (!demo()) { game.state = 'count'; game.countT = 3.999; FX.tick(); }
 }
@@ -231,6 +232,7 @@ function step(dt) {
     }
     if (d > game.radius + 0.15) {
       p.alive = false;
+      game.elimOrder.push(p.i);
       FX.fall(p.i, p.vx, p.vz);
       if (p.i === game.me && game.mode === 'solo') game.timeScale = 1.5;   // mirás el resto un poco más rápido
     }

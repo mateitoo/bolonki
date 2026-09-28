@@ -5,14 +5,32 @@ Cada jugador defiende su arco con 15 puntos. Cada pelota que entra resta uno, y 
 
 ## Jugar
 
-| Tecla | Acción |
-|---|---|
-| ← → | Mover (en el título: elegir dificultad) |
-| Espacio | Empezar / golpe fuerte (moverse al golpear dirige la pelota) |
-| P | Pausa |
-| R | Reiniciar |
+Abre en la pantalla de título; al pulsar Enter/Start pasa a pantalla completa (se puede desactivar en Opciones → Video).
 
-En el celular aparecen botones táctiles.
+| Acción | Teclado | Joystick |
+|---|---|---|
+| Mover / navegar menús | Flechas o WASD | Stick izquierdo o cruceta |
+| Aceptar / golpe fuerte | Enter / Espacio | A (golpe también con X) |
+| Volver | Esc / Backspace | B |
+| Pausa | Esc / P | Start |
+| Pantalla completa | F | |
+
+También se puede usar el mouse en los menús, y en el celular aparecen botones táctiles.
+
+## Opciones
+
+- **Video:** pantalla completa, aspecto (panorámico o 4:3), calidad (240p, 480p o nítida), escalado entero, scanlines.
+- **Audio:** volumen de efectos.
+- **Partida:** dificultad de la CPU (fácil, intermedio, difícil, extremo) y puntos (5, 10 o 15).
+- **Extras:** animación de derrota y "ver derrota en CPU".
+
+Todo se guarda en el navegador.
+
+## Pantalla y resolución
+
+La altura interna es siempre de 240 líneas, como la PS1. El ancho depende de la pantalla:
+320×240 en 4:3, 384×240 en 16:10, 426×240 en 16:9 y hasta 560×240 en 21:9.
+En panorámico se ve más a los costados de la arena con la misma altura (Hor+), y el HUD se ancla a los bordes.
 
 ## Desarrollo
 
@@ -48,8 +66,13 @@ src/
   deaths/            animaciones de derrota (una por archivo)
   fx/particles.js    chispas, humo, escombros, estela de las pelotas
   visuals.js         animación por frame y cámara
-  hud.js             retratos, puntajes y carteles
-  input.js           teclado, táctil y selección de dificultad
+  hud.js             retratos, puntajes, título y carteles
+  input.js           entrada unificada: teclado, joystick, mouse y táctil
+  display.js         resolución, relación de aspecto y pantalla completa
+  settings.js        opciones guardadas
+  flow.js            título, menús, partida, pausa y fin
+  ui/menu.js         motor de menús (navegable con teclado, joystick y mouse)
+  ui/draw.js         dibujo pixel del HUD y menús
   audio.js           sonidos sintetizados
 ```
 

@@ -5,9 +5,10 @@ import { removeBall } from '../world/balls.js';
 import { burst, dropDot, P } from '../fx/particles.js';
 import { SFX } from '../audio.js';
 import { aiMove } from './ai.js';
+import { input } from '../input.js';
 import { podPos, fireFrom, scoreGoal } from './match.js';
 
-const playing = () => game.state === 'play' || game.state === 'title';
+const playing = () => game.state === 'play' || game.state === 'title' || game.state === 'menu';
 
 export function step(dt) {
   if (playing()) game.elapsed += dt;
@@ -17,7 +18,7 @@ export function step(dt) {
     p.cd -= dt; if (p.swing > 0) p.swing -= dt;
     if (!p.alive) { p.v = 0; continue; }
     let tv = 0;
-    if (p.human) tv = ((game.input.r ? 1 : 0) - (game.input.l ? 1 : 0)) * HUMAN_SPEED;
+    if (p.human) tv = input.axis * HUMAN_SPEED;
     else if (game.state !== 'end') tv = aiMove(p, dt);
     p.v += (tv - p.v) * Math.min(1, dt * (p.human ? 24 : 15));
     p.s += p.v * dt;

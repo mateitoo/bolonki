@@ -1,74 +1,125 @@
-// Teclado, táctil y controles de la página.
-import { DIFF_ORDER } from './config.js';
-import { game } from './state.js';
-import { ensureAudio, SFX } from './audio.js';
-import { resetMatch, startSwing } from './game/match.js';
+// Entrada unificada: teclado, joystick (Gamepad API) y mouse/táctil.
+// Cada frame se llama pollInput(dt) y el resto del juego lee:
+//   input.axis   -> movimiento del pod (-1..1)
+//   input.events -> acciones de este frame: up, down, left, right, confirm, back, start, pause, hit, click
+import { clamp } from './config.js';
 
-let onDifficulty = () => {};
+export const input = {
+  axis: 0,
+  events: [],
+  device: 'keyboard',                 // 'keyboard' | 'gamepad' | 'pointer' (para mostrar las ayudas correctas)
+  pointer: { x: -1, y: -1, moved: false },
+  touch: { l: false, r: false },
+  padName: '',
+};
 
-export function setDifficulty(id, notify = true) {
-  if (!DIFF_ORDER.includes(id)) return;
-  game.difficulty = id;
-  try { localStorage.setItem('bolonki:difficulty', id); } catch (e) { /* sin storage */ }
-  if (notify) onDifficulty(id);
-}
-export function savedDifficulty() {
-  try { return localStorage.getItem('bolonki:difficulty'); } catch (e) { return null; }
-}
+const held = new Set();
+const queue = [];
+const NAV = ['up', 'down', 'left', 'right'];
 
-// Espacio / tocar: empezar, reintentar o golpe fuerte según el momento
-export function actionPress() {
-  ensureAudio();
-  const st = game.state;
-  if (st === 'title' || st === 'end' || (st === 'play' && game.humanOut)) { resetMatch('count'); return; }
-  if (st === 'play' || st === 'count') {
-    const p = game.players[0];
-    if (p.alive && p.cd <= 0) startSwing(p);
-  }
-}
+const KEYMAP = {
+  ArrowUp: ['up'], KeyW: ['up'],
+  ArrowDown: ['down'], KeyS: ['down'],
+  ArrowLeft: ['left'], KeyA: ['left'],
+  ArrowRight: ['right'], KeyD: ['right'],
+  Space: ['confirm', 'hit'], KeyJ: ['hit'], KeyK: ['hit'],
+  Enter: ['confirm', 'start'], NumpadEnter: ['confirm', 'start'],
+  Escape: ['back', 'pause'], Backspace: ['back'], KeyP: ['pause'],
+};
 
-function cycleDifficulty(dir) {
-  const i = DIFF_ORDER.indexOf(game.difficulty);
-  setDifficulty(DIFF_ORDER[(i + dir + DIFF_ORDER.length) % DIFF_ORDER.length]);
-  ensureAudio(); SFX.select();
-}
+let hooks = { onGesture() {}, onFullscreenKey() {}, onPadConnect() {}, toHud: null };
 
-export function initInput({ stage, onDifficultyChange }) {
-  onDifficulty = onDifficultyChange || onDifficulty;
-  const input = game.input;
+export function initInput(stage, h) {
+  hooks = Object.assign(hooks, h);
 
   window.addEventListener('keydown', (e) => {
-    if (e.target && e.target.tagName === 'SELECT') return;
-    const k = e.code;
-    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(k)) e.preventDefault();
-    if (game.state === 'title' && !e.repeat) {
-      // en la pantalla de título, izquierda/derecha eligen la dificultad
-      if (k === 'ArrowLeft' || k === 'KeyA') { cycleDifficulty(-1); return; }
-      if (k === 'ArrowRight' || k === 'KeyD') { cycleDifficulty(1); return; }
-    }
-    if (k === 'ArrowLeft' || k === 'KeyA') input.l = true;
-    if (k === 'ArrowRight' || k === 'KeyD') input.r = true;
-    if ((k === 'Space' || k === 'KeyJ' || k === 'Enter') && !e.repeat) actionPress();
-    if (k === 'KeyP' || k === 'Escape') {
-      if (game.state === 'play') game.state = 'paused';
-      else if (game.state === 'paused') game.state = 'play';
-    }
-    if (k === 'KeyR' && game.state !== 'title') { ensureAudio(); resetMatch('count'); }
+    if (e.code === 'KeyF' && !e.repeat) { hooks.onFullscreenKey(); hooks.onGesture(); return; }
+    const acts = KEYMAP[e.code];
+    if (!acts) return;
+    e.preventDefault();
+    held.add(e.code);
+    input.device = 'keyboard';
+    if (e.repeat) { acts.filter((a) => NAV.includes(a)).forEach((a) => queue.push({ a })); return; }
+    acts.forEach((a) => queue.push({ a }));
+    hooks.onGesture();
   });
-  window.addEventListener('keyup', (e) => {
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.l = false;
-    if (e.code === 'ArrowRight' || e.code === 'KeyD') input.r = false;
-  });
-  window.addEventListener('blur', () => { input.l = input.r = false; if (game.state === 'play') game.state = 'paused'; });
-  stage.addEventListener('pointerdown', () => { stage.focus(); if (game.state === 'title' || game.state === 'end') actionPress(); });
+  window.addEventListener('keyup', (e) => held.delete(e.code));
+  window.addEventListener('blur', () => { held.clear(); input.touch.l = input.touch.r = false; queue.push({ a: 'blur' }); });
 
-  const hold = (id, on, off) => {
-    const el = document.getElementById(id); if (!el) return;
-    el.addEventListener('pointerdown', (e) => { e.preventDefault(); el.setPointerCapture(e.pointerId); el.classList.add('on'); on(); });
-    const up = () => { el.classList.remove('on'); if (off) off(); };
-    el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
-  };
-  hold('tl', () => (game.state === 'title' ? cycleDifficulty(-1) : (input.l = true)), () => (input.l = false));
-  hold('tr', () => (game.state === 'title' ? cycleDifficulty(1) : (input.r = true)), () => (input.r = false));
-  hold('th', actionPress);
+  stage.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const p = hooks.toHud(e.clientX, e.clientY);
+    input.pointer.x = p.x; input.pointer.y = p.y; input.pointer.moved = true;
+    input.device = 'pointer';
+  });
+  stage.addEventListener('pointerdown', (e) => {
+    if (e.target.closest && e.target.closest('.touch')) return;   // los botones táctiles se manejan aparte
+    const p = hooks.toHud(e.clientX, e.clientY);
+    queue.push({ a: 'click', x: p.x, y: p.y });
+    input.device = 'pointer';
+    hooks.onGesture();
+  });
+
+  window.addEventListener('gamepadconnected', (e) => { input.padName = e.gamepad.id; hooks.onPadConnect(true); });
+  window.addEventListener('gamepaddisconnected', () => { hooks.onPadConnect(false); });
 }
+
+// Botones táctiles (celular): mover, golpe y pausa
+export function bindTouch(id, onDown, onUp) {
+  const el = document.getElementById(id); if (!el) return;
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); el.setPointerCapture(e.pointerId); el.classList.add('on');
+    input.device = 'pointer'; onDown(); hooks.onGesture();
+  });
+  const up = () => { el.classList.remove('on'); if (onUp) onUp(); };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
+}
+export function pushEvent(a) { queue.push({ a }); }
+
+/* ---------- joystick (mapeo estándar: Xbox / PlayStation / Steam Deck) ---------- */
+const pad = { prev: [], navDir: null, navT: 0 };
+const B = { A: 0, B: 1, X: 2, Y: 3, SELECT: 8, START: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
+
+function pollPad(dt, out) {
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  let gp = null;
+  for (const p of pads) if (p && p.connected) { gp = p; break; }
+  if (!gp) return 0;
+  const now = gp.buttons.map((b) => !!(b && b.pressed));
+  const down = (i) => now[i] && !pad.prev[i];
+  const push = (a) => { out.push({ a }); input.device = 'gamepad'; };
+
+  if (down(B.A)) { push('confirm'); push('hit'); }
+  if (down(B.X)) push('hit');
+  if (down(B.B)) push('back');
+  if (down(B.SELECT)) push('back');
+  if (down(B.START)) { push('start'); push('pause'); }
+
+  // navegación de menú con cruceta o stick, con repetición al mantener
+  const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+  let dir = null;
+  if (now[B.UP] || ay < -0.55) dir = 'up';
+  else if (now[B.DOWN] || ay > 0.55) dir = 'down';
+  else if (now[B.LEFT] || ax < -0.55) dir = 'left';
+  else if (now[B.RIGHT] || ax > 0.55) dir = 'right';
+  if (dir !== pad.navDir) { pad.navDir = dir; pad.navT = 0.35; if (dir) push(dir); }
+  else if (dir) { pad.navT -= dt; if (pad.navT <= 0) { pad.navT = 0.11; push(dir); } }
+
+  pad.prev = now;
+  let axis = Math.abs(ax) > 0.2 ? (ax - Math.sign(ax) * 0.2) / 0.8 : 0;   // stick analógico con zona muerta
+  if (now[B.LEFT]) axis = -1;
+  if (now[B.RIGHT]) axis = 1;
+  if (axis !== 0) input.device = 'gamepad';
+  return axis;
+}
+
+export function pollInput(dt) {
+  const ev = queue.splice(0);
+  const padAxis = pollPad(dt, ev);
+  const k = (held.has('ArrowRight') || held.has('KeyD') ? 1 : 0) - (held.has('ArrowLeft') || held.has('KeyA') ? 1 : 0);
+  const t = (input.touch.r ? 1 : 0) - (input.touch.l ? 1 : 0);
+  input.axis = clamp(k + padAxis + t, -1, 1);
+  input.events = ev;
+}
+
+export const has = (a) => input.events.some((e) => e.a === a);

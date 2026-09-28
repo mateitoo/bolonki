@@ -1,6 +1,6 @@
 // Estado compartido del juego (mutable). Todos los módulos leen y escriben acá.
 export const game = {
-  state: 'title',          // title | count | play | paused | end
+  state: 'title',          // title | menu | count | play | paused | end  (title y menu corren la demo)
   difficulty: 'intermedio',
   countT: 0,
   elapsed: 0,
@@ -15,7 +15,7 @@ export const game = {
   pendingEnd: false,       // la partida termina cuando acaben las animaciones de derrota
   camFocus: 0, camFocusTarget: 0, focus: { x: 0, z: 0 },
   clock: 0,
-  input: { l: false, r: false },
+  showcaseT: 0,            // "ver derrota" desde Extras
   players: [],
   balls: [],
 };

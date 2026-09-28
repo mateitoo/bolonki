@@ -82,19 +82,3 @@ export function initRenderer(canvas) {
   renderer.setClearColor(0x04060b, 1);
   return renderer;
 }
-
-// Modo PS1 (320x240 + temblor + dither) o modo nítido a resolución completa
-export function applyMode(psx, stage, canvas) {
-  if (psx) {
-    renderer.setSize(W, HH, false);
-    U.uRes.value.set(W, HH); U.uSnap.value = 1; U.uDither.value = 1;
-    canvas.style.imageRendering = 'pixelated';
-  } else {
-    const r = stage.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
-    renderer.setSize(Math.max(1, Math.round(r.width * dpr)), Math.max(1, Math.round(r.height * dpr)), false);
-    U.uSnap.value = 0; U.uDither.value = 0;
-    canvas.style.imageRendering = 'auto';
-  }
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
-}

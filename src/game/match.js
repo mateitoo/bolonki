@@ -1,5 +1,6 @@
 // Reglas de la partida: reinicio, disparos de torre, goles y eliminaciones.
-import { CORN, R, PD, BALL, START_PTS, rnd } from '../config.js';
+import { CORN, R, PD, BALL, rnd } from '../config.js';
+import { settings } from '../settings.js';
 import { game, world } from '../state.js';
 import { resetPodVisual } from '../world/pods.js';
 import { removeBall } from '../world/balls.js';
@@ -7,16 +8,15 @@ import { burst, P } from '../fx/particles.js';
 import { SFX } from '../audio.js';
 import { pickDeath } from '../deaths/index.js';
 
-export const settings = { deathId: 'random' };
-
 export function resetMatch(mode) {
+  const demo = mode === 'title' || mode === 'menu';
   Object.assign(game, {
     state: mode, elapsed: 0, spawnT: 0.8, pending: null, winner: -1, timeScale: 1, slowT: 0, slowK: 1,
-    humanOut: false, pendingEnd: false, demoResetT: 0, camFocusTarget: 0,
+    humanOut: false, pendingEnd: false, demoResetT: 0, camFocusTarget: 0, showcaseT: 0,
   });
   game.players.forEach((p) => {
-    Object.assign(p, { score: START_PTS, alive: true, s: 0, v: 0, swing: 0, cd: 0, flash: 0, death: null, spin: 0 });
-    p.human = mode !== 'title' && p.i === 0;
+    Object.assign(p, { score: demo ? 15 : settings.points, alive: true, s: 0, v: 0, swing: 0, cd: 0, flash: 0, death: null, spin: 0 });
+    p.human = !demo && p.i === 0;
     resetPodVisual(p);
   });
   world.barriers.forEach((b) => (b.y = -3));

@@ -1,23 +1,26 @@
-// Punto de entrada: arma la escena, conecta la página y corre el loop.
+// Punto de entrada: arma la escena, conecta pantalla/entrada/menús y corre el loop.
 import { game } from './state.js';
 import { CHARS, SIDES } from './config.js';
-import { scene, initRenderer, applyMode } from './render/psx.js';
+import { scene, camera, initRenderer } from './render/psx.js';
 import './render/textures.js';
 import { buildArena } from './world/arena.js';
 import { buildPod } from './world/pods.js';
 import { buildBalls } from './world/balls.js';
 import { initParticles } from './fx/particles.js';
-import { ensureAudio, setSound } from './audio.js';
-import { DEATH_ANIMS } from './deaths/index.js';
-import { resetMatch, eliminate, deathsRunning, settings } from './game/match.js';
+import { ensureAudio } from './audio.js';
+import { resetMatch, deathsRunning } from './game/match.js';
 import { step } from './game/physics.js';
 import { updateVisuals } from './visuals.js';
-import { initHud, drawHud } from './hud.js';
-import { initInput, setDifficulty, savedDifficulty } from './input.js';
-import { camera } from './render/psx.js';
+import { initHud, drawHud, showToast } from './hud.js';
+import { initDisplay, toHud, toggleFullscreen } from './display.js';
+import { input, initInput, pollInput, bindTouch, pushEvent } from './input.js';
+import { initFlow, updateFlow, onMatchEnd, inDemo } from './flow.js';
+import { settings, saveSettings } from './settings.js';
 
 const stage = document.getElementById('stage');
+const screen = document.getElementById('screen');
 const glc = document.getElementById('gl');
+const hud = document.getElementById('hud');
 const renderer = initRenderer(glc);
 
 // --- mundo ---
@@ -29,49 +32,46 @@ game.players = CHARS.map((ch, i) => ({
   mesh: buildPod(i),
 }));
 buildBalls();
-initHud(document.getElementById('hud'));
+initHud(hud);
+initDisplay(stage, screen, glc, hud);
 
-// --- controles de la página ---
-const sDiff = document.getElementById('sDiff');
-const sDeath = document.getElementById('sDeath');
-DEATH_ANIMS.forEach((a) => { const o = document.createElement('option'); o.value = a.id; o.textContent = a.name; sDeath.appendChild(o); });
-
-initInput({ stage, onDifficultyChange: (id) => { sDiff.value = id; } });
-setDifficulty(savedDifficulty() || 'intermedio');
-sDiff.addEventListener('change', () => { setDifficulty(sDiff.value, false); stage.focus(); });
-sDeath.addEventListener('change', () => { settings.deathId = sDeath.value; stage.focus(); });
-
-document.getElementById('bTest').addEventListener('click', () => {
-  ensureAudio();
-  stage.focus();
-  if (game.state === 'end' || game.state === 'paused' || game.state === 'count') return;
-  const alive = game.players.filter((p) => p.alive);
-  const cpus = alive.filter((p) => !p.human);
-  if (alive.length <= 2 || !cpus.length) { resetMatch(game.state === 'title' ? 'title' : 'count'); return; }
-  eliminate(cpus[(Math.random() * cpus.length) | 0].i);
+// --- entrada ---
+initInput(stage, {
+  toHud,
+  onGesture: ensureAudio,
+  onFullscreenKey: () => { toggleFullscreen(); },
+  onPadConnect: (on) => showToast(on ? 'JOYSTICK CONECTADO' : 'JOYSTICK DESCONECTADO'),
+});
+bindTouch('tl', () => (input.touch.l = true), () => (input.touch.l = false));
+bindTouch('tr', () => (input.touch.r = true), () => (input.touch.r = false));
+bindTouch('th', () => pushEvent('hit'));
+bindTouch('tp', () => pushEvent('pause'));
+document.addEventListener('fullscreenchange', () => {
+  // si el jugador sale de pantalla completa con ESC, lo recordamos
+  if (!document.fullscreenElement && settings.fullscreen && game.state !== 'title') { settings.fullscreen = false; saveSettings(); }
+  else if (document.fullscreenElement && !settings.fullscreen) { settings.fullscreen = true; saveSettings(); }
 });
 
-let psx = true;
-const bPsx = document.getElementById('bPsx'), bSnd = document.getElementById('bSnd');
-bPsx.addEventListener('click', () => { psx = !psx; bPsx.setAttribute('aria-pressed', psx); applyMode(psx, stage, glc); stage.focus(); });
-let snd = true;
-bSnd.addEventListener('click', () => { snd = !snd; setSound(snd); bSnd.setAttribute('aria-pressed', snd); ensureAudio(); stage.focus(); });
-window.addEventListener('resize', () => { if (!psx) applyMode(psx, stage, glc); });
-applyMode(psx, stage, glc);
+initFlow();
+resetMatch('title');
 
 // --- loop: física a 120 Hz fijos, render a la tasa de la pantalla ---
-resetMatch('title');
 const STEP = 1 / 120;
 let last = performance.now(), acc = 0;
+let touchState = '';
 
 function frame(now) {
   const rdt = Math.min(0.05, (now - last) / 1000); last = now;
+
+  pollInput(rdt);
+  updateFlow();
+
   let ts = game.timeScale;
   if (game.slowT > 0) { game.slowT -= rdt; ts *= game.slowK; if (game.slowT <= 0) game.slowK = 1; }
   const dt = rdt * ts;
-  const paused = game.state === 'paused';
+  const frozen = game.state === 'paused';
 
-  if (!paused) {
+  if (!frozen) {
     acc += dt;
     let n = 0;
     while (acc >= STEP && n < 16) { step(STEP); acc -= STEP; n++; }
@@ -80,19 +80,27 @@ function frame(now) {
     // la partida termina (o sale "ELIMINADO") recién cuando terminan las animaciones de derrota
     if (game.pendingEnd && !deathsRunning()) {
       game.pendingEnd = false;
-      if (game.state === 'title') game.demoResetT = 2.2;
-      else if (game.state === 'play') { game.state = 'end'; game.timeScale = 1; }
+      if (inDemo()) game.demoResetT = 2.2;
+      else if (game.state === 'play') { game.state = 'end'; game.timeScale = 1; onMatchEnd(); }
     }
     const me = game.players[0];
     if (game.state === 'play' && !game.humanOut && !me.alive && me.death && me.death.done && !game.pendingEnd) {
       game.humanOut = true; game.timeScale = 1.7;
     }
-    if (game.state === 'title' && game.demoResetT > 0) { game.demoResetT -= rdt; if (game.demoResetT <= 0) resetMatch('title'); }
+    if (inDemo() && game.demoResetT > 0) {
+      game.demoResetT -= rdt;
+      if (game.demoResetT <= 0) { const st = game.state; resetMatch(st); }
+    }
   }
 
-  updateVisuals(paused ? 0 : dt, paused ? 0 : rdt);
+  updateVisuals(frozen ? 0 : dt, frozen ? 0 : rdt);
   renderer.render(scene, camera);
   drawHud();
+
+  // botones táctiles solo durante la partida
+  const ts2 = game.state === 'play' || game.state === 'count' ? 'playing' : 'menu';
+  if (ts2 !== touchState) { touchState = ts2; document.body.dataset.mode = ts2; }
+
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

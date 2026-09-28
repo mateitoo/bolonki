@@ -9,11 +9,11 @@ let onDifficulty = () => {};
 export function setDifficulty(id, notify = true) {
   if (!DIFF_ORDER.includes(id)) return;
   game.difficulty = id;
-  try { localStorage.setItem('bola-brava:difficulty', id); } catch (e) { /* sin storage */ }
+  try { localStorage.setItem('bolonki:difficulty', id); } catch (e) { /* sin storage */ }
   if (notify) onDifficulty(id);
 }
 export function savedDifficulty() {
-  try { return localStorage.getItem('bola-brava:difficulty'); } catch (e) { return null; }
+  try { return localStorage.getItem('bolonki:difficulty'); } catch (e) { return null; }
 }
 
 // Espacio / tocar: empezar, reintentar o golpe fuerte según el momento

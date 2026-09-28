@@ -52,7 +52,7 @@ export function drawHud() {
   const diff = DIFFICULTIES[game.difficulty].label;
   if (st === 'title') {
     hx.fillStyle = 'rgba(4,6,14,.72)'; hx.fillRect(0, 86, W, 96);
-    txt('BOLA BRAVA', W / 2, 96, 24, '#ff9a1f', 'center', '#3a1200');
+    txt('BOLONKI', W / 2, 96, 24, '#ff9a1f', 'center', '#3a1200');
     txt(`◀ CPU: ${diff} ▶`, W / 2, 132, 8, '#2de0c8', 'center');
     if (blink) txt('PULSA ESPACIO', W / 2, 152, 8, '#ffffff', 'center');
     txt('DEFENDÉ TU ARCO: 15 PUNTOS', W / 2, 168, 8, '#7a84a8', 'center');

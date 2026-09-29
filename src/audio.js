@@ -89,5 +89,8 @@ export const SFX = {
   event() { [523, 392, 659, 523].forEach((f, k) => beep(f, f, 0.08, 'triangle', 0.05, k * 0.07)); },
   duel() { beep(220, 220, 0.18, 'sawtooth', 0.06); beep(165, 165, 0.3, 'sawtooth', 0.06, 0.2); },
   fanfare() { [523, 659, 784, 1046, 784, 1046].forEach((f, k) => beep(f, f, 0.16, 'square', 0.05, k * 0.12)); },
+  drumroll() { for (let k = 0; k < 22; k++) noise(0.05, 0.05 + k * 0.004, 1400, k * 0.055); noise(0.5, 0.14, 5000, 1.22); beep(196, 196, 0.35, 'square', 0.05, 1.22); beep(392, 392, 0.4, 'square', 0.04, 1.22); },
+  spin() { beep(1200, 1200, 0.02, 'square', 0.025); },
+  bonus() { [784, 988, 1175, 1568].forEach((f, k) => beep(f, f, 0.12, 'square', 0.05, k * 0.07)); beep(2093, 2093, 0.3, 'triangle', 0.04, 0.3); },
   warnShrink() { beep(300, 300, 0.1, 'square', 0.05); beep(300, 300, 0.1, 'square', 0.05, 0.2); },
 };

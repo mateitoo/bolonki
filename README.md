@@ -64,13 +64,20 @@ Se entra desde la puerta **FIESTA** del menú principal (sola, local u online).
 
 La Fiesta es un tablero estilo party game (`src/fiesta/board.js`):
 
-- 2 a 4 jugadores, 10, 15 o 20 turnos. Todos arrancan con 10 monedas.
+- 2 a 4 jugadores, 5, 10, 15 o 20 turnos. Todos arrancan con 10 monedas.
 - En tu turno tirás el dado (golpe / Enter) y avanzás por un camino de 24 casilleros:
   **azul** +3 monedas · **rojo** −3 · **evento** (lluvia de monedas, ladrón, turbo, cambio de lugar, la copa se muda, mala suerte) ·
   **duelo** (elegís un rival y juegan un minijuego 1 contra 1; el que gana le saca hasta 10 monedas).
 - Al pasar por la **copa** la podés comprar por 20 monedas; después se muda a otro casillero.
 - Cuando juegan todos, sale sorteado un **minijuego para todos**: 10, 5, 3 y 1 monedas según el puesto.
-- Al final gana el que tiene más copas (si empatan, más monedas).
+- **Últimos 3 turnos:** aparece un aviso, los casilleros azules y rojos valen el doble y el que va último gira una
+  **ruleta de ayuda** (+10 o +20 monedas, la copa se le acerca, o le saca 10 monedas al primero).
+- **Premios extra** al final, una copa cada uno: *Rey de los minijuegos* (más minijuegos ganados), *Bolsillo lleno*
+  (más monedas juntadas en total) y *Aventurero* (más veces en eventos). Si empatan, se la llevan todos los empatados.
+- Al final gana el que tiene más copas (si empatan, más monedas). La tabla final muestra copas, monedas y minijuegos ganados.
+- Las monedas y copas que se ganan o pierden aparecen flotando arriba de cada pieza.
+- **Acelerar:** en los turnos de los demás (y en los carteles de resultados), mantener apretado el botón hace que todo vaya 3 veces más rápido.
+- Se juega a 5, 10, 15 o 20 turnos.
 
 En **Opciones → Juego** se elige qué minijuegos salen en la Fiesta (siempre queda al menos uno).
 En online, la Fiesta corre en la máquina del anfitrión y los invitados eligen y tiran el dado desde la suya; si alguien se va, su lugar pasa a un bot.

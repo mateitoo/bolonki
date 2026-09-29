@@ -19,6 +19,7 @@ export const input = {
   camStick: { x: 0, y: 0 },           // stick derecho del joystick (girar la cámara)
   touch: { l: false, r: false, hit: false },
   pads: 0,                            // joysticks conectados
+  holdHit: false,                     // alguien mantiene apretado el botón de golpe / aceptar (acelerar en la Fiesta)
 };
 
 const held = new Set();
@@ -155,7 +156,7 @@ function pollPads(dt, out) {
     mem.prev = now;
     // stick derecho: girar la cámara (en los minijuegos que lo permiten)
     input.camStick.x += dead(gp.axes[2] || 0); input.camStick.y += dead(gp.axes[3] || 0);
-    return { x, y, hit, ev: own };
+    return { x, y, hit, ev: own, hold: !!(now[B.A] || now[B.X]) };
   });
 }
 
@@ -191,6 +192,7 @@ export function pollInput(dt) {
   c.p4 = merge(pads[3]);
   const pe = (k) => (pads[k] ? pads[k].ev : []);
   input.pev = { p1: keyEv(KEV1).concat(pe(0)), p2: keyEv(KEV2).concat(pe(1)), p3: pe(2), p4: pe(3) };
+  input.holdHit = any([...K1.hit, ...K2.hit, ...EXTRA_HIT, 'Enter']) || pads.some((p) => p.hold);
   input.touch.hit = false;
   pressed.clear();
   input.events = ev;

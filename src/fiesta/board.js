@@ -5,6 +5,9 @@
 // Al pasar por la copa se puede comprar por 20 monedas (después la copa se muda).
 // Al final de cada vuelta, un minijuego entre todos (sorteado entre los activos) reparte monedas por puesto.
 // Después de N turnos gana el que tiene más copas (y si empatan, más monedas).
+// Los últimos 3 turnos: los casilleros azules y rojos valen el doble y el que va último gira una ruleta de ayuda.
+// Al final hay tres premios extra (una copa cada uno): más minijuegos ganados, más monedas juntadas y más eventos.
+// Durante los turnos de la CPU (o de otros), manteniendo apretado el botón todo va más rápido.
 //
 // La lógica corre en una sola máquina (la del jugador, o la del anfitrión en el online) y el estado
 // del tablero (S) es un objeto simple que se manda entero a los invitados.
@@ -40,6 +43,20 @@ const EVENTS = [
   { id: 'mudanza', title: '¡LA COPA SE MUDA!', sub: '' },
   { id: 'mala', title: '¡MALA SUERTE!', sub: '−5 MONEDAS' },
 ];
+const LAST_N = 3;             // últimos turnos (casilleros al doble y ruleta de ayuda)
+const AID = [                 // ruleta de ayuda para el que va último
+  { id: 'c10', label: '+10 MONEDAS' },
+  { id: 'c20', label: '+20 MONEDAS' },
+  { id: 'copa', label: 'LA COPA SE ACERCA' },
+  { id: 'robo', label: '10 DEL PRIMERO' },
+];
+const BONUS = [               // premios extra del final
+  { id: 'wins', title: 'REY DE LOS MINIJUEGOS', sub: 'EL QUE MÁS MINIJUEGOS GANÓ' },
+  { id: 'earned', title: 'BOLSILLO LLENO', sub: 'EL QUE MÁS MONEDAS JUNTÓ EN TOTAL' },
+  { id: 'events', title: 'AVENTURERO', sub: 'EL QUE MÁS VECES CAYÓ EN EVENTOS' },
+];
+const FAST = 3;               // cuánto se acelera al mantener el botón
+const FASTABLE = ['turn', 'roll', 'move', 'buy', 'land', 'event', 'duelPick', 'mgRes', 'duelRes', 'last', 'aid', 'bonus'];
 
 /* ---------- camino ---------- */
 const SPACES = [];
@@ -55,6 +72,8 @@ export const S = {
   ph: 'idle', t: 0, cur: 0, turn: 1, maxT: 10, order: [], dice: 1, steps: 0, spin: 0, botT: 1,
   pos: [0, 0, 0, 0], coins: [0, 0, 0, 0], cups: [0, 0, 0, 0], copa: 12,
   msg: '', sub: '', col: '', flash: '', flashT: 0, ch: null, pick: 'bolas', duel: null, res: null, fin: null, noEvent: false,
+  last: false, aid: null, bonus: null, bk: -1, fast: 1,
+  stats: { wins: [0, 0, 0, 0], earned: [0, 0, 0, 0], events: [0, 0, 0, 0] },
 };
 let base = null;           // quiénes juegan y cómo (control, nombres, joysticks) para toda la Fiesta
 
@@ -157,6 +176,8 @@ function newFiesta(cfg) {
     pos: [0, 0, 0, 0], coins: [START_COINS, START_COINS, START_COINS, START_COINS], cups: [0, 0, 0, 0],
     copa: 8 + ((Math.random() * 8) | 0), msg: '', sub: '', col: '', flash: '', flashT: 0, ch: null,
     pick: activeMinigames()[0].id, duel: null, res: null, fin: null, noEvent: false,
+    last: false, aid: null, bonus: null, bk: -1, fast: 1,
+    stats: { wins: [0, 0, 0, 0], earned: [0, 0, 0, 0], events: [0, 0, 0, 0] },
   });
   FX.snd('fanfare');
 }
@@ -206,11 +227,12 @@ export function fiestaMinigameDone(ranking) {
   if (kind === 'duel') {
     const [w, l] = ranking;
     const steal = Math.min(DUEL_STEAL, S.coins[l]);
-    S.coins[l] -= steal; S.coins[w] += steal; gains[w] = steal; gains[l] = -steal;
+    addCoins(l, -steal); addCoins(w, steal); gains[w] = steal; gains[l] = -steal;
   } else {
     const prizes = PRIZES[ranking.length] || PRIZES[4];
-    ranking.forEach((i, k) => { S.coins[i] += prizes[k] || 0; gains[i] = prizes[k] || 0; });
+    ranking.forEach((i, k) => { addCoins(i, prizes[k] || 0); gains[i] = prizes[k] || 0; });
   }
+  if (ranking[0] !== undefined) S.stats.wins[ranking[0]]++;
   S.res = { kind, ranking, gains };
   backToBoard();
   enter(kind === 'duel' ? 'duelRes' : 'mgRes');
@@ -222,19 +244,54 @@ export function fiestaMinigameDone(ranking) {
 const fmt = (t) => String(t || '').replace(/\{(\d)\}/g, (_, d) => pname(+d));
 function say(msg, sub, col) { S.msg = msg; S.sub = sub || ''; S.col = col || ''; }
 function flash(text) { S.flash = text; S.flashT = 1.6; }
-function addCoins(i, n) { S.coins[i] = Math.max(0, S.coins[i] + n); }
+function addCoins(i, n) { S.coins[i] = Math.max(0, S.coins[i] + n); if (n > 0) S.stats.earned[i] += n; }
 
 function enter(ph) {
-  S.ph = ph; S.t = 0; S.botT = rnd(0.7, 1.3);
   const i = who();
+  S.ph = ph; S.t = 0; S.botT = isHuman(i) ? rnd(0.7, 1.3) : rnd(0.45, 0.8);
   switch (ph) {
     case 'turn': say('', '', charOf(i).col); break;
     case 'roll': S.dice = 1 + ((Math.random() * 6) | 0); S.spin = 0; break;
     case 'land': land(i); break;
     case 'mgIntro': S.pick = null; FX.snd('event'); break;
+    case 'last': say(`¡ÚLTIMOS ${LAST_N} TURNOS!`, 'LOS AZULES Y ROJOS VALEN DOBLE', '#ff7a5a'); FX.snd('drumroll'); break;
     default: break;
   }
 }
+
+/* ---------- últimos turnos: ruleta de ayuda para el que va último ---------- */
+const rankOrder = () => S.order.slice().sort((a, b) => S.cups[a] - S.cups[b] || S.coins[a] - S.coins[b]);
+function startAid() {
+  const r = rankOrder(), w = r[0], top = r[r.length - 1];
+  if (w === undefined || (S.cups[w] === S.cups[top] && S.coins[w] === S.coins[top])) { S.cur = 0; enter('turn'); return; }   // todos parejos: nada
+  S.aid = { who: w, k: 0, res: (Math.random() * AID.length) | 0, done: false, spinT: 0, text: '' };
+  S.ph = 'aid'; S.t = 0;
+  say('RULETA DE AYUDA', `{${w}} VA ÚLTIMO`, charOf(w).col);
+}
+function applyAid(a) {
+  const w = a.who, id = AID[a.res].id, sp = SPACES[S.pos[w]];
+  if (id === 'c10' || id === 'c20') { const n = id === 'c10' ? 10 : 20; addCoins(w, n); a.text = `+${n} MONEDAS PARA {${w}}`; FX.snd('coin'); }
+  else if (id === 'copa') {
+    for (const d of [4, 5, 3, 6, 7, 2, 8]) { const k = (S.pos[w] + d) % N; if (k !== 0 && !S.order.some((p) => S.pos[p] === k)) { S.copa = k; a.text = `LA COPA QUEDA A ${d} CASILLEROS DE {${w}}`; break; } }
+    FX.snd('event');
+  } else {
+    const leader = rankOrder().filter((k) => k !== w).pop();
+    const n = Math.min(10, S.coins[leader]); addCoins(leader, -n); addCoins(w, n);
+    a.text = `{${w}} LE SACA ${n} MONEDAS A {${leader}}`; FX.snd('coin');
+  }
+  FX.sparkle(sp.x, 1.5, sp.z, P.YELLOW, 14);
+}
+
+/* ---------- premios extra del final ---------- */
+function startBonus() {
+  S.bonus = BONUS.map((b) => {
+    const max = Math.max(...S.order.map((i) => S.stats[b.id][i]));
+    return { id: b.id, val: max, winners: max > 0 ? S.order.filter((i) => S.stats[b.id][i] === max) : [], given: false };
+  });
+  S.bk = -1; S.ph = 'bonus'; S.t = 0;
+  FX.snd('fanfare');
+}
+const BONUS_T0 = 2.6, BONUS_EACH = 3.4;
 
 function land(i) {
   const s = SPACES[S.pos[i]];
@@ -242,10 +299,10 @@ function land(i) {
   if (type === 'E' && S.noEvent) type = 'B';
   S.noEvent = false;
   if (type === 'D' && S.order.length < 2) type = 'B';
-  const pt = SPACES[S.pos[i]];
-  if (type === 'B' || type === 'S') { addCoins(i, BLUE); say(`+${BLUE} MONEDAS`, '', '#6ea8ff'); FX.snd('coin'); FX.sparkle(pt.x, 1, pt.z, P.YELLOW, 8); }
-  else if (type === 'R') { addCoins(i, -RED); say(`−${RED} MONEDAS`, '', '#ff5a5a'); FX.snd('lose'); }
-  else if (type === 'E') { S.ph = 'event'; S.t = 0; doEvent(i); }
+  const pt = SPACES[S.pos[i]], k2 = S.last ? 2 : 1;          // últimos turnos: al doble
+  if (type === 'B' || type === 'S') { addCoins(i, BLUE * k2); say(`+${BLUE * k2} MONEDAS`, S.last ? '¡AL DOBLE!' : '', '#6ea8ff'); FX.snd('coin'); FX.sparkle(pt.x, 1, pt.z, P.YELLOW, 8); }
+  else if (type === 'R') { addCoins(i, -RED * k2); say(`−${RED * k2} MONEDAS`, S.last ? '¡AL DOBLE!' : '', '#ff5a5a'); FX.snd('lose'); }
+  else if (type === 'E') { S.ph = 'event'; S.t = 0; S.stats.events[i]++; doEvent(i); }
   else if (type === 'D') { S.ph = 'duelPick'; S.t = 0; say('¡DUELO!', '', '#d8a0ff'); FX.snd('duel'); askDuel(i); }
 }
 
@@ -327,15 +384,20 @@ function step(dt) {
   if (game.state === 'count') game.state = 'play';
   if (game.state !== 'play') return;
   syncLeft();
+  const i = who();
+  // mantener el botón apretado acelera los turnos de los demás (y los carteles de resultados)
+  const myTurn = game.players[i] && game.players[i].ctrl === 'local' && ['turn', 'roll', 'move', 'buy', 'land', 'event', 'duelPick'].includes(S.ph);
+  const someoneHere = game.players.some((p) => p.ctrl === 'local' && S.order.includes(p.i));
+  S.fast = game.online !== 'guest' && someoneHere && !myTurn && FASTABLE.includes(S.ph) && input.holdHit ? FAST : 1;
+  dt *= S.fast;
   S.t += dt;
   if (S.flashT > 0) S.flashT -= dt;
-  const i = who();
   // los que no están de turno no acumulan golpes
   game.players.forEach((p) => { if (p.i !== i || !['roll', 'buy', 'duelPick'].includes(S.ph)) { p.bHit = false; if (p.net && S.ph !== 'roll' && S.ph !== 'buy' && S.ph !== 'duelPick') p.net.hit = false; } });
 
   switch (S.ph) {
     case 'intro': if (S.t > 3) enter('turn'); break;
-    case 'turn': if (S.t > 1.3) enter('roll'); break;
+    case 'turn': if (S.t > (isHuman(i) ? 1.3 : 0.9)) enter('roll'); break;
     case 'roll': {
       S.spin += dt;
       if (S.spin > 0.07) { S.spin = 0; S.dice = (S.dice % 6) + 1; if (isHuman(i)) FX.snd('dice'); }
@@ -374,7 +436,7 @@ function step(dt) {
       break;
     }
     case 'land':
-      if (S.t > 1.5) nextPlayer();
+      if (S.t > (isHuman(i) ? 1.5 : 1.15)) nextPlayer();
       break;
     case 'event':
       if (S.t > 2.0) {
@@ -405,9 +467,35 @@ function step(dt) {
     case 'mgRes':
       if (S.t > 3.4) {
         S.res = null; S.turn++;
-        if (S.turn > S.maxT) finish(); else { S.cur = 0; enter('turn'); }
+        if (S.turn > S.maxT) startBonus();
+        else if (!S.last && S.maxT >= 5 && S.turn === S.maxT - LAST_N + 1) { S.last = true; enter('last'); }
+        else { S.cur = 0; enter('turn'); }
       }
       break;
+    case 'last': if (S.t > 3.6) startAid(); break;
+    case 'aid': {
+      const a = S.aid;
+      if (!a) { S.cur = 0; enter('turn'); break; }
+      if (!a.done) {
+        // la ruleta gira y va frenando hasta caer en el premio sorteado
+        a.spinT += dt;
+        if (a.spinT > 0.07 + Math.max(0, S.t - 1.2) * 0.14) { a.spinT = 0; a.k = (a.k + 1) % AID.length; FX.snd('spin'); }
+        if (S.t > 2.8 && a.k === a.res) { a.done = true; S.t = 0; applyAid(a); }
+      } else if (S.t > 2.6) { S.aid = null; S.cur = 0; enter('turn'); }
+      break;
+    }
+    case 'bonus': {
+      const k = Math.floor((S.t - BONUS_T0) / BONUS_EACH);
+      if (k > S.bk && k < S.bonus.length) { S.bk = k; FX.snd('drumroll'); }
+      const b = S.bonus[S.bk];
+      if (b && !b.given && S.t > BONUS_T0 + S.bk * BONUS_EACH + 1.3) {
+        b.given = true;
+        b.winners.forEach((w) => { S.cups[w]++; const sp = SPACES[S.pos[w]]; FX.sparkle(sp.x, 1.5, sp.z, P.YELLOW, 16); });
+        FX.snd(b.winners.length ? 'bonus' : 'lose');
+      }
+      if (S.t > BONUS_T0 + BONUS_EACH * S.bonus.length + 0.6) finish();
+      break;
+    }
     case 'final':
       if (S.t > 5.5 && !game.pendingEnd) { game.winner = S.fin[0]; game.pendingEnd = true; }
       break;
@@ -441,14 +529,34 @@ function spot(i) {
   return [sp.x + o[0], sp.z + o[1]];
 }
 
+// Monedas y copas que se ganan o pierden: aparecen flotando arriba de la pieza.
+// Salen de comparar con lo que había antes (así también funciona en los invitados, que reciben S por red).
+const pops = [];
+const seen = { coins: null, cups: null };
+function watchScores(dt) {
+  if (!seen.coins || S.ph === 'intro' || S.ph === 'idle') { seen.coins = S.coins.slice(); seen.cups = S.cups.slice(); pops.length = 0; return; }
+  let k = 0;                                   // si cambian varios a la vez, salen uno atrás de otro
+  for (const i of S.order) {
+    const dc = S.coins[i] - seen.coins[i], du = S.cups[i] - seen.cups[i];
+    if (dc) pops.push({ i, n: dc, cup: false, t: -0.3 * k++ });
+    if (du) pops.push({ i, n: du, cup: true, t: -0.3 * k++ });
+  }
+  seen.coins = S.coins.slice(); seen.cups = S.cups.slice();
+  for (const p of pops) p.t += dt;
+  for (let j = pops.length - 1; j >= 0; j--) if (pops[j].t > 1.6) pops.splice(j, 1);
+}
+const focusOf = () => (S.ph === 'aid' && S.aid ? S.aid.who : who());
+
 function visuals(dt) {
   const clock = game.clock;
+  watchScores(dt);
+  const adt = dt * (S.fast || 1);          // las piezas también se apuran cuando se acelera
   W.spin.forEach((o) => (o.rotation.y += dt * 1.2));
   W.props.forEach((r) => { r.m.position.y = r.y + Math.sin(clock * 0.6 + r.ph) * 0.4; });
   W.seaM.uniforms.uOff.value.set((clock * 0.01) % 1, (clock * 0.004) % 1);
 
   // piezas (las mismas naves, en chiquito)
-  const active = who();
+  const active = focusOf();
   for (const p of game.players) {
     const m = p.mesh;
     if (p.empty || !S.order.includes(p.i)) { m.root.visible = false; m.sh.visible = false; continue; }
@@ -461,7 +569,7 @@ function visuals(dt) {
       const next = v.idx >= 0 && (v.idx + 1) % N === S.pos[p.i];
       Object.assign(v, { fx: v.x, fz: v.z, tx, tz, t: 0, dur: v.idx < 0 ? 0.001 : next ? HOP * 0.9 : 0.7, arc: next ? 0.9 : 3, idx: S.pos[p.i] });
     } else { const [tx, tz] = spot(p.i); v.tx = tx; v.tz = tz; }
-    v.t = Math.min(1, v.t + dt / v.dur);
+    v.t = Math.min(1, v.t + adt / v.dur);
     const e = v.t < 1 ? v.t : 1;
     v.x = v.fx + (v.tx - v.fx) * e; v.z = v.fz + (v.tz - v.fz) * e;
     if (v.t >= 1) { v.x += (v.tx - v.x) * Math.min(1, dt * 8); v.z += (v.tz - v.z) * Math.min(1, dt * 8); }
@@ -475,7 +583,7 @@ function visuals(dt) {
   }
   // anillo y dado sobre el jugador de turno
   const av = vis[active] || vis[0];
-  const showRing = ['turn', 'roll', 'move', 'buy', 'land', 'event', 'duelPick'].includes(S.ph);
+  const showRing = ['turn', 'roll', 'move', 'buy', 'land', 'event', 'duelPick', 'aid'].includes(S.ph);
   W.ring.visible = showRing && active !== undefined;
   W.ring.position.set(av.x, 0.36, av.z);
   W.ring.scale.setScalar(1 + Math.sin(clock * 6) * 0.08);
@@ -494,10 +602,10 @@ function visuals(dt) {
   W.cupSmall.rotation.y += dt * 1.5;
 
   // cámara: sigue al de turno; vista general en la intro, el sorteo y el final
-  const wide = ['intro', 'mgIntro', 'mgRes', 'final', 'idle'].includes(S.ph);
+  const wide = ['intro', 'mgIntro', 'mgRes', 'final', 'idle', 'last', 'bonus'].includes(S.ph);
   const tp = wide ? new THREE.Vector3(0, 27, 21) : new THREE.Vector3(av.x * 0.6, 17.5, av.z + 14.5);
   const tl = wide ? new THREE.Vector3(0, 0, 0.5) : new THREE.Vector3(av.x * 0.9, 0, av.z - 0.8);
-  camPos.lerp(tp, Math.min(1, dt * 2.5)); camLook.lerp(tl, Math.min(1, dt * 3));
+  camPos.lerp(tp, Math.min(1, adt * 2.5)); camLook.lerp(tl, Math.min(1, adt * 3));
   fiesta.cam.pos.copy(camPos); fiesta.cam.look.copy(camLook);
 }
 
@@ -531,8 +639,16 @@ function hud(hw) {
   const i = who();
   const tt = `TURNO ${Math.min(S.turn, S.maxT)}/${S.maxT}`, tw = textWidth(tt, 8) + 12;
   rect(hw / 2 - tw / 2, 4, tw, 15, 'rgba(4,6,14,.6)');
-  txt(tt, hw / 2, 8, 8, COL.teal, 'center');
-  const av = vis[i] || vis[0];
+  txt(tt, hw / 2, 8, 8, S.last ? '#ff7a5a' : COL.teal, 'center');
+  if (S.last && !['final', 'bonus'].includes(S.ph)) txt('¡ÚLTIMOS TURNOS!', hw / 2, 22, 8, ((game.clock * 2) | 0) % 2 ? '#ff7a5a' : '#ffe070', 'center');
+  const av = vis[focusOf()] || vis[0];
+  drawPops(hw);
+  // acelerar: aviso en los turnos de los demás, y ">>" mientras se mantiene
+  if (S.fast > 1) { txt('>> x' + S.fast, hw - 10, 212, 8, COL.gold, 'right'); }
+  else if (game.online !== 'guest' && FASTABLE.includes(S.ph) && S.ph !== 'bonus' && !(game.players[i] && game.players[i].ctrl === 'local')
+    && game.players.some((p) => p.ctrl === 'local' && S.order.includes(p.i))) {
+    txt(`MANTENÉ ${input.device === 'gamepad' ? 'A' : 'ESPACIO'}: MÁS RÁPIDO`, hw - 10, 212, 8, COL.dim, 'right');
+  }
   switch (S.ph) {
     case 'intro':
       banner(hw, 86, '¡FIESTA!', `${S.maxT} TURNOS · GANA EL QUE JUNTE MÁS COPAS`);
@@ -570,6 +686,9 @@ function hud(hw) {
       break;
     }
     case 'mgRes': case 'duelRes': drawResults(hw); break;
+    case 'last': banner(hw, 80, S.msg, S.sub, S.col); txt('EL QUE VA ÚLTIMO GIRA LA RULETA DE AYUDA', hw / 2, 128, 8, COL.white, 'center'); break;
+    case 'aid': drawAid(hw); break;
+    case 'bonus': drawBonus(hw); break;
     case 'final': if (game.state !== 'end') drawFinal(hw); break;     // con el menú de fin, la tabla va adentro del menú
     default: break;
   }
@@ -615,17 +734,72 @@ function drawResults(hw) {
   });
 }
 
+function drawPops(hw) {
+  for (const p of pops) {
+    if (p.t < 0) continue;
+    const v = vis[p.i]; if (!v) continue;
+    const [x, y] = project(v.x, 2.2 + p.t * 1.4, v.z, hw);
+    if (p.t > 1.2 && ((p.t * 16) | 0) % 2) continue;                 // parpadea antes de irse
+    const txtS = `${p.n > 0 ? '+' : '−'}${Math.abs(p.n)}`, w = textWidth(txtS, 8);
+    const col = p.cup ? COL.gold : p.n > 0 ? '#ffe070' : '#ff5a5a';
+    if (p.cup) cupIcon(x - w / 2 - 10, y); else coinIcon(x - w / 2 - 9, y + 1);
+    txt(txtS, x - w / 2, y, 8, col);
+  }
+}
+
+function drawAid(hw) {
+  const a = S.aid; if (!a) return;
+  banner(hw, 44, S.msg, S.sub, S.col);
+  const w = 200, rowH = 16, h = 16 + AID.length * rowH, x = Math.round(hw / 2 - w / 2), y = 96;
+  panel(x, y, w, h);
+  AID.forEach((o, k) => {
+    const yy = y + 9 + k * rowH, on = k === a.k;
+    if (on) rect(x + 6, yy - 4, w - 12, rowH - 1, a.done ? 'rgba(255,154,31,.35)' : 'rgba(45,224,200,.2)');
+    if (on) tri(x + 12, yy, 'r', a.done ? COL.gold : COL.teal);
+    txt(o.label, hw / 2, yy, 8, on ? COL.white : COL.dim, 'center');
+  });
+  if (a.done && a.text) { rect(0, y + h + 8, hw, 18, 'rgba(4,6,14,.72)'); txt(fmt(a.text), hw / 2, y + h + 13, 8, '#ffe070', 'center'); }
+}
+
+function drawBonus(hw) {
+  const B = S.bonus; if (!B) return;
+  banner(hw, 34, '¡PREMIOS EXTRA!', 'CADA UNO VALE UNA COPA', COL.gold);
+  const w = Math.min(hw - 20, 300), rowH = 34, h = 12 + B.length * rowH, x = Math.round(hw / 2 - w / 2), y = 84;
+  panel(x, y, w, h);
+  B.forEach((b, k) => {
+    const def = BONUS[k], yy = y + 8 + k * rowH;
+    const shown = k <= S.bk, cur = k === S.bk, given = b.given;
+    if (cur) rect(x + 5, yy - 3, w - 10, rowH - 3, 'rgba(255,154,31,.14)');
+    txt(shown ? def.title : '???', x + 12, yy, 8, shown ? COL.gold : COL.dim);
+    txt(shown ? def.sub : '', x + 12, yy + 12, 8, COL.dim);
+    if (!given) { if (cur && ((game.clock * 8) | 0) % 2) txt('...', x + w - 14, yy + 6, 8, COL.white, 'right'); return; }
+    if (!b.winners.length) { txt('NADIE', x + w - 14, yy + 6, 8, COL.dim, 'right'); return; }
+    let tx = x + w - 14;
+    b.winners.slice().reverse().forEach((i) => {
+      const nm = pname(i), nw = textWidth(nm, 8);
+      txt(nm, tx, yy + 2, 8, charOf(i).col, 'right'); tx -= nw + 8;
+    });
+    cupIcon(x + w - 40, yy + 13); txt('+1', x + w - 14, yy + 13, 8, COL.gold, 'right');
+  });
+}
+
 function drawFinal(hw) {
   const f = S.fin; if (!f) return;
-  const w = 240, h = 38 + f.length * 16, x = Math.round(hw / 2 - w / 2), y = 60;
+  const w = Math.min(hw - 16, 290), h = 50 + f.length * 16, x = Math.round(hw / 2 - w / 2), y = 56;
   panel(x, y, w, h);
   txt('RESULTADO FINAL', hw / 2, y + 9, 16, COL.gold, 'center', COL.goldShadow);
+  rankRows(x + 12, y + 32, w - 24, f, true);
+}
+// Filas de la tabla final: puesto, nombre, copas, monedas y minijuegos ganados (MJ)
+function rankRows(x, y, w, f, header) {
+  if (header) { txt('MJ', x + w - 2, y, 8, COL.dim, 'right'); y += 14; }
   f.forEach((i, k) => {
-    const yy = y + 32 + k * 16;
-    txt(`${k + 1}°`, x + 14, yy, 8, k === 0 ? COL.gold : COL.dim);
-    txt(pname(i), x + 40, yy, 8, charOf(i).col);
-    cupIcon(x + w - 86, yy); txt(String(S.cups[i]), x + w - 74, yy, 8, COL.gold);
-    coinIcon(x + w - 46, yy + 1); txt(String(S.coins[i]), x + w - 36, yy, 8, '#ffe070');
+    const yy = y + k * 16;
+    txt(`${k + 1}°`, x, yy, 8, k === 0 ? COL.gold : COL.dim);
+    txt(pname(i), x + 26, yy, 8, charOf(i).col);
+    cupIcon(x + w - 118, yy); txt(String(S.cups[i]), x + w - 106, yy, 8, COL.gold);
+    coinIcon(x + w - 76, yy + 1); txt(String(S.coins[i]), x + w - 66, yy, 8, '#ffe070');
+    txt(String(S.stats ? S.stats.wins[i] : 0), x + w - 2, yy, 8, COL.teal, 'right');
   });
 }
 
@@ -633,17 +807,8 @@ function drawFinal(hw) {
 export function fiestaRankArt() {
   const f = S.fin || [];
   return {
-    kind: 'art', h: 6 + f.length * 14,
-    draw(x, y, w, hw) {
-      const cw = 210, cx = Math.round(hw / 2 - cw / 2);
-      f.forEach((i, k) => {
-        const yy = y + 3 + k * 14;
-        txt(`${k + 1}°`, cx, yy, 8, k === 0 ? COL.gold : COL.dim);
-        txt(pname(i), cx + 28, yy, 8, charOf(i).col);
-        cupIcon(cx + cw - 76, yy); txt(String(S.cups[i]), cx + cw - 64, yy, 8, COL.gold);
-        coinIcon(cx + cw - 36, yy + 1); txt(String(S.coins[i]), cx + cw - 26, yy, 8, '#ffe070');
-      });
-    },
+    kind: 'art', h: 20 + f.length * 16,
+    draw(x, y, w, hw) { const cw = Math.min(w - 24, 226); rankRows(Math.round(hw / 2 - cw / 2), y + 3, cw, f, true); },
   };
 }
 
@@ -653,7 +818,7 @@ const fiesta = {
   id: 'fiesta',
   name: 'FIESTA',
   desc: 'TIRÁ EL DADO Y JUNTÁ COPAS',
-  points: { label: 'TURNOS', values: [10, 15, 20], key: 'turns', demo: 10 },
+  points: { label: 'TURNOS', values: [5, 10, 15, 20], key: 'turns', demo: 10 },
   cam: { pos: new THREE.Vector3(0, 26, 22), look: new THREE.Vector3(0, 0, 0), rotate: false },
   humanOut: false,
   tagY: 2.3,
@@ -683,7 +848,8 @@ const fiesta = {
 
   snapshot() {
     const o = {};
-    ['ph', 't', 'cur', 'turn', 'maxT', 'order', 'dice', 'steps', 'pos', 'coins', 'cups', 'copa', 'msg', 'sub', 'col', 'flash', 'flashT', 'ch', 'pick', 'duel', 'res', 'fin']
+    ['ph', 't', 'cur', 'turn', 'maxT', 'order', 'dice', 'steps', 'pos', 'coins', 'cups', 'copa', 'msg', 'sub', 'col', 'flash', 'flashT', 'ch', 'pick', 'duel', 'res', 'fin',
+      'last', 'aid', 'bonus', 'bk', 'stats', 'fast']
       .forEach((k) => { o[k] = S[k]; });
     o.t = Math.round(S.t * 100) / 100;
     return o;

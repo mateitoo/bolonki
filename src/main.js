@@ -11,6 +11,7 @@ import { MINIGAMES, mg, mgById } from './minigames/registry.js';
 import './minigames/bolas.js';
 import './minigames/empujon.js';
 import './minigames/bombardeo.js';
+import './minigames/petardos.js';
 import fiesta, { S as fiestaState, startFiesta } from './fiesta/board.js';
 import { updateVisuals } from './visuals.js';
 import { initHud, drawHud, showToast } from './hud.js';

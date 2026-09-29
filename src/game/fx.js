@@ -8,6 +8,7 @@ import { DEATH_ANIMS } from '../deaths/index.js';
 import FALL from '../deaths/fall.js';
 import CRUSH from '../deaths/crush.js';
 import BURN from '../deaths/burn.js';
+import BLAST from '../deaths/blast.js';
 
 export const outbox = [];
 let recording = false;
@@ -80,6 +81,18 @@ export const FX = {
     emit(['L', r2(x), r2(z), r2(y)]);
   },
   jump(i) { SFX.jump(); emit(['J', i]); },
+  /* ---------- Petardos ---------- */
+  place() { SFX.place(); emit(['Pl']); },
+  boom(x, z) { SFX.bomb(); game.shake = Math.max(game.shake, 0.35); burst(x, 0.8, z, { mat: P.ORANGE, n: 10, sp: 5, up: [2, 6], life: [0.25, 0.5] }); burst(x, 0.8, z, { mat: P.SMOKE, n: 5, sp: 2, up: [1, 3], life: [0.5, 0.9], g: -1, grow: 2 }); emit(['Bm', r2(x), r2(z)]); },
+  crate(x, z) { burst(x, 0.6, z, { mat: P.DEBRIS, n: 6, sp: 4, up: [2, 6], life: [0.3, 0.6] }); emit(['Cr', r2(x), r2(z)]); },
+  powerup(x, z) { SFX.powerup(); burst(x, 0.8, z, { mat: P.YELLOW, n: 8, sp: 3, up: [2, 5], life: [0.2, 0.5] }); emit(['Pu', r2(x), r2(z)]); },
+  blast(i) {
+    const p = game.players[i];
+    if (p.death && p.death.anim === BLAST) return;
+    p.death = { anim: BLAST, t: 0, st: {}, done: false };
+    BLAST.start(p, p.death.st);
+    emit(['Bl', i]);
+  },
   // se cayó (o quedó) en la lava
   burn(i, lavaY) {
     const p = game.players[i];
@@ -127,6 +140,11 @@ export function playEvent(ev) {
     case 'C': FX.crush(ev[1]); break;
     case 'J': FX.jump(ev[1]); break;
     case 'B': FX.burn(ev[1], ev[2]); break;
+    case 'Pl': FX.place(); break;
+    case 'Bm': FX.boom(ev[1], ev[2]); break;
+    case 'Cr': FX.crate(ev[1], ev[2]); break;
+    case 'Pu': FX.powerup(ev[1], ev[2]); break;
+    case 'Bl': FX.blast(ev[1]); break;
     case 'S': FX.snd(ev[1]); break;
     case 'X': FX.sparkle(ev[1], ev[2], ev[3], ev[4], ev[5]); break;
     default: break;

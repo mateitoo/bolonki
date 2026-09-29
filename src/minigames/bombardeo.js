@@ -15,6 +15,7 @@ import { input } from '../input.js';
 import { FX } from '../game/fx.js';
 import { SFX } from '../audio.js';
 import { resetPodVisual } from '../world/pods.js';
+import { drawWalker } from '../world/walker.js';
 import { sendInput } from '../net/room.js';
 import { txt, rect, COL } from '../ui/draw.js';
 
@@ -429,21 +430,8 @@ const bombardeo = {
     bombardeo.cam.look.set(CAM_LOOK.x, CAM_LOOK.y + W.camY * 0.9, CAM_LOOK.z);
     // personajes a pie
     for (const p of game.players) {
-      const me = p.mesh;
-      if (p.death || p.empty) { if (p.empty) { me.root.visible = false; me.sh.visible = false; } continue; }
-      me.root.visible = true; me.veh.visible = false; me.legs.visible = true;
-      me.root.position.set(p.x, p.fy || 0, p.z);
-      me.root.scale.setScalar(CHAR_SCALE);
-      me.root.rotation.set(0, p.ang || 0, 0);
-      // caminata: piernas que van y vienen y un rebotecito; en el aire, piernas encogidas
-      const sp = Math.hypot(p.vx || 0, p.vz || 0);
-      if (p.onGround) p.walk = (p.walk || 0) + dt * sp * 2.2;
-      const sw = p.onGround ? Math.sin(p.walk || 0) * Math.min(1, sp / 3) * 0.7 : -0.5;
-      me.legL.rotation.x = sw; me.legR.rotation.x = p.onGround ? -sw : -0.3;
-      me.rider.position.set(0, 1.3 + (p.onGround ? Math.abs(Math.sin(p.walk || 0)) * 0.12 * Math.min(1, sp / 3) : 0.1), 0);
-      me.rider.rotation.x = p.onGround ? 0 : -0.15;
-      const gy = top(tileOf(p.x, p.z));
-      me.sh.position.set(p.x, gy + 0.04, p.z); me.sh.rotation.y = 0; me.sh.scale.set(0.75, 1, 0.75); me.sh.visible = true;
+      if (p.death || p.empty) { if (p.empty) { p.mesh.root.visible = false; p.mesh.sh.visible = false; } continue; }
+      drawWalker(p, dt, CHAR_SCALE, top(tileOf(p.x, p.z)));
     }
   },
 

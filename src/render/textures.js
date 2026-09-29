@@ -105,5 +105,45 @@ export const TX = {
     x.fillStyle = '#f2c21a'; x.fillRect(0, 0, w, h);
     x.fillStyle = '#1c1c22'; for (let y = 0; y < h; y++) for (let i = -h; i < w; i += 8) x.fillRect(i + y, y, 4, 1);
   }),
+  // Petardos: pasto a cuadros, ladrillo (fijo), cajón de madera (se rompe) e íconos de poderes
+  turf: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#4f9a3c'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 70; i++) { x.fillStyle = ['#5caa46', '#468c35', '#63b44c'][(Math.random() * 3) | 0]; x.fillRect(Math.random() * w, Math.random() * h, 1, rnd(1, 3)); }
+    x.fillStyle = 'rgba(0,0,0,.12)'; x.fillRect(0, h - 1, w, 1); x.fillRect(w - 1, 0, 1, h);
+  }),
+  brick: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#6c6f7c'; x.fillRect(0, 0, w, h);
+    for (let r = 0; r < 4; r++) for (let c = -1; c < 3; c++) {
+      const bx = c * 16 + (r % 2 ? 8 : 0), by = r * 8;
+      x.fillStyle = ['#8a8e9c', '#7d8190', '#949aa8'][(r + c + 3) % 3]; x.fillRect(bx + 1, by + 1, 14, 6);
+      x.fillStyle = '#a7adbb'; x.fillRect(bx + 1, by + 1, 14, 1);
+    }
+  }),
+  crate: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#b07a3c'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 4; i++) { x.fillStyle = i % 2 ? '#a06c32' : '#bb8646'; x.fillRect(3, 3 + i * 6.5, w - 6, 6); }
+    x.fillStyle = '#6e4620'; x.fillRect(0, 0, w, 3); x.fillRect(0, h - 3, w, 3); x.fillRect(0, 0, 3, h); x.fillRect(w - 3, 0, 3, h);
+    for (let i = 0; i < w - 6; i++) { x.fillRect(3 + i, 3 + i * ((h - 8) / (w - 6)), 3, 2); }
+    x.fillStyle = '#d8d0b0'; [[1, 1], [w - 3, 1], [1, h - 3], [w - 3, h - 3]].forEach(([a, b]) => x.fillRect(a, b, 2, 2));
+  }),
+  fire: tex(16, 16, (x, w, h) => {
+    x.fillStyle = '#ff7a14'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 40; i++) { x.fillStyle = ['#ffd23a', '#fff6b0', '#ff9a1f', '#ffe070'][(Math.random() * 4) | 0]; x.fillRect(Math.random() * w, Math.random() * h, rnd(1, 4), rnd(1, 3)); }
+  }),
+  puBomb: tex(16, 16, (x, w, h) => {
+    x.fillStyle = '#2f6fe0'; x.fillRect(0, 0, w, h); x.fillStyle = '#9cc0ff'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+    x.fillStyle = '#111'; x.fillRect(4, 6, 8, 7); x.fillRect(5, 5, 6, 9); x.fillRect(3, 7, 10, 5);
+    x.fillStyle = '#fff'; x.fillRect(5, 7, 2, 2); x.fillStyle = '#c8a060'; x.fillRect(9, 3, 2, 3); x.fillStyle = '#ffd23a'; x.fillRect(11, 2, 2, 2);
+  }),
+  puFire: tex(16, 16, (x, w, h) => {
+    x.fillStyle = '#d8321e'; x.fillRect(0, 0, w, h); x.fillStyle = '#ff9a80'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+    x.fillStyle = '#ffb31a'; x.fillRect(5, 5, 6, 8); x.fillRect(4, 8, 8, 5); x.fillRect(7, 2, 2, 4);
+    x.fillStyle = '#fff27a'; x.fillRect(6, 9, 4, 4);
+  }),
+  puSpeed: tex(16, 16, (x, w, h) => {
+    x.fillStyle = '#27a85a'; x.fillRect(0, 0, w, h); x.fillStyle = '#9af0b8'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+    x.fillStyle = '#fff'; x.fillRect(3, 9, 9, 3); x.fillRect(4, 6, 4, 4); x.fillRect(11, 10, 2, 2);
+    x.fillStyle = '#ffd23a'; x.fillRect(1, 5, 3, 1); x.fillRect(0, 8, 3, 1); x.fillRect(1, 11, 2, 1);
+  }),
 };
 setWhiteTexture(TX.white);

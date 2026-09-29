@@ -6,6 +6,7 @@ import { burst, P } from '../fx/particles.js';
 import { SFX } from '../audio.js';
 import { DEATH_ANIMS } from '../deaths/index.js';
 import FALL from '../deaths/fall.js';
+import CRUSH from '../deaths/crush.js';
 
 export const outbox = [];
 let recording = false;
@@ -68,6 +69,25 @@ export const FX = {
   round(w) { SFX.roundWin(); emit(['R', w]); },
   shrinkWarn() { SFX.warnShrink(); emit(['W']); },
 
+  /* ---------- Bombardeo ---------- */
+  alert() { SFX.alert(); emit(['A']); },
+  // un bloque tocó el piso en (x, z)
+  slam(x, z) {
+    SFX.slam(); game.shake = Math.max(game.shake, 0.22);
+    for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) burst(x + dx * 1.1, 0.2, z + dz * 1.1, { mat: P.SMOKE, n: 2, sp: 2.5, up: [0.5, 1.5], life: [0.3, 0.6], g: -1, grow: 1.5 });
+    burst(x, 0.3, z, { mat: P.DEBRIS, n: 4, sp: 4, up: [2, 5], life: [0.3, 0.6] });
+    emit(['L', r2(x), r2(z)]);
+  },
+  // aplastado por un bloque
+  crush(i) {
+    const p = game.players[i];
+    if (p.death && p.death.anim === CRUSH) return;
+    p.death = { anim: CRUSH, t: 0, st: {}, done: false };
+    CRUSH.start(p, p.death.st);
+    game.shake = Math.max(game.shake, 0.4);
+    emit(['C', i]);
+  },
+
   /* ---------- Fiesta ---------- */
   snd(name) { if (SFX[name]) SFX[name](); emit(['S', name]); },
   sparkle(x, y, z, m, n) { burst(x, y, z, { mat: m, n, sp: 3, up: [2, 6], life: [0.4, 0.8] }); emit(['X', r2(x), r2(y), r2(z), m, n]); },
@@ -91,6 +111,9 @@ export function playEvent(ev) {
     case 'F': FX.fall(ev[1], ev[2], ev[3]); break;
     case 'R': FX.round(ev[1]); break;
     case 'W': FX.shrinkWarn(); break;
+    case 'A': FX.alert(); break;
+    case 'L': FX.slam(ev[1], ev[2]); break;
+    case 'C': FX.crush(ev[1]); break;
     case 'S': FX.snd(ev[1]); break;
     case 'X': FX.sparkle(ev[1], ev[2], ev[3], ev[4], ev[5]); break;
     default: break;

@@ -85,5 +85,25 @@ export const TX = {
     x.fillStyle = '#3a0a04'; x.fillRect(0, 0, w, h);
     for (let i = 0; i < 70; i++) { x.fillStyle = ['#7a1a06', '#b8320a', '#ff6a14', '#ffb040'][(Math.random() * 4) | 0]; x.fillRect(Math.random() * w, Math.random() * h, rnd(1, 5), rnd(1, 3)); }
   }),
+  // Bombardeo: baldosas de metal, bloques que caen y franjas de peligro
+  tile: tex(32, 32, (x, w, h) => {
+    noisy(x, w, h, '#8a93a6', 0.22);
+    x.fillStyle = '#5b6376'; x.fillRect(0, 0, w, 2); x.fillRect(0, 0, 2, h);
+    x.fillStyle = '#b4bccc'; x.fillRect(0, h - 2, w, 2); x.fillRect(w - 2, 0, 2, h);
+    x.fillStyle = 'rgba(60,68,86,.35)'; for (let i = 6; i < w - 4; i += 6) x.fillRect(4, i, w - 8, 1);
+    x.fillStyle = '#3e4456'; [[4, 4], [w - 6, 4], [4, h - 6], [w - 6, h - 6]].forEach(([a, b]) => x.fillRect(a, b, 2, 2));
+  }),
+  block: tex(32, 32, (x, w, h) => {
+    noisy(x, w, h, '#4c5262', 0.25);
+    x.fillStyle = '#6d7488'; x.fillRect(0, 0, w, 3); x.fillRect(0, 0, 3, h);
+    x.fillStyle = '#2c3040'; x.fillRect(0, h - 3, w, 3); x.fillRect(w - 3, 0, 3, h);
+    x.fillStyle = '#f2c21a'; x.fillRect(3, 12, w - 6, 8);                       // franja de peligro
+    x.fillStyle = '#1c1c22'; for (let y = 0; y < 8; y++) for (let i = -8; i < w; i += 6) x.fillRect(Math.max(3, i + y), 12 + y, 3, 1);
+    x.fillStyle = '#9aa2b6'; [[6, 6], [w - 8, 6], [6, h - 8], [w - 8, h - 8]].forEach(([a, b]) => x.fillRect(a, b, 2, 2));
+  }),
+  hazard: tex(16, 16, (x, w, h) => {
+    x.fillStyle = '#f2c21a'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#1c1c22'; for (let y = 0; y < h; y++) for (let i = -h; i < w; i += 8) x.fillRect(i + y, y, 4, 1);
+  }),
 };
 setWhiteTexture(TX.white);

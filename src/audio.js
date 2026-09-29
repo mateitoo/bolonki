@@ -1,7 +1,7 @@
 // Sonidos sintetizados con WebAudio (arrancan después de la primera interacción).
 import { rnd } from './config.js';
 
-let lastBump = 0, lastCrumble = 0;
+let lastBump = 0, lastCrumble = 0, lastAlert = 0, lastSlam = 0;
 let ac = null, soundOn = true, lastBounce = 0, noiseBuf = null, master = null, volume = 0.8;
 
 export function ensureAudio() {
@@ -63,6 +63,10 @@ export const SFX = {
   splash() { noise(0.7, 0.25, 1800); beep(90, 30, 0.5, 'sawtooth', 0.08); },
   crumble() { const n = performance.now(); if (n - lastCrumble < 180) return; lastCrumble = n; noise(0.15, 0.05, 700); },
   roundWin() { [523, 659, 784, 1046].forEach((f, k) => beep(f, f, 0.12, 'square', 0.05, k * 0.09)); },
+  // Bombardeo
+  alert() { const n = performance.now(); if (n - lastAlert < 120) return; lastAlert = n; beep(1040, 1040, 0.05, 'square', 0.03); beep(780, 780, 0.05, 'square', 0.03, 0.07); },
+  slam() { const n = performance.now(); if (n - lastSlam < 60) return; lastSlam = n; noise(0.25, 0.22, 900); beep(110, 45, 0.22, 'square', 0.1); },
+  crush() { beep(300, 60, 0.35, 'sawtooth', 0.09); noise(0.2, 0.15, 2500, 0.02); beep(1400, 1900, 0.08, 'square', 0.03, 0.3); },
   // Fiesta
   dice() { beep(900, 900, 0.025, 'square', 0.02); },
   hop() { beep(380, 620, 0.07, 'square', 0.035); },

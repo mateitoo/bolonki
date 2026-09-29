@@ -1,9 +1,9 @@
 // Minijuego 3: BOMBARDEO (a pie). Del cielo caen cajas de metal sobre una grilla de baldosas.
-// Antes de cada caída la baldosa (o la pila) se marca con un borde y la sombra de la caja.
+// Antes de cada caída aparece la sombra de la caja en la baldosa (o la pila) y la caja baja flotando desde arriba.
 // Las cajas QUEDAN donde caen y se apilan: hay que ir saltando de pila en pila (se sube de a una caja),
 // no quedarse encerrado en un pozo y que no te caiga ninguna encima.
 // Sin naves: los personajes van caminando y el botón de golpe es SALTAR.
-// A los 15 s el piso se vuelve lava y empieza a subir: hay que estar cada vez más arriba.
+// A los 25 s el piso se vuelve lava y empieza a subir: hay que estar cada vez más arriba.
 // Cajas especiales: RESORTE (verde; si caés encima te lanza unas tres cajas de alto)
 // y EXPLOSIVA (roja; al caer vuela la caja de arriba de las 4 pilas de al lado).
 // Gana la ronda el último que queda; gana la partida el primero que llega a N rondas.
@@ -28,10 +28,10 @@ const GN = 8;                // baldosas por lado
 const TS = 2.0;              // tamaño de cada baldosa (y de cada caja)
 const HALF = (GN * TS) / 2;
 const CS = TS - 0.04;        // la caja, apenas más chica para que se vean las juntas
-const LAVA_AT = 15;          // segundos hasta que empieza a subir la lava
-const LAVA_WARN = 12;        // cuándo se avisa
+const LAVA_AT = 25;          // segundos hasta que empieza a subir la lava
+const LAVA_WARN = 20;        // cuándo se avisa
 const LAVA_V = 0.12, LAVA_ACC = 0.005;             // velocidad con la que sube (y cuánto acelera)
-const DROP_H = 11;           // desde qué altura (sobre la pila) cae
+const HOVER_HIGH = 9, HOVER_LOW = 4.5;              // la caja aparece flotando a esta altura (sobre la pila) y baja hasta acá antes de caer
 const FALL_T = 0.4;          // cuánto tarda en caer (al final del aviso)
 const PR = 0.55;             // radio del personaje
 const CHAR_SCALE = 0.86;     // tamaño del personaje a pie
@@ -62,7 +62,7 @@ let nextId = 1;
 const B = { waveT: 2.0, n: 0, lava: -1 };          // lava: altura de la lava (-1 = todavía no)
 
 /* ---------- mundo ---------- */
-const W = { grp: null, shadows: [], frames: [], falling: [], stack: [], coils: [], stackGeo: null, stackMat: null, lampM: null, lava: null, lavaM: null, camY: 0 };
+const W = { grp: null, shadows: [], falling: [], stack: [], coils: [], stackGeo: null, stackMat: null, lampM: null, lava: null, lavaM: null, camY: 0 };
 
 function buildWorld() {
   const grp = new THREE.Group(); grp.visible = false; scene.add(grp); W.grp = grp;
@@ -71,12 +71,10 @@ function buildWorld() {
   add(out, mat({ map: TX.outer }), 0, -1.7, 0, grp);
   const tg = scaleUV(new THREE.BoxGeometry(TS - 0.08, 0.5, TS - 0.08), 1, 1);
   const sg = new THREE.PlaneGeometry(CS, CS); sg.rotateX(-Math.PI / 2);
-  const fr = new THREE.RingGeometry((TS / 2 - 0.26) * Math.SQRT2, (TS / 2 - 0.05) * Math.SQRT2, 4, 1, Math.PI / 4); fr.rotateX(-Math.PI / 2);
   for (let k = 0; k < GN * GN; k++) {
     const dark = ((k % GN) + ((k / GN) | 0)) % 2 === 1;
     add(tg, mat({ map: TX.tile, color: dark ? 0xc4cad8 : 0xffffff }), cx(k), -0.25, cz(k), grp);
     const sh = add(sg, mat({ color: 0x000000, unlit: true }), cx(k), 0.02, cz(k), grp); sh.visible = false; W.shadows.push(sh);
-    const f = add(fr, mat({ color: 0xff3a2a, unlit: true }), cx(k), 0.03, cz(k), grp); f.visible = false; W.frames.push(f);
   }
   // baranda alrededor (no te podés caer de la grilla)
   const hz = mat({ map: TX.hazard, unlit: true }), len = GN * TS + 1.6;
@@ -98,7 +96,7 @@ function buildWorld() {
   for (let n = 0; n < 40; n++) { const b = add(bg, fm, 0, -20, 0, grp); b.visible = false; W.falling.push(b); }
   // resortes: una tapa verde con un espiral, arriba de la pila
   W.springMat = W.fallMats.s;
-  const coilM = mat({ color: 0xd8dce6 }), padM = mat({ color: 0x39d98a });
+  const coilM = mat({ color: 0xd8dce6 }), padM = mat({ map: TX.metal, color: 0xb8c0d0 });
   for (let n = 0; n < 24; n++) {
     const sg = new THREE.Group(); sg.visible = false; grp.add(sg);
     for (let i = 0; i < 3; i++) { const t = new THREE.TorusGeometry(0.42, 0.07, 4, 10); t.rotateX(Math.PI / 2); add(t, coilM, 0, 0.12 + i * 0.16, 0, sg); }
@@ -172,22 +170,22 @@ function piece(name, c0, r0, rot, warn) {
 }
 function wave() {
   const e = game.elapsed;
-  const warn = Math.max(0.85, 1.55 - e * 0.014);
+  const warn = Math.max(1.1, 1.8 - e * 0.012);
   const alive = game.players.filter((p) => p.alive && !p.empty);
   const early = ['uno', 'dos', 'uno', 'ele'];
   const later = ['dos', 'tres', 'ele', 'cuadrado', 'te', 'ese'];
   const late = ['tres', 'cuadrado', 'te', 'palo', 'ese', 'ele'];
   const pool = e < 10 ? early : e < 25 ? later : late;
-  const count = e < 8 ? 2 : e < 20 ? 3 : e < 35 ? 4 : 5;
+  const count = e < 12 ? 2 : e < 30 ? (Math.random() < 0.5 ? 2 : 3) : e < 50 ? 3 : 4;
   for (let n = 0; n < count; n++) {
     const name = pool[(Math.random() * pool.length) | 0];
     piece(name, (Math.random() * GN) | 0, (Math.random() * GN) | 0, Math.random() < 0.5, warn * rnd(0.95, 1.15));
   }
   // de vez en cuando, una caja justo arriba de cada uno (para que nadie se quede quieto)
-  if (e > 6 && Math.random() < Math.min(0.6, 0.3 + e * 0.006)) alive.forEach((p) => drop(tileOf(p.x, p.z), warn * 1.15));
+  if (e > 8 && Math.random() < Math.min(0.4, 0.18 + e * 0.004)) alive.forEach((p) => drop(tileOf(p.x, p.z), warn * 1.15));
   B.n++;
   FX.alert();
-  return Math.max(0.75, 1.8 - e * 0.02);
+  return Math.max(1.5, 2.8 - e * 0.02);
 }
 
 /* ---------- movimiento a pie ---------- */
@@ -302,7 +300,8 @@ function aiInput(p, dt) {
       const eta = dist[k] * 0.42 + 0.25;
       const w = warnT(k);
       let sc = H[k] * 1.1 - dist[k] * 0.7;                         // mejor arriba, y cerca
-      if (B.lava >= 0 && top(k) < B.lava + 0.8 + eta * 0.4) sc -= 40;    // la lava llega ahí
+      const lv = B.lava >= 0 ? B.lava : game.elapsed > LAVA_WARN - 3 ? 0 : -1;   // cuando se acerca la lava, a subirse
+      if (lv >= 0 && top(k) < lv + 0.8 + eta * 0.4) sc -= 40;    // la lava llega ahí
       if (w < eta + 0.5) sc -= 60;                                 // le cae antes de llegar o mientras está ahí
       else if (w < Infinity) sc -= 4;                              // le cae después: mejor no
       if (dist[k] > 0 && warnT(first[k]) < 0.75) sc -= 30;         // el primer paso es peligroso
@@ -465,6 +464,7 @@ const bombardeo = {
     for (let k = 0; k < GN * GN; k++) for (let h = h0; h < H[k]; h++) {
       const b = n < W.stack.length ? W.stack[n] : newStackBox(); n++;
       b.visible = true; b.position.set(cx(k), h * TS + CS / 2, cz(k));
+      b.material = h === H[k] - 1 && TT[k] === 's' ? W.springMat : W.stackMat;      // el resorte es la caja verde de arriba
     }
     for (; n < W.stack.length; n++) W.stack[n].visible = false;
     let cn = 0;
@@ -478,21 +478,22 @@ const bombardeo = {
     W.lava.visible = B.lava > 0; W.lava.position.y = Math.max(0.01, B.lava);
     W.lavaM.uniforms.uOff.value.set((clock * 0.03) % 1, (clock * 0.02) % 1);
     // avisos y cajas cayendo
+    // aviso: la sombra de la caja en el piso (cada vez más grande y oscura) y la caja que baja flotando desde arriba
     W.shadows.forEach((s) => (s.visible = false));
-    W.frames.forEach((f) => (f.visible = false));
     let m = 0;
     for (const o of drops) {
       const k = o.k, y0 = top(k), f = clamp(o.t / o.warn, 0, 1), left = o.warn - o.t;
-      const on = ((clock * (4 + f * 14)) | 0) % 2 === 0;
-      const FC = { n: [0xffe14a, 0xff3a2a], s: [0x9dff9a, 0x1fa84a], x: [0xffffff, 0xff2a1a] }[o.kind || 'n'];
-      const fm = W.frames[k]; fm.visible = true; fm.position.y = y0 + 0.04; fm.material.uniforms.uColor.value.set(on ? FC[0] : FC[1]);
-      const sh = W.shadows[k]; sh.visible = f > 0.12; sh.position.y = y0 + 0.03;
-      const s = 0.2 + f * 0.62; sh.scale.set(s, 1, s);
-      const g = 0.07 + 0.26 * (1 - f); sh.material.uniforms.uColor.value.setRGB(g, g * 0.92, g * 0.85);
-      if (left < FALL_T && m < W.falling.length) {
-        const u = 1 - left / FALL_T;
-        const b = W.falling[m++]; b.visible = true; b.material = W.fallMats[o.kind || 'n']; b.position.set(cx(k), y0 + CS / 2 + DROP_H * (1 - u * u), cz(k));
-      }
+      const sh = W.shadows[k]; sh.visible = true; sh.position.y = y0 + 0.03;
+      const s = 0.35 + f * 0.6; sh.scale.set(s, 1, s);
+      const g = 0.02 + 0.2 * (1 - f); sh.material.uniforms.uColor.value.setRGB(g, g, g * 1.1);
+      if (m >= W.falling.length) continue;
+      let y;
+      if (left < FALL_T) { const u = 1 - left / FALL_T; y = y0 + CS / 2 + HOVER_LOW * (1 - u * u); }       // la caída
+      else if (f > 0.3) { const u = (o.t - o.warn * 0.3) / (o.warn * 0.7 - FALL_T); y = y0 + CS / 2 + HOVER_HIGH + (HOVER_LOW - HOVER_HIGH) * clamp(u, 0, 1); }
+      else continue;
+      const b = W.falling[m++]; b.visible = true; b.material = W.fallMats[o.kind || 'n'];
+      b.position.set(cx(k), y, cz(k));
+      b.rotation.set(Math.sin(clock * 5 + k) * 0.04, 0, Math.cos(clock * 4 + k) * 0.04);
     }
     for (; m < W.falling.length; m++) W.falling[m].visible = false;
     W.lampM.uniforms.uColor.value.set(drops.length && ((clock * 6) | 0) % 2 ? 0xff5a2a : 0x5a2010);
@@ -547,19 +548,6 @@ const bombardeo = {
     }
     const me = game.players[game.me];
     if (st === 'play' && me && !me.alive && !me.empty && !R.over && game.mode !== 'local') txt(me.burned ? '¡TE QUEMASTE!' : '¡APLASTADO!', hw / 2, 196, 16, COL.red, 'center');
-    // "¡!" arriba de tu cabeza si te va a caer una caja (a veces desde arriba no se ve bien)
-    if (st === 'play' && !R.over && ((game.clock * 8) | 0) % 2) {
-      for (const p of game.players) {
-        if (!p.alive || p.empty || p.ctrl !== 'local' && !(game.online === 'guest' && p.i === game.me)) continue;
-        const k = tileOf(p.x, p.z);
-        if (!drops.some((o) => o.k === k)) continue;
-        V3.set(p.x, (p.fy || 0) + 2.9, p.z).project(camera);
-        if (V3.z > 1) continue;
-        const x = Math.round(((V3.x + 1) / 2) * hw), y = Math.round(((1 - V3.y) / 2) * 240);
-        rect(x - 7, y - 10, 14, 17, '#ff2a1a'); rect(x - 5, y - 8, 10, 13, '#ffe14a');
-        txt('!', x, y - 7, 16, '#ff2a1a', 'center');
-      }
-    }
   },
 
   /* ---------- online (el anfitrión manda todo; el invitado solo manda para dónde va y si saltó) ---------- */

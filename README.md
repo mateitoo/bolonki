@@ -28,14 +28,16 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   A los 14 segundos la plataforma empieza a achicarse.
 - **Bombardeo** (a pie): caen cajas de metal sobre una grilla y quedan apiladas; hay que ir saltando de pila en pila
   (el golpe es **saltar**) sin quedar abajo de una caja ni encerrado en un pozo. Cayendo sobre la cabeza de otro lo
-  dejás mareado (**pisotón**). A los 15 s el piso es lava y sube cada vez más rápido. Cajas especiales: **resorte**
+  dejás mareado (**pisotón**). Antes de caer se ve la sombra de la caja en el piso y la caja bajando desde arriba.
+  A los 25 s el piso es lava y sube cada vez más rápido. Cajas especiales: **resorte**
   (verde, te lanza unas tres cajas de alto) y **explosiva** (roja, al caer vuela la caja de arriba de las pilas de al lado).
-- **Petardos** (a pie, estilo Bomberman): mapa con paredes fijas y cajones al azar, uno en cada esquina. El golpe pone
+- **Petardos** (a pie, estilo Bomberman): mapa de 13 x 11 con paredes fijas y cajones al azar, uno en cada esquina. El golpe pone
   un petardo que explota en cruz y hace explotar a otros. Poderes en los cajones: +fuego (arranca en 1), +petardo
   (más raro), +velocidad, botas (empujando un obstáculo lo saltás), escudo (aguanta una explosión), patada (el petardo
-  sale deslizando) y **calavera** (una maldición de 10 s que se contagia tocando a otro). Hay 4 canchas, cada una con
+  sale deslizando) y **calavera** (una maldición de 10 s que se contagia tocando a otro: controles invertidos, lento,
+  petardos sin parar, sin petardos o **atontado**, que cada vez que apretás una dirección seguramente te manda para otro lado). Hay 4 canchas, cada una con
   algo propio: patio (arbustos para esconderte), fábrica (cintas que te arrastran a vos y a los petardos), desierto
-  (arenas movedizas) y nieve (hielo: si soltás seguís resbalando). A los 35 s empieza la muerte súbita: las paredes
+  (arenas movedizas) y nieve (hielo: si soltás seguís resbalando). Al minuto empieza la muerte súbita: las paredes
   se cierran en espiral.
 
 ## Música

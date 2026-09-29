@@ -3,11 +3,12 @@
 // hace explotar a otros petardos que alcanza. De los cajones salen poderes:
 //   +fuego (alcance, arranca en 1) · +petardo (más raro) · +velocidad · botas (saltás un obstáculo empujándolo)
 //   · escudo (aguanta una explosión) · patada (empujás un petardo y sale deslizando)
-//   · calavera (una maldición por 10 s que se contagia tocando a otro)
+//   · calavera (una maldición por 10 s que se contagia tocando a otro: controles invertidos, lento,
+//     petardos sin parar, sin petardos o atontado)
 // Hay varias canchas (cambian las paredes fijas y el lugar) y sale una al azar en cada ronda. Cada una tiene algo propio:
 //   patio: arbustos donde esconderte · fábrica: cintas que te arrastran (y a los petardos)
 //   · desierto: arenas movedizas que te frenan · nieve: hielo, si soltás seguís resbalando
-// Gana la ronda el último que queda. A los 35 s empieza la muerte súbita: las paredes se cierran en espiral.
+// Gana la ronda el último que queda. Al minuto empieza la muerte súbita: las paredes se cierran en espiral.
 import * as THREE from 'three';
 import { register } from './registry.js';
 import { CHARS, DIFFICULTIES, rnd, clamp } from '../config.js';
@@ -23,7 +24,7 @@ import { sendInput } from '../net/room.js';
 import { txt, rect, COL } from '../ui/draw.js';
 
 /* ---------- medidas y reglas ---------- */
-const GW = 13, GH = 11;      // celdas (con el borde de paredes)
+const GW = 15, GH = 13;      // celdas (con el borde de paredes): 13 x 11 adentro, como el clásico
 const N = GW * GH;
 const TS = 1.6;              // tamaño de cada celda
 const FUSE = 2.4;            // mecha del petardo (s)
@@ -39,13 +40,26 @@ const CURSES = [
   { id: 'lento', label: '¡ESTÁS LENTÍSIMO!' },
   { id: 'diarrea', label: '¡PETARDOS SIN PARAR!' },
   { id: 'sinpetardos', label: '¡NO PODÉS PONER PETARDOS!' },
+  { id: 'atontado', label: '¡ATONTADO!' },
 ];
+// Atontado: cada vez que apretás una dirección, lo más probable es que vayas para otro lado
+// (se sortea al apretar y se mantiene mientras la tenés apretada)
+function confuse(p, ix, iz) {
+  const ax = Math.abs(ix), az = Math.abs(iz);
+  if (ax < 0.3 && az < 0.3) { p.confKey = -1; return [0, 0]; }
+  const key = ax >= az ? (ix > 0 ? 0 : 1) : (iz > 0 ? 2 : 3);          // índice en DIRS
+  if (key !== p.confKey) {
+    p.confKey = key;
+    p.confTo = Math.random() < 0.25 ? key : [0, 1, 2, 3].filter((d) => d !== key)[(Math.random() * 3) | 0];
+  }
+  return DIRS[p.confTo];
+}
 const RANGE0 = 1;            // alcance inicial del fuego (en celdas)
 const VAULT_PUSH = 0.12, VAULT_T = 0.42;           // botas: cuánto empujar contra el obstáculo y cuánto dura el salto
 const INVUL_T = 1.3;         // después de que el escudo aguanta una explosión
 const SPEED0 = 3.3, SPEED_UP = 0.45, SPEED_MAX = 5.6;   // celdas por segundo
 const MAX_BOMBS = 6, MAX_RANGE = 7;
-const SD_AT = 35, SD_EVERY = 0.28, SD_FALL = 0.35;       // muerte súbita: cuándo empieza, cada cuánto cae una pared y cuánto tarda en caer
+const SD_AT = 60, SD_EVERY = 0.25, SD_FALL = 0.35;       // muerte súbita: cuándo empieza, cada cuánto cae una pared y cuánto tarda en caer
 const CHAR_SCALE = 0.7;
 const ROUND_PAUSE = 2.4;
 const EMPTY = 0, WALL = 1, CRATE = 2;
@@ -55,99 +69,69 @@ function pickPower() {
   return 1;
 }
 
-// Canchas: paredes fijas adentro del borde (11 x 9; X = pared) y cómo se ve cada una
+// Canchas: el mapa de adentro del borde (13 x 11, el tamaño clásico) y cómo se ve cada una.
+// X = pared fija · . piso · b arbusto · q arena movediza · ~ hielo · > < ^ v cinta transportadora
 const CANCHAS = [
   { name: 'PATIO', floor: 'turf', wall: 'brick', wallCol: 0xffffff, out: 0x557755, deco: 'arboles', extra: 'ARBUSTOS PARA ESCONDERTE',
-    special: [
-      '.....b.....',
-      '.X.X.X.X.X.',
-      '..b.....b..',
-      '.X.X.X.X.X.',
-      'b...b.b...b',
-      '.X.X.X.X.X.',
-      '..b.....b..',
-      '.X.X.X.X.X.',
-      '.....b.....'],
-    layout: [
-    '...........',
-    '.X.X.X.X.X.',
-    '...........',
-    '.X.X.X.X.X.',
-    '...........',
-    '.X.X.X.X.X.',
-    '...........',
-    '.X.X.X.X.X.',
-    '...........'] },
+    map: [
+      '......b......',
+      '.X.X.X.X.X.X.',
+      '..b.......b..',
+      '.X.X.X.X.X.X.',
+      '....b...b....',
+      'bX.X.X.X.X.Xb',
+      '....b...b....',
+      '.X.X.X.X.X.X.',
+      '..b.......b..',
+      '.X.X.X.X.X.X.',
+      '......b......'] },
   { name: 'FÁBRICA', floor: 'tile', wall: 'block', wallCol: 0xffffff, out: 0x5a6070, deco: 'cajas', extra: 'CINTAS QUE TE ARRASTRAN',
-    special: [
-      '...........',
-      '.XX.XXX.XX.',
-      '>>>>>>>>>>v',
-      '^X..X.X..Xv',
-      '^X.......Xv',
-      '^X..X.X..Xv',
-      '^<<<<<<<<<<',
-      '.XX.XXX.XX.',
-      '...........'],
-    layout: [
-    '...........',
-    '.XX.XXX.XX.',
-    '...........',
-    '.X..X.X..X.',
-    '.X.......X.',
-    '.X..X.X..X.',
-    '...........',
-    '.XX.XXX.XX.',
-    '...........'] },
+    map: [
+      '.............',
+      '.XX.XX.XX.XX.',
+      '>>>>>>>>>>>>v',
+      '^X...X.X...Xv',
+      '^X.XX...XX.Xv',
+      '^.>>>>>>>>>.v',
+      '^X.XX...XX.Xv',
+      '^X...X.X...Xv',
+      '^<<<<<<<<<<<<',
+      '.XX.XX.XX.XX.',
+      '.............'] },
   { name: 'DESIERTO', floor: 'sand', wall: 'brick', wallCol: 0xe0b878, out: 0xc8a060, deco: 'cactus', extra: 'ARENAS MOVEDIZAS',
-    special: [
-      '...........',
-      '.X..X.X..X.',
-      '.qq.X.X.qq.',
-      '.XX.qqq.XX.',
-      '...qqXqq...',
-      '.XX.qqq.XX.',
-      '.qq.X.X.qq.',
-      '.X..X.X..X.',
-      '...........'],
-    layout: [
-    '...........',
-    '.X..X.X..X.',
-    '....X.X....',
-    '.XX.....XX.',
-    '.....X.....',
-    '.XX.....XX.',
-    '....X.X....',
-    '.X..X.X..X.',
-    '...........'] },
+    map: [
+      '.............',
+      '.X..X...X..X.',
+      '.qq..X.X..qq.',
+      '.XX.qqqqq.XX.',
+      '....qqXqq....',
+      '.X..X.q.X..X.',
+      '....qqXqq....',
+      '.XX.qqqqq.XX.',
+      '.qq..X.X..qq.',
+      '.X..X...X..X.',
+      '.............'] },
   { name: 'NIEVE', floor: 'snow', wall: 'brick', wallCol: 0xdfe8ff, out: 0xdde8f4, deco: 'pinos', extra: 'HIELO QUE RESBALA',
-    special: [
-      '...........',
-      '.X.X~~~X.X.',
-      '..~~~~~~~..',
-      '.X..X~X..X.',
-      '...X~~~X...',
-      '.X..X~X..X.',
-      '..~~~~~~~..',
-      '.X.X~~~X.X.',
-      '...........'],
-    layout: [
-    '...........',
-    '.X.X...X.X.',
-    '...........',
-    '.X..X.X..X.',
-    '...X...X...',
-    '.X..X.X..X.',
-    '...........',
-    '.X.X...X.X.',
-    '...........'] },
+    map: [
+      '.............',
+      '.X.X~~~~~X.X.',
+      '..~~~~~~~~~..',
+      '.X..X~X~X..X.',
+      '...X~~~~~X...',
+      '.X..~~X~~..X.',
+      '...X~~~~~X...',
+      '.X..X~X~X..X.',
+      '..~~~~~~~~~..',
+      '.X.X~~~~~X.X.',
+      '.............'] },
 ];
+const cellCh = (ci, c, r) => (c > 0 && r > 0 && c < GW - 1 && r < GH - 1 ? CANCHAS[ci].map[r - 1][c - 1] : 'X');
 // qué hay en el piso de la celda: '.' nada · b arbusto · q arena movediza · ~ hielo · > < ^ v cinta
-const specialAt = (ci, c, r) => (c > 0 && r > 0 && c < GW - 1 && r < GH - 1 ? CANCHAS[ci].special[r - 1][c - 1] : '.');
+const specialAt = (ci, c, r) => { const ch = cellCh(ci, c, r); return ch === 'X' ? '.' : ch; };
 const CONV = { '>': [1, 0], '<': [-1, 0], '^': [0, -1], 'v': [0, 1] };
 const CONV_V = 1.7;          // celdas por segundo de las cintas
 const spAt = (k) => specialAt(S.cancha, k % GW, (k / GW) | 0);
-const isWall = (ci, c, r) => r === 0 || c === 0 || r === GH - 1 || c === GW - 1 || CANCHAS[ci].layout[r - 1][c - 1] === 'X';
+const isWall = (ci, c, r) => cellCh(ci, c, r) === 'X';
 
 const r2 = (v) => Math.round(v * 100) / 100;
 const lerpAng = (a, b, f) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return a + d * f; };
@@ -198,7 +182,7 @@ function makeMap(ci) {
 
 /* ---------- mundo ---------- */
 const W = { grp: null, canchas: [], crates: [], bombs: [], flames: [], pups: [], puMats: [], shields: [], sdWalls: [], sdFall: [], skulls: [], bushes: [] };
-const DECO_AT = [[-14, -6], [14, -7], [-15, 4], [15, 5], [-8, -12], [9, -12.5], [-12, 11], [12, 11]];
+const DECO_AT = [[-16, -7], [16, -8], [-17, 5], [17, 6], [-9, -14], [10, -14.5], [-14, 13], [14, 13]];
 
 function buildCancha(ci) {
   const C = CANCHAS[ci], g = new THREE.Group(); g.visible = false; W.grp.add(g);
@@ -668,6 +652,7 @@ function step(dt) {
     // maldición de la calavera
     const cu = p.curse && p.curse.id;
     if (cu === 'invertido') { ix = -ix; iz = -iz; }
+    if (cu === 'atontado') [ix, iz] = confuse(p, ix, iz);
     if (cu === 'sinpetardos') bomb = false;
     if (cu === 'diarrea' && !R.over) bomb = true;
     if (bomb && !p.jump) placeBomb(p);  // el petardo queda donde estabas al apretar
@@ -768,12 +753,12 @@ const petardos = {
   desc: 'VOLÁ A LOS DEMÁS Y ROMPÉ CAJONES',
   howTo: 'PONER PETARDO',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
-  cam: { pos: new THREE.Vector3(0, 27, 13.2), look: new THREE.Vector3(0, 0, 0.35), rotate: false, orbit: true },
+  cam: { pos: new THREE.Vector3(0, 31.5, 15.4), look: new THREE.Vector3(0, 0, 0.4), rotate: false, orbit: true },
   humanOut: false,
   tense: () => game.elapsed >= SD_AT,           // música más rápida en la muerte súbita
   tagY: 2.2, markMe: true,
   thumbSteps: 1300,
-  thumbCam: { pos: new THREE.Vector3(0, 17, 9), look: new THREE.Vector3(0, 0, -0.3) },
+  thumbCam: { pos: new THREE.Vector3(0, 20, 10.5), look: new THREE.Vector3(0, 0, -0.3) },
 
   build: buildWorld,
   show(on) { if (W.grp) W.grp.visible = on; },

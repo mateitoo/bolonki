@@ -83,7 +83,8 @@ Abajo, **ONLINE** y **OPCIONES**.
 Las dos puertas llevan a la **sala** (`src/sala/`), que es la misma pantalla para jugar solo, en la misma compu u online:
 
 - Cuatro podios en un escenario; cada jugador **elige su personaje** (izquierda/derecha) y confirma (golpe / Enter).
-  Cada personaje lo usa uno solo, y no cambia nada del juego (es solo estética).
+  Cada personaje lo usa uno solo, y no cambia nada del juego (es solo estética). Hay seis: Kiro, Mosh, Bruna y Tank
+  (bichos redondos) y Coco (payaso) y Pino (gnomo), con cabeza, torso, brazos y piernas (`src/world/people.js`).
 - **Local:** J1 usa flechas + espacio/enter (o joystick 1). Los demás se suman apretando su botón:
   J2 con **E** (WASD para elegir, **Q** para salir) o joystick 2, J3 y J4 con **A** en los joysticks 3 y 4. Los podios libres son CPU.
 - Cuando todos confirmaron aparecen las **opciones**: en Minijuegos, una grilla con las fotos de cada uno; CPU (o sin CPU si son 2 o más),
@@ -160,6 +161,7 @@ src/
   render/textures.js texturas procedurales
   world/arena.js     piso, torres, arcos, láseres y chevrones
   world/pods.js      naves y pilotos (dressPod viste la nave con el personaje elegido)
+  world/people.js    personajes con ropa (payaso y gnomo): mismo esqueleto, brazos que se mueven al caminar
   world/balls.js     pelotas
   game/physics.js    movimiento, rebotes, goles y colisiones
   game/ai.js         IA de la CPU
@@ -195,7 +197,7 @@ src/
 
 - **Dificultad de la CPU:** `DIFFICULTIES` en `src/config.js` (velocidad, error, reacción, anticipación y uso del golpe fuerte).
 - **Pelotas (velocidad, cantidad):** `BALL` en `src/config.js`.
-- **Nuevo personaje:** sumarlo a `CHARS` en `src/config.js` (nombre, colores y accesorio) y, si tiene un accesorio nuevo, armarlo en `dressPod` (`src/world/pods.js`) y en el retrato de `src/hud.js`. Aparece solo en la sala.
+- **Nuevo personaje:** sumarlo a `CHARS` en `src/config.js` (nombre, colores y accesorio). Si es un bicho redondo con un accesorio nuevo, se arma en `buildBlob` (`src/world/pods.js`); si es con ropa, se agrega un armador en `src/world/people.js` (`model` en `CHARS`) y su retrato en `personFace` (`src/hud.js`). Aparece solo en la sala.
 - **Nueva animación de derrota:** crear un archivo en `src/deaths/` con `{ id, name, dur, start, update }` y sumarlo a `src/deaths/index.js`. El selector se llena solo.
 
 Personajes, nombres y arte son originales.

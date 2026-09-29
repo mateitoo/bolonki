@@ -33,6 +33,7 @@ function face(i, x, y) {
   rect(x + 1, y + 1, 22, 22, p.flash > 0 && ((game.clock * 16) | 0) % 2 ? '#fff' : ch.col);
   rect(x + 2, y + 2, 20, 20, ch.dark);
   const col = p.alive ? ch.col : '#555b6e';
+  if (ch.model) { personFace(ch.model, x, y, p.alive); crossOut(p, x, y); return; }
   if (ch.acc === 'ears') { rect(x + 6, y + 2, 3, 7, col); rect(x + 15, y + 2, 3, 7, col); }
   if (ch.acc === 'horns') { rect(x + 4, y + 4, 3, 4, '#f0e6c8'); rect(x + 17, y + 4, 3, 4, '#f0e6c8'); }
   if (ch.acc === 'antenna') { rect(x + 6, y + 3, 2, 2, '#fff27a'); rect(x + 16, y + 3, 2, 2, '#fff27a'); }
@@ -40,7 +41,30 @@ function face(i, x, y) {
   rect(x + 8, y + 11, 3, 4, '#fff'); rect(x + 13, y + 11, 3, 4, '#fff');
   rect(x + 9, y + 12, 2, 2, '#000'); rect(x + 14, y + 12, 2, 2, '#000');
   if (ch.acc === 'beak') rect(x + 10, y + 16, 4, 2, '#ff7a00');
+  crossOut(p, x, y);
+}
+function crossOut(p, x, y) {
   if (!p.alive) { hx.fillStyle = '#ff3040'; for (let k = 0; k < 20; k++) { hx.fillRect(x + 2 + k, y + 2 + k, 2, 2); hx.fillRect(x + 20 - k, y + 2 + k, 2, 2); } }
+}
+// Retratos de los personajes con ropa (payaso, gnomo)
+function personFace(model, x, y, alive) {
+  const g = (c) => (alive ? c : '#555b6e');
+  if (model === 'clown') {
+    rect(x + 4, y + 8, 4, 11, g('#c85a1e')); rect(x + 16, y + 8, 4, 11, g('#c85a1e'));
+    pcircle(x + 12, y + 14, 6, g('#a8cbd2'));
+    rect(x + 5, y + 3, 14, 3, g('#2f62d8')); rect(x + 4, y + 6, 16, 4, g('#2548b0'));
+    for (const ex of [9, 15]) { rect(x + ex - 1, y + 12, 3, 1, '#3a2624'); rect(x + ex, y + 11, 1, 3, '#3a2624'); }
+    rect(x + 11, y + 14, 2, 2, g('#ff3a1a'));
+    rect(x + 9, y + 18, 6, 1, g('#d2645e')); rect(x + 8, y + 19, 2, 1, g('#d2645e')); rect(x + 14, y + 19, 2, 1, g('#d2645e'));
+  } else {
+    rect(x + 3, y + 12, 3, 2, g('#e2a47e')); rect(x + 18, y + 12, 3, 2, g('#e2a47e')); rect(x + 2, y + 11, 2, 1, g('#e2a47e')); rect(x + 20, y + 11, 2, 1, g('#e2a47e'));
+    pcircle(x + 12, y + 15, 6, g('#e2a47e'));
+    for (let k = 0; k < 9; k++) rect(Math.round(x + 12 - k * 0.8), y + 1 + k, Math.round(k * 1.6) + 1, 1, g('#b9cf82'));
+    rect(x + 5, y + 9, 14, 2, g('#a6bd6c'));
+    rect(x + 8, y + 13, 3, 2, '#f4f0ea'); rect(x + 10, y + 13, 1, 2, '#111'); rect(x + 13, y + 13, 3, 2, '#f4f0ea'); rect(x + 15, y + 13, 1, 2, '#111');
+    rect(x + 11, y + 15, 2, 2, g('#c98462'));
+    rect(x + 10, y + 18, 4, 1, '#9a2a22');
+  }
 }
 
 function drawScores(hw, st) {

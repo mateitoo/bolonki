@@ -184,5 +184,54 @@ export const TX = {
     x.fillStyle = '#fff'; x.fillRect(3, 9, 9, 3); x.fillRect(4, 6, 4, 4); x.fillRect(11, 10, 2, 2);
     x.fillStyle = '#ffd23a'; x.fillRect(1, 5, 3, 1); x.fillRect(0, 8, 3, 1); x.fillRect(1, 11, 2, 1);
   }),
+  /* ---------- personajes con ropa (payaso, gnomo) ---------- */
+  // caras: van en una esfera; el frente (+z) queda en u = 0.25 -> x = 32 de 128. Arriba de la imagen = arriba de la cabeza
+  clownFace: tex(128, 64, (x, w, h) => {
+    noisy(x, w, h, '#a9ccd4', 0.03);
+    x.fillStyle = 'rgba(40,70,90,.18)'; x.fillRect(64, 0, 64, h);          // la nuca un poco más oscura
+    const star = (cx, cy, R, r) => {
+      x.beginPath();
+      for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + (k * Math.PI) / 5, rr = k % 2 ? r : R; x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+      x.closePath(); x.fill();
+    };
+    x.fillStyle = '#3a2624'; star(24.5, 30, 5.5, 2.4); star(39.5, 30, 5.5, 2.4);
+    // boca triste: labios gruesos con las puntas para abajo
+    x.fillStyle = '#d2645e';
+    x.beginPath(); x.moveTo(23, 43); x.quadraticCurveTo(32, 34, 41, 43); x.quadraticCurveTo(32, 40, 23, 43); x.fill();
+    x.beginPath(); x.moveTo(24, 42); x.quadraticCurveTo(32, 37.5, 40, 42); x.lineTo(40, 43.5); x.quadraticCurveTo(32, 45, 24, 43.5); x.fill();
+    x.fillStyle = '#7a2e2e'; x.fillRect(26, 40, 12, 1);
+  }),
+  gnomeFace: tex(128, 64, (x, w, h) => {
+    noisy(x, w, h, '#dea07a', 0.03);
+    x.fillStyle = 'rgba(120,50,30,.12)'; x.fillRect(64, 0, 64, h);
+    // ojos de costado (mirada canchera), párpados
+    [[25, 28], [38, 28]].forEach(([ex, ey]) => {
+      x.fillStyle = '#f4f0ea'; x.fillRect(ex - 3, ey - 2, 7, 4);
+      x.fillStyle = '#111'; x.fillRect(ex + 1, ey - 2, 2, 4);
+      x.fillStyle = '#8a5236'; x.fillRect(ex - 3, ey - 3, 7, 1);
+    });
+    x.fillStyle = 'rgba(200,90,70,.25)'; x.fillRect(20, 34, 5, 3); x.fillRect(40, 34, 5, 3);   // cachetes
+    x.fillStyle = '#9a2a22'; x.fillRect(29, 40, 8, 2); x.fillRect(37, 39, 2, 2);                // media sonrisa
+  }),
+  camo: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#7d7a3e'; x.fillRect(0, 0, w, h);
+    const cols = ['#c7ae66', '#56602c', '#9c9552', '#c7ae66', '#4a5226'];
+    for (let i = 0; i < 16; i++) {
+      x.fillStyle = cols[i % cols.length];
+      const cx = Math.random() * w, cy = Math.random() * h, r = rnd(2.5, 5);
+      for (const [dx, dy] of [[0, 0], [w, 0], [-w, 0], [0, h], [0, -h]]) { x.beginPath(); x.ellipse(cx + dx, cy + dy, r, r * rnd(0.7, 1.2), 0, 0, Math.PI * 2); x.fill(); }
+    }
+    for (let i = 0; i < 180; i++) { x.fillStyle = `rgba(0,0,0,${0.08 * Math.random()})`; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, 1, 1); }
+  }),
+  hoodie: tex(32, 32, (x, w, h) => {
+    noisy(x, w, h, '#62402f', 0.04);
+    x.fillStyle = 'rgba(0,0,0,.18)'; x.fillRect(0, 29, w, 3); x.fillRect(15, 0, 1, h);
+  }),
+  knit: tex(32, 16, (x, w, h) => {
+    noisy(x, w, h, '#2f62d8', 0.04);
+    x.fillStyle = 'rgba(10,30,90,.35)'; for (let i = 0; i < w; i += 3) x.fillRect(i, 0, 1, h);
+  }),
+  tunic: tex(32, 32, (x, w, h) => { noisy(x, w, h, '#b9cd82', 0.04); x.fillStyle = 'rgba(60,80,20,.12)'; x.fillRect(0, 30, w, 2); }),
+  cloth: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#ffffff', 0.06); }),   // tela neutra: se tiñe con el color del material
 };
 setWhiteTexture(TX.white);

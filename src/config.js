@@ -36,6 +36,9 @@ export const CHARS = [
   { name: 'MOSH',  col: '#39d98a', dark: '#0d4a2c', acc: 'antenna', errMul: 0.95, spdMul: 1.00 },
   { name: 'BRUNA', col: '#ff5fa2', dark: '#5a1233', acc: 'ears',    errMul: 1.05, spdMul: 0.97 },
   { name: 'TANK',  col: '#ff4a3d', dark: '#5a120d', acc: 'horns',   errMul: 1.12, spdMul: 1.02 },
+  // con ropa (cabeza, torso, brazos y piernas): se arman en world/people.js
+  { name: 'COCO',  col: '#3f7df2', dark: '#16295c', acc: 'clown', model: 'clown', errMul: 1.0, spdMul: 1.0 },
+  { name: 'PINO',  col: '#a9c96c', dark: '#34401a', acc: 'gnome', model: 'gnome', errMul: 0.98, spdMul: 1.01 },
 ];
 
 // Dificultad de la CPU.

@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { CHARS, SIDES } from '../config.js';
 import { scene, mat, add, faceIn } from '../render/psx.js';
 import { TX } from '../render/textures.js';
+import { PEOPLE } from './people.js';
 
 export function buildPod(i) {
   const s = SIDES[i];
@@ -65,6 +66,16 @@ export function dressPod(mesh, ci) {
   mesh.bumpM.uniforms.uColor.value.copy(bumpCol);
   const vb = mesh.vehMats.find((o) => o.m === mesh.bumpM); if (vb) vb.base.copy(bumpCol);
 
+  const wasLegs = mesh.legs ? mesh.legs.visible : false;
+  // personajes con ropa (cabeza, torso, brazos, piernas) o bichos redondos
+  const parts = ch.model && PEOPLE[ch.model] ? PEOPLE[ch.model](rider, M) : buildBlob(rider, M, ch, col);
+  parts.legs.visible = wasLegs;
+  Object.assign(mesh, { legs: parts.legs, legL: parts.legL, legR: parts.legR, armL: parts.armL || null, armR: parts.armR || null, mats: mesh.vehMats.concat(riderMats) });
+  poseArms(mesh, !wasLegs);
+}
+
+// Bicho redondo: cuerpo esfera, ojos, bracitos y un accesorio (pico, antenas, orejas o cuernos)
+function buildBlob(rider, M, ch, col) {
   add(new THREE.SphereGeometry(0.78, 8, 6), M({ color: col }), 0, 0, 0, rider).scale.set(1, 0.95, 0.9);
   const white = M({ color: 0xffffff }), black = M({ color: 0x101010, unlit: true }), dark = M({ color: new THREE.Color(ch.dark) });
   [-0.27, 0.27].forEach((ex) => {
@@ -92,8 +103,7 @@ export function dressPod(mesh, ci) {
   }
 
   // piernas (solo se ven en los minijuegos a pie, sin nave)
-  const wasLegs = mesh.legs ? mesh.legs.visible : false;
-  const legs = new THREE.Group(); legs.visible = wasLegs; rider.add(legs);
+  const legs = new THREE.Group(); rider.add(legs);
   const legM = M({ color: new THREE.Color(ch.dark) }), shoeM = M({ color: 0x2a2a34 });
   const legL = new THREE.Group(), legR = new THREE.Group();
   [[legL, -0.3], [legR, 0.3]].forEach(([g, lx]) => {
@@ -101,7 +111,15 @@ export function dressPod(mesh, ci) {
     add(new THREE.BoxGeometry(0.2, 0.42, 0.2), legM, 0, -0.2, 0, g);
     add(new THREE.BoxGeometry(0.3, 0.14, 0.42), shoeM, 0, -0.44, 0.08, g);
   });
-  Object.assign(mesh, { legs, legL, legR, mats: mesh.vehMats.concat(riderMats) });
+  return { legs, legL, legR };
+}
+
+// Brazos de los personajes con ropa: en la nave, adelante (manejando); a pie, colgando
+export function poseArms(mesh, driving) {
+  if (!mesh.armL) return;
+  const x = driving ? -1.0 : 0;
+  mesh.armL.rotation.set(x, 0, driving ? -0.25 : -0.12);
+  mesh.armR.rotation.set(x, 0, driving ? 0.25 : 0.12);
 }
 
 export function resetPodVisual(p) {
@@ -109,7 +127,7 @@ export function resetPodVisual(p) {
   m.root.visible = true; m.root.position.y = 0; m.root.rotation.set(0, m.baseRot, 0);
   m.veh.visible = true; m.veh.position.set(0, 0, 0); m.veh.rotation.set(0, 0, 0); m.veh.scale.set(1, 1, 1);
   m.rider.visible = true; m.rider.position.copy(m.riderBase); m.rider.rotation.set(0, 0, 0); m.rider.scale.set(1, 1, 1);
-  m.legs.visible = false; m.legL.rotation.set(0, 0, 0); m.legR.rotation.set(0, 0, 0);
+  m.legs.visible = false; m.legL.rotation.set(0, 0, 0); m.legR.rotation.set(0, 0, 0); poseArms(m, true);
   m.mats.forEach((o) => { o.m.uniforms.uColor.value.copy(o.base); o.m.uniforms.uEmissive.value.setRGB(0, 0, 0); });
   m.scorch.visible = false;
 }

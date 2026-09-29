@@ -14,7 +14,7 @@ import { settings } from '../settings.js';
 import { mgById } from '../minigames/registry.js';
 import { CHARS } from '../config.js';
 
-export const NET_VERSION = 4;          // v3: modo Fiesta · v4: cada uno elige personaje en la sala
+export const NET_VERSION = 5;          // v3: modo Fiesta · v4: cada uno elige personaje en la sala · v5: 6 personajes
 export const MAX_PLAYERS = 4;
 export const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const JOIN_ORDER = [2, 1, 3];          // el primer invitado va enfrente del anfitrión

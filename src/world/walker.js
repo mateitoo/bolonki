@@ -12,6 +12,11 @@ export function drawWalker(p, dt, scale, groundY) {
   if (onGround) p.walk = (p.walk || 0) + dt * sp * (2.2 / Math.max(0.5, scale / 0.86));
   const sw = onGround ? Math.sin(p.walk || 0) * Math.min(1, sp / 3) * 0.7 : -0.5;
   me.legL.rotation.x = sw; me.legR.rotation.x = onGround ? -sw : -0.3;
+  // brazos (personajes con ropa): al revés que las piernas; en el aire, para arriba
+  if (me.armL) {
+    me.armL.rotation.set(onGround ? -sw * 0.9 : -2.2, 0, onGround ? -0.12 : -0.35);
+    me.armR.rotation.set(onGround ? sw * 0.9 : -2.2, 0, onGround ? 0.12 : 0.35);
+  }
   me.rider.position.set(0, 1.3 + (onGround ? Math.abs(Math.sin(p.walk || 0)) * 0.12 * Math.min(1, sp / 3) : 0.1), 0);
   me.rider.rotation.x = onGround ? 0 : -0.15;
   me.sh.position.set(p.x, (groundY || 0) + 0.04, p.z); me.sh.rotation.y = 0; me.sh.scale.set(0.87 * scale, 1, 0.87 * scale); me.sh.visible = true;

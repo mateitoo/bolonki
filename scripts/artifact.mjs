@@ -4,7 +4,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const html = readFileSync('dist-single/index.html', 'utf8');
 const head = (html.match(/<head>([\s\S]*?)<\/head>/) || [])[1] || '';
-const body = (html.match(/<body>([\s\S]*?)<\/body>/) || [])[1] || '';
+const body = (html.match(/<body[^>]*>([\s\S]*?)<\/body>/) || [])[1] || '';   // <body> puede tener atributos
+if (!body.includes('id="stage"')) throw new Error('artifact.html quedaría sin el contenido del <body>');
 const clean = head
   .replace(/<meta charset[^>]*>\s*/i, '')
   .replace(/<meta name="viewport"[^>]*>\s*/i, '')

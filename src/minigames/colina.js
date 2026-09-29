@@ -1,4 +1,4 @@
-// Minijuego 6: REY DE LA COLINA (a pie). Una isla con tres colinas escalonadas y el mar alrededor.
+// Minijuego 6: REY DE LA COLINA (a pie). Una isla con tres colinas distintas y el mar alrededor (el mapa está en world/isla.js).
 // La corona flota sobre la cima de una de las colinas: el que está SOLO arriba de esa cima suma un punto por segundo;
 // si hay dos o más, la cima se pone roja y nadie suma. Cada 20 s la corona se muda a otra colina (con aviso).
 // El golpe es un EMPUJÓN corto (de atrás empuja más); si agarrás un PALO, empujás el doble de lejos y barrés
@@ -13,6 +13,7 @@ import { game } from '../state.js';
 import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorColina } from '../world/decor.js';
+import { HILLS, groundAt, onIsland, rim, pushOut, freeSpot, pierTip, OBST, WATER_Y, RMAX, buildIsla } from '../world/isla.js';
 import { input } from '../input.js';
 import { FX } from '../game/fx.js';
 import { burst, P } from '../fx/particles.js';
@@ -23,12 +24,6 @@ import { sendInput } from '../net/room.js';
 import { txt, rect, COL } from '../ui/draw.js';
 
 /* ---------- medidas ---------- */
-const RI = 13.2;                       // radio de la isla
-const WATER_Y = -0.9;
-const HILL_D = 6.4;                    // distancia de cada colina al centro
-const HILLS = [Math.PI, Math.PI / 3, -Math.PI / 3].map((a) => ({ x: Math.sin(a) * HILL_D, z: Math.cos(a) * HILL_D }));   // una al fondo y dos adelante
-const TIERS = [{ r: 4.2, h: 0.8 }, { r: 3.05, h: 1.6 }, { r: 1.95, h: 2.4 }];
-const TOP_R = TIERS[2].r, TOP_H = TIERS[2].h;
 const PR = 0.5, CHAR_SCALE = 0.8;
 const ACC = 55, MAXV = 5.8, FRICTION = 12, GRAV = 26, CLIMB_V = 7;
 const HIT_CD = 0.42, STICK_CD = 0.55, SWING_T = 0.24;
@@ -45,17 +40,6 @@ const lerpAng = (a, b, f) => { let d = b - a; while (d > Math.PI) d -= Math.PI *
 const demo = () => game.state === 'title' || game.state === 'menu';
 const matchT = () => (game.setup && game.setup.fiesta ? 90 : MATCH_T);   // en la Fiesta los partidos son más cortos
 
-// altura del piso en (x, z): 0 en el llano; los escalones de las colinas; -99 afuera de la isla
-function groundAt(x, z) {
-  if (Math.hypot(x, z) > RI) return -99;
-  let h = 0;
-  for (const c of HILLS) {
-    const d = Math.hypot(x - c.x, z - c.z);
-    for (const t of TIERS) if (d < t.r && t.h > h) h = t.h;
-  }
-  return h;
-}
-
 /* ---------- estado ---------- */
 const S = {
   hill: 0, next: -1, zoneT: ZONE_T, t: MATCH_T, over: false, overT: 0, extra: false,
@@ -70,34 +54,12 @@ const W = { grp: null, rings: [], ringM: [], crown: null, stickG: null, hand: []
 
 function buildWorld() {
   const grp = new THREE.Group(); grp.visible = false; scene.add(grp); W.grp = grp;
-  // isla: pasto al medio y arena en el borde (sin superponerse, así no titilan)
-  const grassM = mat({ map: TX.grass, color: 0xb8d890 }), sandM = mat({ map: TX.sand });
-  const gr = scaleUV(new THREE.CircleGeometry(RI - 1.3, 40), 6); gr.rotateX(-Math.PI / 2); add(gr, grassM, 0, 0, 0, grp);
-  const sr = scaleUV(new THREE.RingGeometry(RI - 1.3, RI, 40, 2), 6); sr.rotateX(-Math.PI / 2); add(sr, sandM, 0, 0, 0, grp);
-  // acantilado de la isla
-  add(scaleUV(new THREE.CylinderGeometry(RI, RI + 1.2, 3.2, 40, 1, true), 14, 1), mat({ map: TX.pebble, color: 0xc8a878 }), 0, -1.6, 0, grp);
+  // la isla (costa, colinas, puente, muelle, playa)
+  const I = buildIsla(grp); W.rings = I.rings; W.ringM = I.ringM; W.foam = I.foam;
   // mar
   W.waterM = mat({ map: TX.water, color: 0xd0e8ff });
   const wg = scaleUV(new THREE.PlaneGeometry(220, 220, 22, 22), 40); wg.rotateX(-Math.PI / 2);
   W.water = add(wg, W.waterM, 0, WATER_Y, 0, grp);
-  const fo = new THREE.RingGeometry(RI + 0.4, RI + 1.5, 40, 1); fo.rotateX(-Math.PI / 2);
-  W.foam = add(fo, mat({ color: 0xe8f6ff, unlit: true }), 0, WATER_Y + 0.05, 0, grp);
-  // colinas escalonadas: costados de piedra, pasto arriba; la cima es una placita de piedra con un aro que brilla
-  const sideM = mat({ map: TX.stone, color: 0xd0c4b0 }), topM = mat({ map: TX.grass, color: 0xa8d080 }), plazaM = mat({ map: TX.stone, color: 0xf0e8d8 });
-  HILLS.forEach((c, hk) => {
-    TIERS.forEach((t, k) => {
-      const y0 = k === 0 ? 0 : TIERS[k - 1].h, hh = t.h - y0;
-      const g = scaleUV(new THREE.CylinderGeometry(t.r, t.r, hh, 28, 1), 1, 1);
-      const m = new THREE.Mesh(g, [sideM, k === 2 ? plazaM : topM, sideM]);
-      m.position.set(c.x, y0 + hh / 2, c.z); grp.add(m);
-      // borde de cada escalón
-      const eg = new THREE.RingGeometry(t.r - 0.14, t.r, 28, 1); eg.rotateX(-Math.PI / 2);
-      add(eg, mat({ color: 0x8a7a64 }), c.x, t.h + 0.02, c.z, grp);
-    });
-    const rm = mat({ color: 0xffd23a, unlit: true }); W.ringM.push(rm);
-    const rg = new THREE.RingGeometry(TOP_R - 0.42, TOP_R - 0.18, 28, 1); rg.rotateX(-Math.PI / 2);
-    W.rings.push(add(rg, rm, c.x, TOP_H + 0.04, c.z, grp));
-  });
   // corona que flota sobre la colina que vale
   const crown = new THREE.Group(); grp.add(crown); W.crown = crown;
   const gold = mat({ color: 0xffc83a, emissive: 0x3a2400 }), gem = mat({ color: 0xff3a5a, unlit: true });
@@ -124,17 +86,17 @@ function buildWorld() {
   const wv = new THREE.Group(); wv.visible = false; grp.add(wv); W.wave = wv;
   add(scaleUV(new THREE.BoxGeometry(34, 1.0, 1.6), 12, 1), mat({ map: TX.water, color: 0xb0d8ff }), 0, 0.5, 0, wv);
   add(new THREE.BoxGeometry(34, 0.22, 1.0), mat({ color: 0xf4fbff, unlit: true }), 0, 1.08, 0.25, wv);
-  decorColina(grp, RI);
+  decorColina(grp, rim);
 }
 
 /* ---------- partido ---------- */
-function spawnPos(p, angle) {
-  const a = angle !== undefined ? angle : Math.atan2(HILLS[S.hill].x, HILLS[S.hill].z) + Math.PI + rnd(-0.8, 0.8);
-  // en la orilla, lejos de la colina que vale (y sin caer arriba de un escalón)
-  for (let tries = 0; tries < 12; tries++) {
-    const aa = a + tries * 0.45, r = RI - 1.8;
+function spawnPos(p) {
+  // en la playa, del lado contrario a la colina que vale (sin caer arriba de un escalón ni de una palmera)
+  const a = Math.atan2(HILLS[S.hill].x, HILLS[S.hill].z) + Math.PI + rnd(-0.8, 0.8);
+  for (let tries = 0; tries < 24; tries++) {
+    const aa = a + (tries % 2 ? 1 : -1) * Math.ceil(tries / 2) * 0.3, r = rim(aa) - 2.1;
     const x = Math.sin(aa) * r, z = Math.cos(aa) * r;
-    if (groundAt(x, z) === 0) return [x, z, aa];
+    if (freeSpot(x, z, 0.7)) return [x, z, aa];
   }
   return [0, 0, 0];
 }
@@ -193,12 +155,12 @@ function aiInput(p, dt) {
     p.thinkT = rnd(D.think[0], D.think[1]) * 1.3;
     const hc = HILLS[S.hill];
     let tx = hc.x, tz = hc.z;
-    const g0 = groundAt(p.x, p.z);
+    const g0 = groundAt(p.x, p.z, p.fy);
     const dHill = Math.hypot(p.x - hc.x, p.z - hc.z);
-    const onTop = dHill < TOP_R - 0.2 && p.fy > TOP_H - 0.1;
+    const onTop = dHill < hc.r - 0.2 && p.fy > hc.h - 0.1;
     // se viene la ola y estoy abajo: subo a la colina más cercana
     if ((S.wave.st === 'warn' || S.wave.st === 'go') && g0 < 0.3 && D.lead > 0.6) {
-      let bd = 1e9; for (const c of HILLS) { const d = Math.hypot(p.x - c.x, p.z - c.z); if (d < bd) { bd = d; tx = c.x; tz = c.z; } }
+      let bd = 1e9; for (const c of HILLS) { const b0 = c.tiers[0], d = Math.hypot(p.x - b0.x, p.z - b0.z) - b0.r; if (d < bd) { bd = d; tx = b0.x + (c.x - b0.x) * 0.3; tz = b0.z + (c.z - b0.z) * 0.3; } }
     } else if (S.stick.on && !p.stick && Math.hypot(S.stick.x - p.x, S.stick.z - p.z) < 5 + p.aiStick * 6 && p.aiStick < 0.35 + D.swing) {
       tx = S.stick.x; tz = S.stick.z;                                         // voy a buscar el palo
     } else {
@@ -210,10 +172,10 @@ function aiInput(p, dt) {
         for (const q of game.players) {
           if (q === p || q.empty || q.out > 0) continue;
           const dq = Math.hypot(q.x - hc.x, q.z - hc.z);
-          if (dq > TOP_R + 0.6 || q.fy < TOP_H - 0.8) continue;
+          if (dq > hc.r + 0.6 || q.fy < hc.h - 0.8) continue;
           const d = Math.hypot(q.x - p.x, q.z - p.z); if (d < vd) { vd = d; vic = q; }
         }
-        if (vic && dHill < TIERS[0].r + 2) {
+        if (vic && dHill < hc.tiers[0].r + 2.5) {
           const ox = vic.x - hc.x, oz = vic.z - hc.z, ol = Math.hypot(ox, oz) || 1;
           if (onTop) { tx = vic.x - (ox / ol) * 0.5; tz = vic.z - (oz / ol) * 0.5; } else { tx = vic.x; tz = vic.z; }
         } else if (onTop) { tx = hc.x + rnd(-0.5, 0.5); tz = hc.z + rnd(-0.5, 0.5); }
@@ -221,7 +183,7 @@ function aiInput(p, dt) {
     }
     const e = D.err * 0.12;
     tx += rnd(-e, e); tz += rnd(-e, e);
-    const tl = Math.hypot(tx, tz); if (tl > RI - 1.5) { tx *= (RI - 1.5) / tl; tz *= (RI - 1.5) / tl; }
+    for (let k = 0; k < 12 && !onIsland(tx, tz, 1.6); k++) { tx *= 0.9; tz *= 0.9; }      // nunca apuntar al agua
     p.aiTx = tx; p.aiTz = tz;
     // golpe: si tengo a alguien adelante, cerca y a mi altura
     p.aiHit = false;
@@ -237,6 +199,16 @@ function aiInput(p, dt) {
   let dx = (p.aiTx || 0) - p.x, dz = (p.aiTz || 0) - p.z;
   const l = Math.hypot(dx, dz);
   if (l > 0.001) { dx /= l; dz /= l; }
+  // esquivar palmeras, rocas y demás (se abre hacia el costado)
+  for (const o of OBST) {
+    if (o.y0 !== undefined && (p.fy || 0) < o.y0) continue;
+    const ex = p.x - o.x, ez = p.z - o.z, el = Math.hypot(ex, ez) || 1, R = o.r + PR + 0.7;
+    if (el > R || (ex * dx + ez * dz) > 0) continue;                    // solo si lo tengo adelante
+    const tx0 = -dz, tz0 = dx, side = Math.sign(tx0 * ex + tz0 * ez) || 1, f = ((R - el) / R) * 1.6;
+    const ndx = dx + tx0 * side * f + (ex / el) * f * 0.5, ndz = dz + tz0 * side * f + (ez / el) * f * 0.5;
+    dx = ndx; dz = ndz;
+    const nl = Math.hypot(dx, dz) || 1; dx /= nl; dz /= nl;
+  }
   const k = Math.min(1, l / 0.5) * Math.min(1, D.spd / 11);
   const hit = p.aiHit; p.aiHit = false;
   return { x: dx * k, z: dz * k, hit };
@@ -255,12 +227,13 @@ function move(p, wx, wz, dt) {
   // empujón recibido: se va frenando (poco en el aire)
   const kf = Math.exp(-(p.onGround ? 3.2 : 0.6) * dt); p.kx *= kf; p.kz *= kf;
   // subir un escalón cuesta: mientras trepa camina más lento
-  const climbing = p.fy < groundAt(p.x, p.z) - 0.05;
+  const climbing = p.fy < groundAt(p.x, p.z, p.fy) - 0.05;
   const sl = climbing ? 0.45 : 1;
   const nx = p.x + (p.vx * sl + p.kx) * dt, nz = p.z + (p.vz * sl + p.kz) * dt;
   p.x = nx; p.z = nz;
+  pushOut(p, PR);                            // palmeras, rocas, bote, barriles, columnas
   // vertical
-  const g = groundAt(p.x, p.z);
+  const g = groundAt(p.x, p.z, p.fy);
   if (g === -99) {                           // afuera de la isla: se cae al agua
     p.vy -= GRAV * dt; p.fy += p.vy * dt; p.onGround = false;
     return;
@@ -348,8 +321,12 @@ function step(dt) {
     sk.t -= dt;
     if (sk.t <= 0) {
       for (let tries = 0; tries < 20; tries++) {
-        const a = rnd(0, Math.PI * 2), r = rnd(2.5, RI - 2.5), x = Math.sin(a) * r, z = Math.cos(a) * r;
-        if (groundAt(x, z) === 0) { sk.on = true; sk.x = x; sk.z = z; FX.sparkle(x, 0.6, z, P.YELLOW, 6); break; }
+        // a veces aparece en la punta del muelle (tentador, pero cerca del agua)
+        const a = rnd(0, Math.PI * 2), r = rnd(2, 10);
+        let x = Math.sin(a) * r, z = Math.cos(a) * r;
+        if (tries === 0 && Math.random() < 0.25) [x, z] = pierTip();
+        else if (!freeSpot(x, z)) continue;
+        { sk.on = true; sk.x = x; sk.z = z; FX.sparkle(x, 0.6, z, P.YELLOW, 6); break; }
       }
       sk.t = STICK_EVERY;
     }
@@ -359,11 +336,11 @@ function step(dt) {
   const wv = S.wave;
   if (!S.over) {
     wv.t -= dt;
-    if (wv.st === 'off' && wv.t <= 0) { wv.st = 'warn'; wv.t = WAVE_WARN; wv.a = rnd(0, Math.PI * 2); wv.f = -RI - 3; wv.id++; FX.shrinkWarn(); }
+    if (wv.st === 'off' && wv.t <= 0) { wv.st = 'warn'; wv.t = WAVE_WARN; wv.a = rnd(0, Math.PI * 2); wv.f = -RMAX - 3; wv.id++; FX.shrinkWarn(); }
     else if (wv.st === 'warn' && wv.t <= 0) { wv.st = 'go'; FX.snd('splash'); }
     else if (wv.st === 'go') {
       wv.f += WAVE_V * dt;
-      if (wv.f > RI + 3) { wv.st = 'off'; wv.t = rnd(WAVE_EVERY[0], WAVE_EVERY[1]); }
+      if (wv.f > RMAX + 3) { wv.st = 'off'; wv.t = rnd(WAVE_EVERY[0], WAVE_EVERY[1]); }
     }
   }
 
@@ -399,7 +376,7 @@ function step(dt) {
     move(p, wx, wz, dt);
     if (hit && p.cd <= 0 && p.stunT <= 0) doHit(p);
     // se cayó de la isla
-    if (Math.hypot(p.x, p.z) > RI && p.fy < -0.3) {
+    if (groundAt(p.x, p.z, p.fy) === -99 && p.fy < -0.3) {
       p.out = OUT_T; p.splashed = false; p.stunT = 0; S.falls = (S.falls || 0) + 1;
       if (p.stick > 0) p.stick = 0;
     }
@@ -408,7 +385,7 @@ function step(dt) {
     // la ola
     if (wv.st === 'go' && p.waveId !== wv.id && p.fy < 0.4) {
       const ux = Math.sin(wv.a), uz = Math.cos(wv.a), s = p.x * ux + p.z * uz;
-      if (s < wv.f + 0.5 && s > wv.f - 1.4 && groundAt(p.x, p.z) < 0.3) {
+      if (s < wv.f + 0.5 && s > wv.f - 1.4 && groundAt(p.x, p.z, p.fy) < 0.3) {
         p.waveId = wv.id; p.kx = ux * WAVE_KB; p.kz = uz * WAVE_KB; p.vy = 4.5; p.onGround = false; p.stunT = 0.45;
         FX.snd('splash'); FX.sparkle(p.x, 0.8, p.z, P.CYAN, 6);
       }
@@ -418,7 +395,7 @@ function step(dt) {
 
   // la cima: suma el que está solo
   const hc = HILLS[S.hill];
-  S.holders = act.filter((p) => p.out <= 0 && Math.hypot(p.x - hc.x, p.z - hc.z) < TOP_R - 0.1 && p.fy > TOP_H - 0.15).map((p) => p.i);
+  S.holders = act.filter((p) => p.out <= 0 && Math.hypot(p.x - hc.x, p.z - hc.z) < hc.r - 0.1 && p.fy > hc.h - 0.15).map((p) => p.i);
   S.contested = S.holders.length > 1;
   if (!S.over && S.holders.length === 1) {
     const i = S.holders[0], before = Math.floor(S.pts[i]);
@@ -470,33 +447,33 @@ const colina = {
     });
     // la corona: flota y gira; cuando se muda, vuela a la próxima colina
     const a = HILLS[S.hill];
-    let cx = a.x, cz = a.z, cy = TOP_H + 2.0 + Math.sin(clock * 2) * 0.15;
+    let cx = a.x, cz = a.z, cy = a.h + 2.0 + Math.sin(clock * 2) * 0.15;
     if (S.next >= 0) {
       const b = HILLS[S.next], f = clamp(1 - S.zoneT / ZONE_WARN, 0, 1), e = f * f * (3 - 2 * f);
-      if (f > 0.55) { const u = (f - 0.55) / 0.45; cx = a.x + (b.x - a.x) * u; cz = a.z + (b.z - a.z) * u; cy += Math.sin(u * Math.PI) * 2.5; }
+      if (f > 0.55) { const u = (f - 0.55) / 0.45; cx = a.x + (b.x - a.x) * u; cz = a.z + (b.z - a.z) * u; cy += (b.h - a.h) * u + Math.sin(u * Math.PI) * 2.5; }
       void e;
     }
     W.crown.position.set(cx, cy, cz); W.crown.rotation.y = clock * 1.4;
     // palo en el piso
     const sk = S.stick;
     W.stickG.visible = sk.on;
-    if (sk.on) { W.stickG.position.set(sk.x, Math.sin(clock * 3) * 0.08, sk.z); W.stickG.rotation.y = clock * 0.8; W.stickRing.scale.setScalar(1 + Math.sin(clock * 6) * 0.12); }
+    if (sk.on) { W.stickG.position.set(sk.x, Math.max(0, groundAt(sk.x, sk.z)) + Math.sin(clock * 3) * 0.08, sk.z); W.stickG.rotation.y = clock * 0.8; W.stickRing.scale.setScalar(1 + Math.sin(clock * 6) * 0.12); }
     // la ola
     const wv = S.wave;
     W.wave.visible = wv.st !== 'off';
     if (W.wave.visible) {
       const ux = Math.sin(wv.a), uz = Math.cos(wv.a);
-      const f = wv.st === 'warn' ? -RI - 3 : wv.f;
+      const f = wv.st === 'warn' ? -RMAX - 3 : wv.f;
       const rise = wv.st === 'warn' ? clamp(1 - wv.t / WAVE_WARN, 0.05, 1) : 1;
       W.wave.position.set(ux * f, WATER_Y * (1 - rise), uz * f);
       W.wave.rotation.y = wv.a; W.wave.scale.y = rise;
-      W.wave.scale.x = clamp((2 * Math.sqrt(Math.max(0, RI * RI - f * f)) + 4) / 34, 0.12, 1);   // solo lo ancho de la isla (y un poco más)
+      W.wave.scale.x = clamp((2 * Math.sqrt(Math.max(0, RMAX * RMAX - f * f)) + 4) / 34, 0.12, 1);   // solo lo ancho de la isla (y un poco más)
     }
     // personajes
     for (const p of game.players) {
       const h = W.hand[p.i];
       if (p.empty) { p.mesh.root.visible = false; p.mesh.sh.visible = false; h.g.visible = false; continue; }
-      const gy = groundAt(p.x, p.z);
+      const gy = groundAt(p.x, p.z, p.fy);
       drawWalker(p, dt, CHAR_SCALE, gy === -99 ? WATER_Y : gy);
       const me = p.mesh;
       p.hideTag = p.out > 0;

@@ -38,8 +38,8 @@ export function decorFutbol(g, HX, HZ) {
 }
 
 /* ---------- Rey de la colina: isla en el mar ---------- */
-export function decorColina(g, RI) {
-  // cielo de tarde soleada, gaviotas, islotes con palmeras y rocas alrededor
+export function decorColina(g, rim) {
+  // cielo de tarde soleada, gaviotas, islotes con palmeras, un faro y rocas alrededor
   P.sky(g, [[0, '#2a6ad8'], [0.42, '#7ab8f0'], [0.5, '#f4e0b0'], [0.53, '#9ad0f0'], [1, '#2a6aa8']]);
   P.flyers(g, 0, 14, 0, 24, 6, 0xf4f4f0, 0.6);
   const islets = [[-26, -30, 1.3], [30, -24, 1.0], [-34, 8, 0.9], [36, 14, 1.2], [8, -40, 1.5]];
@@ -50,14 +50,23 @@ export function decorColina(g, RI) {
     if (k % 2 === 0) P.palm(g, x - 1.2 * s, 0.7, z + 0.8 * s, 0.85 * s);
     P.rock(g, x + 2 * s, 0.4, z + 1.4 * s, 0.9 * s, 0xb0a494);
   });
-  // rocas saliendo del agua cerca de la isla
-  for (let k = 0; k < 9; k++) {
-    const a = (k / 9) * Math.PI * 2 + 0.3, r = RI + 3 + (k % 3) * 1.6;
-    P.rock(g, Math.sin(a) * r, -1.0, Math.cos(a) * r, 0.7 + (k % 3) * 0.35, 0x9a9488);
+  // faro sobre un peñasco, atrás a la derecha
+  lighthouse(g, 17.5, -14.5);
+  // rocas saliendo del agua cerca de la costa (dejando libre el muelle)
+  for (let k = 0; k < 11; k++) {
+    const a = (k / 11) * Math.PI * 2 + 0.3;
+    if (Math.abs(a - (Math.PI * 2 - 0.9)) < 0.35) continue;
+    const r = rim(a) + 2.6 + (k % 3) * 1.4;
+    P.rock(g, Math.sin(a) * r, -1.0, Math.cos(a) * r, 0.6 + (k % 3) * 0.35, 0x9a9488);
   }
-  // pastito y flores en el llano de la isla (no molestan: son chatitos)
-  P.flowers(g, 0, 0.01, 0, 2.2, 2.2, 14);
-  P.grass(g, 0, 0.01, 0, (RI - 2) * 0.7, (RI - 2) * 0.7, 40, 0x5aa048);
+}
+function lighthouse(g, x, z) {
+  const base = add(new THREE.CylinderGeometry(3.0, 3.8, 2.4, 9), P.M(0x9a9488, { map: TX.pebble }), x, -0.3, z, g); base.rotation.y = 0.4;
+  const wh = P.M(0xf4f0e8, { map: TX.stone }), rd = P.M(0xd8402e, { map: TX.stone });
+  for (let k = 0; k < 5; k++) add(new THREE.CylinderGeometry(1.15 - k * 0.1 - 0.1, 1.15 - k * 0.1, 1.5, 10), k % 2 ? rd : wh, x, 1.65 + k * 1.5, z, g);
+  add(new THREE.CylinderGeometry(0.95, 0.95, 0.2, 10), P.M(0x2a2d36), x, 9.2, z, g);
+  add(new THREE.CylinderGeometry(0.6, 0.6, 1.0, 8), P.M(0xfff4b0, { unlit: true }), x, 9.8, z, g);
+  add(new THREE.ConeGeometry(0.85, 0.9, 8), rd, x, 10.75, z, g);
 }
 
 /* ---------- Empujón: volcán ---------- */

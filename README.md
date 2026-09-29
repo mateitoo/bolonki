@@ -45,7 +45,9 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   a 3, 5 o 7 goles, o el que va ganando a los 2 minutos; si empatan hay **gol de oro** y los arcos se agrandan de a poco
   hasta que alguien la meta. Los CPU se reparten: uno va a buscar la pelota y el otro ataja. Un tiro que el rival desvía
   adentro cuenta como gol del que pateó.
-- **Rey de la colina** (a pie): una isla con tres colinas escalonadas y el mar alrededor. La corona flota sobre la cima
+- **Rey de la colina** (a pie): una isla de costa irregular con tres colinas distintas (el Morro, con ruinas arriba; la Mesa,
+  ancha y con bandera; y el Peñón, chico y pegado al agua), un puente colgante entre el Morro y la Mesa, un muelle que sale
+  al mar (a veces el palo aparece en la punta) y palmeras, rocas, un bote y barriles que estorban. La corona flota sobre la cima
   de una de las colinas: el que está **solo** arriba suma un punto por segundo; si hay dos o más, la cima titila en rojo y
   nadie suma. Cada 20 s la corona se muda a otra colina (la próxima titila en dorado antes). El golpe es un **empujón**
   (de espaldas empuja más) y cada tanto aparece un **palo** en el piso: empuja el doble y barre a todos los que tengas
@@ -193,7 +195,8 @@ src/
   game/ai.js         IA de la CPU
   game/match.js      reglas: reinicio, disparos de torre, goles, eliminación
   deaths/            animaciones de derrota (una por archivo; fall.js caída, crush.js aplastado, burn.js lava, blast.js petardo)
-  world/walker.js    personajes a pie (sin nave), para Bombardeo y Petardos
+  world/walker.js    personajes a pie (sin nave), para Bombardeo, Petardos y Rey de la colina
+  world/isla.js      la isla del Rey de la colina: forma de la costa, colinas, puente, muelle y obstáculos
   world/decor.js     decorado de cada escenario (cielo, volcán, espacio, jardín, fábrica, desierto, nieve, isla)
   world/props.js     utilería low poly para el decorado (árboles, faroles, pantallas gigantes, géiseres, drones…)
   fx/particles.js    chispas, humo, escombros, estela de las pelotas

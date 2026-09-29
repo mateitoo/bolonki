@@ -6,28 +6,10 @@ import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
 import * as P from './props.js';
 
-/* ---------- Bola Brava: estadio con público ---------- */
+/* ---------- Bola Brava ---------- */
 export function decorBolas(g) {
-  const Y = -2.2, D = 16.3;
-  // tribunas en los cuatro lados (en la cámara de juego se ven las de enfrente y las de los costados)
-  [[0, -D, Math.PI], [0, D, 0], [D, 0, Math.PI / 2], [-D, 0, -Math.PI / 2]].forEach(([x, z, ry], k) => {
-    const s = P.stands(g, x, Y, z, ry, 21, 4);
-    const cols = [0xffb31a, 0x39d98a, 0xff5fa2, 0x3f7df2, 0xff4a3d];
-    for (let i = 0; i < 5; i++) P.flag(s, -9 + i * 4.5, 3.6, 4.2, 3, cols[(i + k) % cols.length]);
-  });
-  // torres de luces en las esquinas de afuera
-  [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sz]) => P.floodlight(g, sx * 20, Y, sz * 20, 13));
-  // un planeta en el cielo (se ve en los menús, con la cámara girando)
-  P.planet(g, -38, 16, -52, 7, 0x8a6ab8, 0xd8b0ff);
-  // cielo de noche con estrellas y pantallas gigantes detrás de cada tribuna
-  P.sky(g, [[0, '#04061a'], [0.38, '#0b1236'], [0.48, '#3a1a5a'], [0.52, '#1a0c2a'], [1, '#04060b']], { stars: 70 });
-  [[0, -24.5, 0], [0, 24.5, Math.PI], [24.5, 0, -Math.PI / 2], [-24.5, 0, Math.PI / 2]].forEach(([x, z, ry]) => P.jumbotron(g, x, 4.6, z, ry, 10, 4.6));
-  // marcas pintadas en el piso: círculo y estrella del centro, y un semicírculo delante de cada arco
-  const FY = 0.012, lc = 0xc2ccd8;
-  P.floorRing(g, 0, FY, 0, 2.3, 2.55, lc, 28); P.floorStar(g, 0, FY, 0, 1.3, lc);
-  [[0, 1], [1, 0], [0, -1], [-1, 0]].forEach(([nx, nz]) => {
-    P.floorRing(g, nx * 11.9, FY, nz * 11.9, 3.0, 3.22, lc, 16, 0, Math.PI).rotation.y = Math.atan2(nx, nz);
-  });
+  // solo el cielo de noche: la arena flotando en la oscuridad, como siempre (el estadio le sacaba inmersión)
+  P.sky(g, [[0, '#03040e'], [0.45, '#070a1c'], [0.52, '#0a0816'], [1, '#04060b']], { stars: 60 });
 }
 
 /* ---------- Empujón: volcán ---------- */

@@ -273,6 +273,18 @@ export const TX = {
     // escarcha en el borde
     for (let i = 0; i < 400; i++) { const a = rnd(0, 6.3), r = rnd(54, 64); x.fillStyle = `rgba(255,255,255,${rnd(0.2, 0.7)})`; x.fillRect((C + Math.cos(a) * r) | 0, (C + Math.sin(a) * r) | 0, 2, 1); }
   }),
+  // Empujón, volcán: tierra con piedritas (plataforma) y barro brilloso (resbala)
+  dirt: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#7a5434'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 140; i++) { x.fillStyle = ['#8a6240', '#6a4628', '#946c46', '#5a3c22'][(Math.random() * 4) | 0]; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, rnd(1, 3) | 0, rnd(1, 2) | 0); }
+    for (let i = 0; i < 6; i++) { x.fillStyle = '#a8927a'; const px = (Math.random() * w) | 0, py = (Math.random() * h) | 0; x.fillRect(px, py, 2, 2); x.fillStyle = '#5e5044'; x.fillRect(px + 1, py + 2, 2, 1); }
+  }),
+  mud: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#3e2818'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 60; i++) { x.fillStyle = ['#4a3020', '#34200f', '#523624'][(Math.random() * 3) | 0]; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, rnd(2, 6) | 0, 1); }
+    x.fillStyle = 'rgba(255,220,180,.35)';                                           // brillos de mojado
+    [[5, 6, 6], [18, 12, 4], [10, 24, 5], [24, 26, 3]].forEach(([a, b, l]) => { x.fillRect(a, b, l, 1); x.fillRect(a + 1, b + 1, l - 2, 1); });
+  }),
   /* ---------- Bombardeo: baldosas con marcas y la plataforma de aterrizaje del centro ---------- */
   tileVent: tex(32, 32, (x, w, h) => {
     noisy(x, w, h, '#8a93a6', 0.22);

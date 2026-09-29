@@ -1,7 +1,8 @@
-// Caída al abismo (Empujón): la nave se va de la plataforma dando vueltas y cae al magma.
+// Caída al abismo (Empujón): la nave se va de la plataforma dando vueltas y cae al magma (o al vacío helado del glaciar).
 import { riderWorld } from '../world/pods.js';
 import { burst, P } from '../fx/particles.js';
 import { SFX } from '../audio.js';
+import { game } from '../state.js';
 
 export default {
   id: 'fall',
@@ -22,6 +23,12 @@ export default {
     m.rider.position.y = m.riderBase.y + Math.min(0.9, t * 1.4) + Math.sin(t * 30) * 0.08;
     m.rider.rotation.y += dt * 9;
     if (t < 0.8 && Math.random() < 0.3) { const w = riderWorld(p); burst(w.x, w.y + 0.6, w.z, { mat: P.WHITE, n: 1, sp: 1, up: [1, 2], life: [0.2, 0.4], size: 0.5 }); }
+    if (st.y < -12 && !st.splash && game.fallStyle === 'abyss') {
+      // al vacío helado: se pierde entre la nieve y la bruma, sin salpicar lava
+      st.splash = true; m.root.visible = false;
+      burst(p.x, -12, p.z, { mat: P.WHITE, n: 10, sp: 3, up: [1, 4], life: [0.5, 0.9], size: 1.2 });
+      burst(p.x, -12, p.z, { mat: P.CYAN, n: 6, sp: 2, up: [1, 3], life: [0.4, 0.8] });
+    }
     if (st.y < -12 && !st.splash) {
       st.splash = true; m.root.visible = false; SFX.splash();
       burst(p.x, -12, p.z, { mat: P.ORANGE, n: 14, sp: 5, up: [5, 10], life: [0.4, 0.8], size: 1.3 });

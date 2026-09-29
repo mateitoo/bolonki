@@ -23,9 +23,12 @@ También se puede usar el mouse en los menús, y en el celular aparecen botones 
 Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego al armar la partida (solitario, local u online).
 
 - **Bola Brava:** cada uno defiende su arco; las pelotas salen de las torres. Se juega a 5, 10 o 15 puntos (vidas).
-- **Empujón:** todos arriba de una plataforma de hielo sobre un abismo con magma. Las naves se mueven libres y patinan;
-  el botón de golpe es una **embestida**. Gana la ronda el último que queda arriba; gana la partida el primero que llega a 1, 2 o 3 rondas.
-  A los 14 segundos la plataforma empieza a achicarse.
+- **Empujón:** todos arriba de una plataforma redonda sobre un abismo. Las naves se mueven libres; el botón de golpe es
+  una **embestida**. Gana la ronda el último que queda arriba; gana la partida el primero que llega a 1, 2 o 3 rondas.
+  A los 14 segundos la plataforma empieza a achicarse. Hay dos mapas que se turnan por ronda: **Glaciar** (hielo liso que
+  patina, arriba de una aguja de hielo en una grieta helada) y **Volcán** (tierra que agarra bien, con charcos de **barro**
+  que resbalan más que el hielo, sobre la lava; el volcán de atrás tira **bolas de fuego**: una marca roja avisa dónde
+  caen, al caer empujan a los que estén cerca y después siguen rodando, chocando naves, hasta caerse de la plataforma).
 - **Bombardeo** (a pie): caen cajas de metal sobre una grilla y quedan apiladas; hay que ir saltando de pila en pila
   (el golpe es **saltar**) sin quedar abajo de una caja ni encerrado en un pozo. Cayendo sobre la cabeza de otro lo
   dejás mareado (**pisotón**). Antes de caer se ve la sombra de la caja en el piso y la caja bajando desde arriba.

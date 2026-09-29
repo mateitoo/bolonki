@@ -1,4 +1,6 @@
-// Minijuego 2: EMPUJÓN. Todos arriba de una plataforma redonda sobre un abismo con magma.
+// Minijuego 2: EMPUJÓN. Todos arriba de una plataforma redonda sobre un abismo. Hay dos mapas que se van
+// turnando por ronda: GLACIAR (hielo que patina, en una grieta helada) y VOLCÁN (tierra con charcos de barro que
+// resbalan, sobre la lava, y un volcán que tira bolas de fuego: empujan al caer y después ruedan hasta caerse).
 // Las naves se mueven libres (patinan un poco, es hielo) y con el botón de golpe hacen una EMBESTIDA.
 // Gana la ronda el último que queda arriba; gana la partida el primero que llega a N rondas.
 // A los 14 s la plataforma empieza a achicarse para que nadie se quede quieto.
@@ -9,7 +11,7 @@ import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
-import { decorEmpujon } from '../world/decor.js';
+import { decorGlaciar, decorVolcan } from '../world/decor.js';
 import { input } from '../input.js';
 import { burst, P } from '../fx/particles.js';
 import { FX } from '../game/fx.js';
@@ -24,7 +26,7 @@ const R0 = 9.5;              // radio inicial de la plataforma
 const RMIN = 4.2;            // radio mínimo
 const PR = 1.35;             // radio de la nave para los choques
 const POD_SCALE = 0.82;      // las naves van un poco más chicas en la plataforma
-const ACC = 22;              // aceleración
+const ACC = 22;              // aceleración (en el hielo; en la tierra y el barro cambia, ver surface())
 const MAXV = 7.2;            // velocidad máxima normal
 const FRICTION = 2.0;        // cuánto frena sola (poco: es hielo)
 const DASH_V = 15, DASH_T = 0.22, DASH_CD = 1.1;    // embestida
@@ -39,36 +41,161 @@ const SPAWN = [[0, 1], [1, 0], [0, -1], [-1, 0]];   // lugar 0 abajo en la panta
 const r2 = (v) => Math.round(v * 100) / 100;
 const lerpAng = (a, b, f) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return a + d * f; };
 
+/* ---------- mapas ---------- */
+// barro del volcán: círculos en coordenadas de la plataforma (se achican con ella)
+const MUD = [[-3.5, 2.0, 1.9], [3.8, -2.6, 2.1], [1.2, 4.9, 1.5], [-4.6, -4.2, 1.6], [5.9, 3.0, 1.3], [-0.6, -0.4, 1.1]];
+const VOLC = { x: 2, y: -6, z: -30 };      // el cráter del volcán que tira bolas de fuego
+const MAPS = [
+  { name: 'GLACIAR', extra: 'HIELO QUE PATINA', fog: { col: 0x0c1c34, near: 42, far: 105 }, fall: 'abyss' },
+  { name: 'VOLCÁN', extra: 'BARRO Y BOLAS DE FUEGO', fog: { col: 0x2a0c08, near: 45, far: 115 }, fall: 'lava' },
+];
+const S = { map: 0, fb: [], fbT: 5, fbId: 1 };
+const onMud = (x, z) => { const k = (game.radius || R0) / R0; return MUD.some(([mx, mz, r]) => Math.hypot(x - mx * k, z - mz * k) < r * k); };
+// cómo agarra el piso: hielo (patina), tierra (agarra bien) o barro (patina más que el hielo)
+function surface(p) {
+  if (S.map === 0) return { acc: ACC, fr: FRICTION };
+  if (onMud(p.x, p.z)) return { acc: 11, fr: 0.7 };
+  // en la tierra se frena rápido caminando, pero si te empujaron fuerte (vas más rápido que caminando) patinás un rato
+  return { acc: 34, fr: Math.hypot(p.vx, p.vz) > MAXV * 1.05 ? 1.3 : 4.8 };
+}
+
 /* ---------- mundo ---------- */
-const W = { grp: null, plat: null, rimM: null, lavaM: null, rocks: [] };
+const W = { grp: null, maps: [], fb: [], marks: [] };
+
+function buildMap(mi) {
+  const grp = new THREE.Group(); grp.visible = false; W.grp.add(grp);
+  const plat = new THREE.Group(); grp.add(plat);
+  const M = { g: grp, plat, rocks: [] };
+  if (mi === 0) {
+    // GLACIAR: hielo liso con la marca del centro
+    add(scaleUV(new THREE.CylinderGeometry(R0, R0, 0.8, 28, 1), 4, 1), mat({ map: TX.ice }), 0, -0.4, 0, plat);
+    const ring = new THREE.RingGeometry(1.4, 1.75, 20); ring.rotateX(-Math.PI / 2);
+    add(ring, mat({ color: 0x5aa8c0, unlit: true }), 0, 0.02, 0, plat);
+    const dot = new THREE.CircleGeometry(0.35, 12); dot.rotateX(-Math.PI / 2);
+    add(dot, mat({ color: 0x5aa8c0, unlit: true }), 0, 0.02, 0, plat);
+    M.rimM = mat({ map: TX.lights, unlit: true }); M.rimBase = 0xffffff;
+    add(scaleUV(new THREE.CylinderGeometry(R0 + 0.03, R0 + 0.03, 0.28, 28, 1, true), 26, 1), M.rimM, 0, -0.16, 0, plat);
+    // pedazos de hielo flotando en la grieta
+    const im = mat({ map: TX.ice, color: 0xd8f2ff });
+    for (let k = 0; k < 10; k++) {
+      const a = (k / 10) * Math.PI * 2 + rnd(-0.2, 0.2), rr = rnd(14, 19);
+      const m = add(new THREE.DodecahedronGeometry(rnd(0.8, 1.8), 0), im, Math.sin(a) * rr, rnd(-9, -3), Math.cos(a) * rr, grp);
+      m.rotation.set(rnd(0, 3), rnd(0, 3), 0);
+      M.rocks.push({ m, y: m.position.y, ph: rnd(0, 6) });
+    }
+    decorGlaciar(grp, plat, R0);
+  } else {
+    // VOLCÁN: tierra con charcos de barro, sobre un cono de roca
+    add(scaleUV(new THREE.CylinderGeometry(R0, R0 * 0.97, 0.8, 28, 1, true), 8, 1), mat({ map: TX.dirt, color: 0xc8b0a0 }), 0, -0.4, 0, plat);
+    const topG = scaleUV(new THREE.RingGeometry(0.01, R0, 28, 6), 5, 5); topG.rotateX(-Math.PI / 2);
+    add(topG, mat({ map: TX.dirt }), 0, 0, 0, plat);
+    const mudM = mat({ map: TX.mud });
+    MUD.forEach(([x, z, r], k) => {
+      const g = new THREE.CircleGeometry(r, 12); g.rotateX(-Math.PI / 2);
+      const pos = g.attributes.position;                        // borde desparejo
+      for (let i = 1; i < pos.count; i++) { const f = 1 + Math.sin(i * 2.3 + k) * 0.08; pos.setX(i, pos.getX(i) * f); pos.setZ(i, pos.getZ(i) * f); }
+      add(g, mudM, x, 0.02, z, plat);
+    });
+    M.rimM = mat({ color: 0xff8a2a, unlit: true }); M.rimBase = 0xff8a2a;
+    add(new THREE.CylinderGeometry(R0 + 0.03, R0 + 0.03, 0.12, 28, 1, true), M.rimM, 0, -0.06, 0, plat);
+    const cone = scaleUV(new THREE.ConeGeometry(R0 * 0.98, 6.5, 14, 2, true), 5, 2); cone.rotateX(Math.PI);
+    add(cone, mat({ map: TX.rock, color: 0x9a8f9e }), 0, -4.05, 0, plat);
+    M.lavaM = mat({ map: TX.magma, unlit: true, color: 0xffffff });
+    const lava = scaleUV(new THREE.PlaneGeometry(220, 220, 16, 16), 34); lava.rotateX(-Math.PI / 2);
+    add(lava, M.lavaM, 0, -26, 0, grp);
+    const rockM = mat({ map: TX.rock, color: 0xb0a4b6 });
+    for (let k = 0; k < 10; k++) {
+      const a = (k / 10) * Math.PI * 2 + rnd(-0.2, 0.2), rr = rnd(15, 25);
+      const m = add(new THREE.DodecahedronGeometry(rnd(0.9, 2.2), 0), rockM, Math.sin(a) * rr, rnd(-9, -3), Math.cos(a) * rr, grp);
+      m.rotation.set(rnd(0, 3), rnd(0, 3), 0);
+      M.rocks.push({ m, y: m.position.y, ph: rnd(0, 6) });
+    }
+    decorVolcan(grp, plat, R0, VOLC);
+  }
+  W.maps.push(M);
+}
 
 function buildWorld() {
   const grp = new THREE.Group(); grp.visible = false; scene.add(grp); W.grp = grp;
-  const plat = new THREE.Group(); grp.add(plat); W.plat = plat;
-  // hielo de arriba
-  // (el costado por un lado y la cara de arriba por otro: arriba va un dibujo entero de la arena, con marcas y cosas congeladas)
-  add(scaleUV(new THREE.CylinderGeometry(R0, R0, 0.8, 28, 1, true), 4, 1), mat({ map: TX.ice }), 0, -0.4, 0, plat);
-  const topG = new THREE.RingGeometry(0.01, R0, 28, 6); topG.rotateX(-Math.PI / 2);
-  add(topG, mat({ map: TX.iceArena }), 0, 0, 0, plat);
-  // luces del borde
-  W.rimM = mat({ map: TX.lights, unlit: true });
-  add(scaleUV(new THREE.CylinderGeometry(R0 + 0.03, R0 + 0.03, 0.28, 28, 1, true), 26, 1), W.rimM, 0, -0.16, 0, plat);
-  // roca de abajo (cono invertido)
-  const cone = scaleUV(new THREE.ConeGeometry(R0 * 0.98, 6.5, 14, 2, true), 5, 2); cone.rotateX(Math.PI);
-  add(cone, mat({ map: TX.rock, color: 0x9a8f9e }), 0, -4.05, 0, plat);
-  // magma del fondo
-  W.lavaM = mat({ map: TX.magma, unlit: true, color: 0xffffff });
-  const lava = scaleUV(new THREE.PlaneGeometry(220, 220, 16, 16), 34); lava.rotateX(-Math.PI / 2);
-  add(lava, W.lavaM, 0, -26, 0, grp);
-  // rocas flotando alrededor
-  const rockM = mat({ map: TX.rock, color: 0xb0a4b6 });
-  for (let k = 0; k < 10; k++) {
-    const a = (k / 10) * Math.PI * 2 + rnd(-0.2, 0.2), rr = rnd(15, 25);
-    const m = add(new THREE.DodecahedronGeometry(rnd(0.9, 2.2), 0), rockM, Math.sin(a) * rr, rnd(-9, -3), Math.cos(a) * rr, grp);
-    m.rotation.set(rnd(0, 3), rnd(0, 3), 0);
-    W.rocks.push({ m, y: m.position.y, ph: rnd(0, 6) });
+  MAPS.forEach((_, i) => buildMap(i));
+  // bolas de fuego y la marca de dónde van a caer
+  const fm = mat({ map: TX.fire, unlit: true }); W.fbM = fm;
+  const coreM = mat({ color: 0xffe070, unlit: true });
+  for (let n = 0; n < 5; n++) {
+    const g = new THREE.Group(); g.visible = false; grp.add(g);
+    add(new THREE.DodecahedronGeometry(FB_R, 1), fm, 0, 0, 0, g);
+    add(new THREE.DodecahedronGeometry(FB_R * 0.6, 0), coreM, 0, 0, 0, g).scale.setScalar(1.25);
+    W.fb.push(g);
+    const rg = new THREE.RingGeometry(FB_HIT * 0.8, FB_HIT, 20); rg.rotateX(-Math.PI / 2);
+    const mk = add(rg, mat({ color: 0xff3a1a, unlit: true }), 0, 0.05, 0, grp); mk.visible = false;
+    W.marks.push(mk);
   }
-  decorEmpujon(grp, plat, R0);
+}
+
+/* ---------- bolas de fuego (mapa volcán) ---------- */
+const FB_R = 1.0, FB_HIT = 2.5, FB_FLY = 1.6, FB_MASS = 2.6;
+function spawnFireball() {
+  const alive = game.players.filter((p) => p.alive && !p.empty);
+  const r = game.radius * 0.85;
+  let tx, tz;
+  if (alive.length && Math.random() < 0.65) {                // casi siempre cerca de alguien
+    const q = alive[(Math.random() * alive.length) | 0];
+    tx = q.x + rnd(-1.5, 1.5); tz = q.z + rnd(-1.5, 1.5);
+  } else { const a = rnd(0, Math.PI * 2), d = rnd(0, r); tx = Math.sin(a) * d; tz = Math.cos(a) * d; }
+  const l = Math.hypot(tx, tz); if (l > r) { tx *= r / l; tz *= r / l; }
+  S.fb.push({ id: S.fbId++, st: 0, u: 0, x: VOLC.x, y: VOLC.y, z: VOLC.z, tx, tz, vx: 0, vz: 0, vy: 0 });
+  FX.snd('fireball');
+}
+function stepFireballs(dt, R) {
+  if (S.map !== 1) { S.fb = []; return; }
+  if (!R.over && game.elapsed > 3) {
+    S.fbT -= dt;
+    if (S.fbT <= 0 && S.fb.length < 4) { spawnFireball(); S.fbT = rnd(2.0, 3.6) * (game.radius < R0 - 2 ? 0.75 : 1); }
+  }
+  for (const b of S.fb) {
+    if (b.st === 0) {                                            // volando desde el cráter
+      b.u += dt / FB_FLY;
+      const u = Math.min(1, b.u);
+      b.x = VOLC.x + (b.tx - VOLC.x) * u; b.z = VOLC.z + (b.tz - VOLC.z) * u;
+      b.y = VOLC.y + (FB_R - VOLC.y) * u + 16 * 4 * u * (1 - u);
+      if (b.u >= 1) {
+        // cae: empuja a los que estén cerca y sigue rodando para el mismo lado
+        b.st = 1; b.y = FB_R;
+        for (const p of game.players) {
+          if (!p.alive || p.empty || p.death) continue;
+          const dx = p.x - b.x, dz = p.z - b.z, d = Math.hypot(dx, dz);
+          if (d > FB_HIT) continue;
+          const f = 4 + 9 * (1 - d / FB_HIT), nx = d > 0.01 ? dx / d : 1, nz = d > 0.01 ? dz / d : 0;
+          p.vx += nx * f; p.vz += nz * f;
+        }
+        FX.boom(b.x, b.z);
+        let hx = b.tx - VOLC.x, hz = b.tz - VOLC.z; const hl = Math.hypot(hx, hz) || 1;
+        b.vx = (hx / hl) * 5 + rnd(-1, 1); b.vz = (hz / hl) * 5 + rnd(-1, 1);
+      }
+    } else if (b.st === 1) {                                     // rodando por la plataforma
+      const d = Math.hypot(b.x, b.z) || 1;
+      b.vx += (b.x / d) * 1.4 * dt; b.vz += (b.z / d) * 1.4 * dt;   // la plataforma es un poquito curva: siempre termina cayéndose
+      b.x += b.vx * dt; b.z += b.vz * dt;
+      for (const p of game.players) {
+        if (!p.alive || p.empty || p.death) continue;
+        const dx = p.x - b.x, dz = p.z - b.z, dd = Math.hypot(dx, dz), min = PR + FB_R * 0.8;
+        if (dd >= min || dd < 1e-4) continue;
+        const nx = dx / dd, nz = dz / dd, mp = p.dashT > 0 ? DASH_MASS : 1, ov = min - dd;
+        p.x += nx * ov * (FB_MASS / (mp + FB_MASS)); p.z += nz * ov * (FB_MASS / (mp + FB_MASS));
+        b.x -= nx * ov * (mp / (mp + FB_MASS)); b.z -= nz * ov * (mp / (mp + FB_MASS));
+        const rv = (p.vx - b.vx) * nx + (p.vz - b.vz) * nz;
+        if (rv < 0) {
+          const j = (-(1 + 0.9) * rv) / (1 / mp + 1 / FB_MASS);
+          p.vx += (j / mp) * nx; p.vz += (j / mp) * nz; b.vx -= (j / FB_MASS) * nx; b.vz -= (j / FB_MASS) * nz;
+          if (-rv > 2) FX.bump((p.x + b.x) / 2, (p.z + b.z) / 2, true);
+        }
+      }
+      if (Math.hypot(b.x, b.z) > game.radius + 0.2) { b.st = 2; b.vy = 0; }
+    } else {                                                     // se cae de la plataforma
+      b.vy -= 22 * dt; b.y += b.vy * dt; b.x += b.vx * dt * 0.6; b.z += b.vz * dt * 0.6;
+    }
+  }
+  S.fb = S.fb.filter((b) => b.y > -28);
 }
 
 /* ---------- rondas ---------- */
@@ -87,11 +214,17 @@ function placeAll() {
   game.radius = R0;
   game.elapsed = 0;
   warned = false;
+  S.fb = []; S.fbT = 4;
 }
 
 let warned = false;
+function pickMap(first) {
+  if (game.online === 'guest') return;
+  S.map = first ? (Math.random() * MAPS.length) | 0 : (S.map + 1) % MAPS.length;   // se van turnando
+}
 function startRound() {
   game.round = { n: game.round.n + 1, over: false, winner: -1, t: 0 };
+  pickMap(false);
   game.timeScale = 1;
   game.elimOrder = [];
   placeAll();
@@ -131,6 +264,15 @@ function aiInput(p, dt) {
         if (td > safe) { tx *= safe / td; tz *= safe / td; p.aiDash = p.aiDash && d0 < safe - 1; }
       }
     }
+    // se viene una bola de fuego justo acá: los más vivos se corren (hacia el centro, no hacia el borde)
+    for (const b of S.fb) {
+      if (b.st !== 0 || b.u < 0.35 || Math.random() > D.lead) continue;
+      const dx = p.x - b.tx, dz = p.z - b.tz, dd = Math.hypot(dx, dz);
+      if (dd > FB_HIT + 0.6) continue;
+      const ox = dx / (dd || 1) - p.x / (d0 || 1) * 0.8, oz = dz / (dd || 1) - p.z / (d0 || 1) * 0.8, ol = Math.hypot(ox, oz) || 1;
+      tx = p.x + (ox / ol) * 3.5; tz = p.z + (oz / ol) * 3.5; p.aiDash = false;
+      const tl = Math.hypot(tx, tz), safe = r - margin * 0.8; if (tl > safe) { tx *= safe / tl; tz *= safe / tl; }
+    }
     const e = D.err * 0.35;                    // error de puntería según dificultad
     p.aiTx = tx + rnd(-e, e); p.aiTz = tz + rnd(-e, e);
   }
@@ -154,8 +296,9 @@ function drive(p, wx, wz, dash, dt) {
     p.dashT = DASH_T; p.cd = DASH_CD; p.aiDash = false;
     FX.dash(p.i, p.x, p.z);
   }
-  p.vx += wx * ACC * dt; p.vz += wz * ACC * dt;
-  const fr = Math.exp(-FRICTION * dt); p.vx *= fr; p.vz *= fr;
+  const sf = surface(p);
+  p.vx += wx * sf.acc * dt; p.vz += wz * sf.acc * dt;
+  const fr = Math.exp(-sf.fr * dt); p.vx *= fr; p.vz *= fr;
   const sp = Math.hypot(p.vx, p.vz), max = p.dashT > 0 ? DASH_V : MAXV;
   if (sp > max) { const ns = max + (sp - max) * Math.exp(-4 * dt); p.vx *= ns / sp; p.vz *= ns / sp; }
   p.x += p.vx * dt; p.z += p.vz * dt;
@@ -201,7 +344,7 @@ function step(dt) {
     if (crumbleT <= 0) {
       crumbleT = 0.08;
       const a = Math.random() * Math.PI * 2, r = game.radius;
-      burst(Math.sin(a) * r, 0, Math.cos(a) * r, { mat: P.WHITE, n: 2, sp: 1.5, up: [0.5, 2], life: [0.4, 0.8], size: 0.8 });
+      burst(Math.sin(a) * r, 0, Math.cos(a) * r, { mat: S.map === 1 ? P.DEBRIS : P.WHITE, n: 2, sp: 1.5, up: [0.5, 2], life: [0.4, 0.8], size: 0.8 });
       SFX.crumble();
     }
   }
@@ -224,6 +367,7 @@ function step(dt) {
     drive(p, wx, wz, dash, dt);
   }
   for (let i = 0; i < alive.length; i++) for (let j = i + 1; j < alive.length; j++) collide(alive[i], alive[j]);
+  stepFireballs(dt, R);
 
   // ¿alguien se cayó?
   for (const p of alive) {
@@ -266,7 +410,7 @@ const empujon = {
   howTo: 'EMBESTIDA',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: new THREE.Vector3(0, 24, 21), look: new THREE.Vector3(0, 0, -1.2), rotate: false, orbit: true },
-  fog: { col: 0x2a0c08, near: 45, far: 115 },
+  fog: () => MAPS[S.map].fog,
   humanOut: false,
   tense: () => game.elapsed > SHRINK_AT,        // música más rápida cuando se achica la plataforma
   thumbSteps: 90,
@@ -274,10 +418,12 @@ const empujon = {
 
   build: buildWorld,
   show(on) { if (W.grp) W.grp.visible = on; },
+  _S: S,
 
   reset() {
     game.round = { n: 1, over: false, winner: -1, t: 0 };
     game.players.forEach((p) => { p.score = 0; });
+    pickMap(true);
     placeAll();
     sendT = 0;
   },
@@ -285,13 +431,31 @@ const empujon = {
 
   visuals(dt) {
     const clock = game.clock;
-    const k = (game.radius || R0) / R0;
-    W.plat.scale.set(k, 1, k);
+    const k = (game.radius || R0) / R0, M = W.maps[S.map];
+    W.maps.forEach((m, i) => { m.g.visible = i === S.map; });
+    game.fallStyle = MAPS[S.map].fall;                // la caída: al vacío helado o a la lava
+    M.plat.scale.set(k, 1, k);
     // luces del borde: rojas titilando cuando la plataforma se está por achicar o se achica
     const danger = game.elapsed > WARN_AT && !(game.round && game.round.over);
-    W.rimM.uniforms.uColor.value.set(danger && ((clock * (game.elapsed > SHRINK_AT ? 4 : 10)) | 0) % 2 ? 0xff3a2a : 0xffffff);
-    W.lavaM.uniforms.uOff.value.set((clock * 0.01) % 1, (clock * 0.006) % 1);
-    W.rocks.forEach((r) => { r.m.position.y = r.y + Math.sin(clock * 0.7 + r.ph) * 0.4; r.m.rotation.y += dt * 0.1; });
+    M.rimM.uniforms.uColor.value.set(danger && ((clock * (game.elapsed > SHRINK_AT ? 4 : 10)) | 0) % 2 ? 0xff3a2a : M.rimBase);
+    if (M.lavaM) M.lavaM.uniforms.uOff.value.set((clock * 0.01) % 1, (clock * 0.006) % 1);
+    M.rocks.forEach((r) => { r.m.position.y = r.y + Math.sin(clock * 0.7 + r.ph) * 0.4; r.m.rotation.y += dt * 0.1; });
+    // bolas de fuego: la bola (volando, rodando o cayendo) y la marca roja donde va a caer
+    W.fbM.uniforms.uOff.value.set((clock * 0.7) % 1, (clock * 0.9) % 1);
+    W.fb.forEach((g, n) => {
+      const b = S.fb[n], mk = W.marks[n];
+      g.visible = !!b; mk.visible = !!b && b.st === 0;
+      if (!b) return;
+      g.position.set(b.x, b.y, b.z); g.rotation.set(clock * 4 + n, clock * 3, 0);
+      if (b.st === 1) { g.rotation.x = clock * 8; }
+      if (mk.visible) {
+        mk.position.set(b.tx, 0.05, b.tz);
+        const u = Math.min(1, b.u), fast = u > 0.6 ? 16 : 8;
+        mk.material.uniforms.uColor.value.setHex(((clock * fast) | 0) % 2 ? 0xff3a1a : 0xffc050);
+        mk.scale.setScalar(1.25 - u * 0.25);
+      }
+      if (Math.random() < 0.5) burst(b.x, b.y, b.z, { mat: Math.random() < 0.5 ? P.ORANGE : P.YELLOW, n: 1, sp: 1, up: [0.5, 2], life: [0.2, 0.4], size: 0.9 });
+    });
     for (const p of game.players) {
       const m = p.mesh;
       if (p.death || p.empty) { if (p.empty) { m.root.visible = false; m.sh.visible = false; } continue; }
@@ -319,7 +483,11 @@ const empujon = {
   },
   hud(hw, st) {
     const R = game.round; if (!R) return;
-    if (st === 'count') txt(`RONDA ${R.n}`, hw / 2, 80, 16, COL.teal, 'center');
+    if (st === 'count') {
+      txt(`RONDA ${R.n}`, hw / 2, 80, 16, COL.teal, 'center');
+      txt(`MAPA: ${MAPS[S.map].name}`, hw / 2, 48, 8, COL.white, 'center');
+      txt(MAPS[S.map].extra, hw / 2, 60, 8, '#ffb31a', 'center');
+    }
     if (st === 'count' && R.n === 1 && game.mode !== 'demo') {
       txt('¡TIRALOS DE LA PLATAFORMA!', hw / 2, 170, 8, '#ffb31a', 'center');
       txt('GOLPE = EMBESTIDA', hw / 2, 184, 8, COL.dim, 'center');
@@ -341,12 +509,18 @@ const empujon = {
   snapshot() {
     const R = game.round;
     return {
-      r: r2(game.radius), ro: [R.n, R.over ? 1 : 0, R.winner, Math.round(R.t * 10) / 10],
+      r: r2(game.radius), ro: [R.n, R.over ? 1 : 0, R.winner, Math.round(R.t * 10) / 10], m: S.map,
+      fb: S.fb.map((b) => [b.id, b.st, r2(b.x), r2(b.y), r2(b.z), r2(b.tx), r2(b.tz), r2(b.u)]),
       p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.ang || 0), p.alive ? 1 : 0, p.dashT > 0 ? 1 : 0, p.score]),
     };
   },
   applySnap(A, B, f) {
     game.radius = A.r + (B.r - A.r) * f;
+    S.map = B.m || 0;
+    S.fb = (B.fb || []).map(([id, st, x, y, z, tx, tz, u]) => {
+      const a = (A.fb || []).find((q) => q[0] === id && q[1] === st);
+      return a ? { id, st, x: a[2] + (x - a[2]) * f, y: a[3] + (y - a[3]) * f, z: a[4] + (z - a[4]) * f, tx, tz, u: a[7] + (u - a[7]) * f } : { id, st, x, y, z, tx, tz, u };
+    });
     const ro = A.ro;
     game.round = { n: ro[0], over: !!ro[1], winner: ro[2], t: ro[3] };
     game.players.forEach((p, i) => {

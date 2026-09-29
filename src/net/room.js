@@ -14,7 +14,7 @@ import { settings } from '../settings.js';
 import { mgById } from '../minigames/registry.js';
 import { CHARS } from '../config.js';
 
-export const NET_VERSION = 7;          // v3: modo Fiesta · v4: personajes en la sala · v5: 6 personajes · v6: tienda en la Fiesta · v7: Futbolonki y Rey de la colina
+export const NET_VERSION = 8;          // v3: modo Fiesta · v4: personajes en la sala · v5: 6 personajes · v6: tienda en la Fiesta · v7: Futbolonki y Rey de la colina · v8: mapas de Empujón
 export const MAX_PLAYERS = 4;
 export const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const JOIN_ORDER = [2, 1, 3];          // el primer invitado va enfrente del anfitrión

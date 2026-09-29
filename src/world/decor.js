@@ -1,7 +1,7 @@
 // Decorado de cada escenario (fuera de la zona de juego): tribunas, jardines, fábricas, dunas, nieve…
 // Solo adorna: no cambia nada de cómo se juega. Las piezas están en props.js.
 import * as THREE from 'three';
-import { add } from '../render/psx.js';
+import { add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
 import * as P from './props.js';
@@ -69,14 +69,14 @@ function lighthouse(g, x, z) {
   add(new THREE.ConeGeometry(0.85, 0.9, 8), rd, x, 10.75, z, g);
 }
 
-/* ---------- Empujón: volcán ---------- */
-export function decorEmpujon(grp, plat, R0) {
+/* ---------- Empujón, mapa VOLCÁN: lava, agujas de roca, volcanes que escupen ---------- */
+export function decorVolcan(grp, plat, R0, V) {
   const Y = -26;
   P.lavaBubbles(grp, Y + 0.2, 12, 34, 24);
   P.drift(grp, 70, -30, 30, Y, -4, -30, 26, 0xffa030, 0.22, 3.2);          // brasas que suben
   // agujas de roca que salen de la lava
   const rm = P.M(0x6a5a5e, { map: TX.rock }), glow = P.M(0xff7a1a, { unlit: true });
-  [[-19, -14, 20], [21, -10, 17], [-24, 6, 15], [25, 9, 19], [-12, -24, 18], [13, -25, 16], [4, -30, 21], [-28, -6, 14]].forEach(([x, z, h]) => {
+  [[-19, -14, 12], [21, -10, 10], [-24, 6, 9], [25, 9, 12], [-14, -26, 11], [15, -25, 10], [-28, -6, 8]].forEach(([x, z, h]) => {
     const sp = add(new THREE.ConeGeometry(rnd(2.2, 3.2), h, 6), rm, x, Y + h / 2, z, grp); sp.rotation.y = rnd(0, 3);
     add(new THREE.CylinderGeometry(3.4, 3.8, 0.5, 8), glow, x, Y + 0.25, z, grp);
   });
@@ -84,7 +84,6 @@ export function decorEmpujon(grp, plat, R0) {
   P.sky(grp, [[0, '#0c0406'], [0.36, '#2a0a0a'], [0.47, '#8a3212'], [0.52, '#3a0e08'], [1, '#120404']], { stars: 25 });
   P.volcano(grp, 0, Y, -60, 17, 24);
   P.volcano(grp, -52, Y, -18, 16, 14);
-  P.iceFloes(grp, Y + 0.1, 13, 28, 9);
   P.geyser(grp, 16, Y, -15, 7, 0); P.geyser(grp, -17, Y, 10, 8.5, 3.2); P.geyser(grp, 9, Y, 21, 9.5, 6.1);
   // el volcán del fondo escupe piedras de lava; cascadas de lava bajando por acantilados; columnas de basalto
   P.eruption(grp, 0, Y + 17, -60, 24, 9, 9);
@@ -95,12 +94,70 @@ export function decorEmpujon(grp, plat, R0) {
   P.basalt(grp, 15, Y, 3, 6, 1.3, 2, 7);
   P.basalt(grp, 4, Y, -20, 6, 1.4, 3, 10);
   P.basalt(grp, -7, Y, 17, 5, 1.2, 1.5, 6);
-  // carámbanos colgando del borde del hielo (achican con la plataforma)
-  const im = P.M(0xcfefff, { map: TX.ice });
-  for (let k = 0; k < 26; k++) {
-    const a = (k / 26) * Math.PI * 2, r = R0 * 0.96, h = rnd(0.7, 1.6);
-    const c = add(new THREE.ConeGeometry(0.22, h, 4), im, Math.sin(a) * r, -0.8 - h / 2, Math.cos(a) * r, plat); c.rotation.x = Math.PI;
+  // el volcán de cerca: el que tira las bolas de fuego a la plataforma (arriba de la pantalla, con el cráter al rojo)
+  const vh = V.y - Y, vg = new THREE.Group(); vg.position.set(V.x, Y, V.z); grp.add(vg);
+  add(new THREE.CylinderGeometry(3.2, 13, vh, 10, 3), P.M(0x3e3034, { map: TX.rock }), 0, vh / 2, 0, vg);
+  add(new THREE.CylinderGeometry(3.4, 3.3, 0.8, 10), P.M(0x2a2022, { map: TX.rock }), 0, vh + 0.1, 0, vg);
+  add(new THREE.CylinderGeometry(2.7, 2.7, 0.5, 10), P.M(0xffa030, { unlit: true }), 0, vh + 0.35, 0, vg);
+  [0.6, 2.4, 3.9, 5.2].forEach((a, k) => {                        // grietas de lava bajando (pegadas a la ladera)
+    const r0 = 3.6, r1 = 12.2, hh = vh * (0.55 + (k % 2) * 0.25);
+    const len = Math.hypot(r1 - r0, vh) * (hh / vh), ang = Math.atan2(r1 - r0, vh);
+    const cr = add(new THREE.BoxGeometry(0.5, len, 0.15), P.M(0xff7a1a, { unlit: true }), 0, 0, 0, vg);
+    const mid = vh - hh / 2, rr = r0 + (r1 - r0) * (1 - mid / vh);
+    cr.position.set(Math.sin(a) * rr, mid, Math.cos(a) * rr); cr.rotation.set(Math.cos(a) * ang, 0, -Math.sin(a) * ang, 'YXZ'); cr.rotation.y = 0;
+    cr.rotation.x = Math.cos(a) * ang; cr.rotation.z = -Math.sin(a) * ang;
+  });
+  P.smoke(vg, 0, vh + 0.6, 0, 6, 2.6, 0x4a4248);
+  P.eruption(grp, V.x, V.y, V.z, vh, 4, 5);
+  // piedras sueltas en el borde de la plataforma (se achican con ella)
+  const rk = P.M(0x7a6a5e, { map: TX.rock });
+  for (let k = 0; k < 18; k++) {
+    const a = (k / 18) * Math.PI * 2 + rnd(-0.1, 0.1), r = R0 * 0.99;
+    const m = add(new THREE.DodecahedronGeometry(rnd(0.25, 0.5), 0), rk, Math.sin(a) * r, -0.5 - rnd(0, 0.6), Math.cos(a) * r, plat); m.rotation.set(rnd(0, 3), rnd(0, 3), 0);
   }
+}
+
+/* ---------- Empujón, mapa GLACIAR: una aguja de hielo en el medio de una grieta helada ---------- */
+export function decorGlaciar(grp, plat, R0) {
+  const Y = -45;
+  // el fondo de la grieta: oscuro y lejos
+  const deep = new THREE.PlaneGeometry(220, 220, 10, 10); deep.rotateX(-Math.PI / 2);
+  add(deep, P.M(0x0c1a34, { unlit: true }), 0, Y, 0, grp);
+  // paredes de hielo a los costados y al fondo, desparejas, con nieve arriba
+  const ice = P.M(0xb8e0f4, { map: TX.iceBlock }), ice2 = P.M(0x8ec0e0, { map: TX.iceBlock }), snow = P.M(0xffffff, { map: TX.snow });
+  const wall = (x, z, w, d, top, ry = 0) => {
+    const h = top - Y, m = add(scaleUV(new THREE.BoxGeometry(w, h, d), Math.max(1, w / 4), h / 4), (x + z) % 2 ? ice : ice2, x, Y + h / 2, z, grp); m.rotation.y = ry;
+    const sn = add(new THREE.BoxGeometry(w + 0.3, 0.6, d + 0.3), snow, x, top + 0.3, z, grp); sn.rotation.y = ry;
+    return m;
+  };
+  [[-27, -30, 1.5], [-25, -14, 4.5], [-28, 0, 2], [-26, 14, 5], [-29, 28, 3]].forEach(([x, z, t], k) => wall(x, z, 10 + k % 2 * 3, 16, t, rnd(-0.12, 0.12)));
+  [[27, -28, 3], [26, -12, 1], [28, 3, 4.5], [25.5, 17, 2], [29, 31, 5]].forEach(([x, z, t], k) => wall(x, z, 10 + k % 2 * 2, 16, t, rnd(-0.12, 0.12)));
+  [[-12, -40, 6], [4, -42, 3.5], [18, -39, 7]].forEach(([x, z, t]) => wall(x, z, 18, 10, t, rnd(-0.08, 0.08)));
+  // carámbanos colgando del borde de las paredes y cascadas congeladas
+  const ic = P.M(0xe0f6ff, { map: TX.ice });
+  for (let k = 0; k < 40; k++) {
+    const side = k % 2 ? 1 : -1, z = -34 + (k >> 1) * 3.4 + rnd(-0.6, 0.6), h = rnd(1.5, 4);
+    const c = add(new THREE.ConeGeometry(rnd(0.3, 0.6), h, 5), ic, side * rnd(20.2, 21), rnd(-2, 1) - h / 2, z, grp); c.rotation.x = Math.PI;
+  }
+  const fall = P.M(0xd8f4ff, { map: TX.ice, unlit: true });
+  [[-20.6, -8, 14], [20.4, 10, 12], [-6, -34.8, 16]].forEach(([x, z, h], k) => {
+    const pl = add(scaleUV(new THREE.PlaneGeometry(3.2, h, 1, 3), 1, 3), fall, x, -h / 2 + 1, z, grp);
+    pl.rotation.y = k === 2 ? 0 : x < 0 ? Math.PI / 2 : -Math.PI / 2;
+  });
+  // pinos nevados arriba de las paredes y un puente colgante roto
+  [[-24, -18, 4.5], [-27, 12, 5], [-23, 16, 5], [26, 0, 4.5], [24, -12, 1], [-10, -38, 6], [16, -37, 7]].forEach(([x, z, y]) => P.pine(grp, x, y, z, rnd(0.9, 1.3), true));
+  const wood = P.M(0x8a6a4a, { map: TX.wood });
+  for (let k = 0; k < 7; k++) { const pl = add(new THREE.BoxGeometry(1.8, 0.12, 0.5), wood, -19.5 + Math.sin(k * 0.4) * 0.3, 4.2 - k * 0.8, -26 + k * 0.62, grp); pl.rotation.x = 0.9; }
+  // la aguja de hielo que sostiene la plataforma (baja hasta el fondo)
+  const sp = new THREE.ConeGeometry(R0 * 0.9, 42, 10, 3, true); sp.rotateX(Math.PI);
+  add(scaleUV(sp, 5, 6), P.M(0xa8d8f0, { map: TX.ice }), 0, -21.5, 0, plat);
+  for (let k = 0; k < 26; k++) {                                         // carámbanos del borde (se achican con la plataforma)
+    const a = (k / 26) * Math.PI * 2, r = R0 * 0.96, h = rnd(0.7, 1.6);
+    const c = add(new THREE.ConeGeometry(0.22, h, 4), ic, Math.sin(a) * r, -0.8 - h / 2, Math.cos(a) * r, plat); c.rotation.x = Math.PI;
+  }
+  // cielo de noche con aurora, nieve que cae y hielos flotando en la grieta
+  P.sky(grp, [[0, '#040a1c'], [0.3, '#0c2a4a'], [0.4, '#1a6a6a'], [0.46, '#3a9a8a'], [0.52, '#0c1c34'], [1, '#050a14']], { stars: 90 });
+  P.drift(grp, 130, -24, 24, 14, -20, -30, 20, 0xffffff, 0.13, 2.0, true);
 }
 
 /* ---------- Bombardeo: depósito espacial ---------- */

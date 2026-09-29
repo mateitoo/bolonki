@@ -766,6 +766,7 @@ const petardos = {
   id: 'petardos',
   name: 'PETARDOS',
   desc: 'VOLÁ A LOS DEMÁS Y ROMPÉ CAJONES',
+  howTo: 'PONER PETARDO',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: new THREE.Vector3(0, 27, 13.2), look: new THREE.Vector3(0, 0, 0.35), rotate: false, orbit: true },
   humanOut: false,

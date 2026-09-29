@@ -262,6 +262,7 @@ const empujon = {
   id: 'empujon',
   name: 'EMPUJÓN',
   desc: 'TIRALOS DE LA PLATAFORMA',
+  howTo: 'EMBESTIDA',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: new THREE.Vector3(0, 24, 21), look: new THREE.Vector3(0, 0, -1.2), rotate: false, orbit: true },
   humanOut: false,

@@ -392,13 +392,13 @@ function step(dt) {
       S.ph = 'duelIntro'; S.t = 0; FX.snd('duel');
       break;
     }
-    case 'duelIntro': if (S.t > 2.6) launchMinigame(S.pick, S.duel); break;
+    case 'duelIntro': if (S.t > 3.6) launchMinigame(S.pick, S.duel); break;
     case 'duelRes': if (S.t > 2.8) { S.duel = null; S.res = null; nextPlayer(); } break;
     case 'mgIntro': {
       const acts = activeMinigames();
       if (S.t < 2.0) { const k = ((S.t * 8) | 0) % acts.length; if (acts[k].id !== S.pick) { S.pick = acts[k].id; FX.snd('dice'); } }
       else if (!S.picked) { S.pick = acts[(Math.random() * acts.length) | 0].id; S.picked = true; FX.snd('confirm'); }
-      if (S.t > 3.4) { S.picked = false; S.duel = null; launchMinigame(S.pick, S.order.slice()); }
+      if (S.t > 4.6) { S.picked = false; S.duel = null; launchMinigame(S.pick, S.order.slice()); }
       break;
     }
     case 'mgRes':
@@ -559,11 +559,13 @@ function hud(hw) {
       banner(hw, 62, '¡DUELO!', S.msg, '#d8a0ff');
       drawThumb(S.pick, Math.round(hw / 2 - 48), 112, 96, 54);
       txt(mgById(S.pick).name, hw / 2, 172, 8, COL.teal, 'center');
+      howTo(hw, S.pick);
       break;
     }
     case 'mgIntro': {
       banner(hw, 62, '¡MINIJUEGO!', 'PARA TODOS');
       if (S.pick) { drawThumb(S.pick, Math.round(hw / 2 - 48), 112, 96, 54); txt(mgById(S.pick).name, hw / 2, 172, 8, COL.teal, 'center'); }
+      if (S.pick && S.t >= 2.0) howTo(hw, S.pick);
       break;
     }
     case 'mgRes': case 'duelRes': drawResults(hw); break;
@@ -571,6 +573,14 @@ function hud(hw) {
     default: break;
   }
   if (S.flashT > 0) { const f = fmt(S.flash), w = textWidth(f, 8) + 16; rect(hw / 2 - w / 2, 58, w, 16, COL.panel); txt(f, hw / 2, 62, 8, '#ffe070', 'center'); }
+}
+
+// cómo se juega: el objetivo y qué hace el botón
+function howTo(hw, id) {
+  const m = mgById(id);
+  rect(0, 184, hw, 30, 'rgba(4,6,14,.72)');
+  txt(m.desc, hw / 2, 188, 8, COL.white, 'center');
+  txt(`${input.device === 'gamepad' ? 'A' : 'ESPACIO'}: ${m.howTo || 'GOLPE'}`, hw / 2, 201, 8, '#ffb31a', 'center');
 }
 
 function drawChoice(hw) {

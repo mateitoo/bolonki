@@ -13,6 +13,8 @@
 //   snapshot(), applySnap(A, B, f, rdt)    online: lo que manda el anfitrión y cómo lo aplica el invitado
 //   guestLocal(rdt), guestHitFx(p)         online: lo que hace el invitado con su propia nave
 //   humanOut                               true si al perder se ve "ELIMINADO" hasta que termine la partida
+//   howTo                                  qué hace el botón de golpe (se muestra antes de jugarlo en la Fiesta)
+//   tense()                                opcional: true cuando la música tiene que acelerar
 //
 // Importante: los métodos usan los imports solo adentro de funciones (hay imports circulares).
 import { game } from '../state.js';

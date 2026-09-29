@@ -403,6 +403,7 @@ const bombardeo = {
   id: 'bombardeo',
   name: 'BOMBARDEO',
   desc: 'SALTÁ ARRIBA DE LAS CAJAS QUE CAEN',
+  howTo: 'SALTAR',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: CAM_POS.clone(), look: CAM_LOOK.clone(), rotate: false, orbit: true },
   humanOut: false,

@@ -26,6 +26,17 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
 - **Empujón:** todos arriba de una plataforma de hielo sobre un abismo con magma. Las naves se mueven libres y patinan;
   el botón de golpe es una **embestida**. Gana la ronda el último que queda arriba; gana la partida el primero que llega a 1, 2 o 3 rondas.
   A los 14 segundos la plataforma empieza a achicarse.
+- **Bombardeo** (a pie): caen cajas de metal sobre una grilla y quedan apiladas; hay que ir saltando de pila en pila
+  (el golpe es **saltar**) sin quedar abajo de una caja ni encerrado en un pozo. Cayendo sobre la cabeza de otro lo
+  dejás mareado (**pisotón**). A los 15 s el piso es lava y sube cada vez más rápido.
+- **Petardos** (a pie, estilo Bomberman): mapa con paredes fijas y cajones al azar, uno en cada esquina. El golpe pone
+  un petardo que explota en cruz y hace explotar a otros. Poderes en los cajones: +fuego (arranca en 1), +petardo
+  (más raro), +velocidad, botas (empujando un obstáculo lo saltás), escudo (aguanta una explosión), patada (el petardo
+  sale deslizando) y **calavera** (una maldición de 10 s que se contagia tocando a otro). Hay 4 canchas (patio,
+  fábrica, desierto y nieve) y a los 35 s empieza la muerte súbita: las paredes se cierran en espiral.
+
+En Bombardeo, Petardos y Empujón la cámara se gira **arrastrando el mouse** (o con el stick derecho); los controles
+siguen a la cámara y la tecla C la vuelve a centrar.
 
 Al elegir el minijuego se ve una vista previa chiquita (una foto que el juego saca de cada minijuego al arrancar, `src/render/thumbs.js`) y su descripción.
 
@@ -122,7 +133,8 @@ src/
   game/physics.js    movimiento, rebotes, goles y colisiones
   game/ai.js         IA de la CPU
   game/match.js      reglas: reinicio, disparos de torre, goles, eliminación
-  deaths/            animaciones de derrota (una por archivo; fall.js es la caída de Empujón)
+  deaths/            animaciones de derrota (una por archivo; fall.js caída, crush.js aplastado, burn.js lava, blast.js petardo)
+  world/walker.js    personajes a pie (sin nave), para Bombardeo y Petardos
   fx/particles.js    chispas, humo, escombros, estela de las pelotas
   visuals.js         animación por frame y cámara
   hud.js             retratos, puntajes, título y carteles
@@ -130,7 +142,7 @@ src/
   display.js         resolución, relación de aspecto y pantalla completa
   settings.js        opciones guardadas
   flow.js            título, menús, partida, pausa y fin
-  minigames/         cada minijuego (registry.js explica la forma; bolas.js y empujon.js)
+  minigames/         cada minijuego (registry.js explica la forma; bolas, empujon, bombardeo y petardos)
   fiesta/board.js    modo Fiesta: tablero, dado, casilleros, copa, duelos y minijuegos sorteados
   multiplayer.js     menús de multijugador: local, crear sala, unirse, salas públicas, apodo, sala de espera, fin online
   net/room.js        conexión PeerJS: código, lugares, listo, ping, votos, reconexión y salas públicas

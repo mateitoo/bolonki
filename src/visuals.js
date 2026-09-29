@@ -3,10 +3,11 @@
 import * as THREE from 'three';
 import { rnd } from './config.js';
 import { game } from './state.js';
-import { camera } from './render/psx.js';
+import { camera, U } from './render/psx.js';
 import { updateParticles } from './fx/particles.js';
 import { mg } from './minigames/registry.js';
 import { input } from './input.js';
+import { updateProps } from './world/props.js';
 
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
 const orbitPos = new THREE.Vector3(), ORBIT_LOOK = new THREE.Vector3(0, 0, 0);
@@ -25,9 +26,17 @@ function orbit3(pos, look, yaw, pitch) {
   pos.set(look.x + Math.sin(az) * Math.cos(el) * r, look.y + Math.sin(el) * r, look.z + Math.cos(az) * Math.cos(el) * r);
 }
 
+// Niebla de cada escenario: lo lejano se funde con el color del horizonte (el cielo queda atrás)
+const FOG0 = { col: 0x04060b, near: 40, far: 80 };
+function applyFog(m) {
+  const f = (typeof m.fog === 'function' ? m.fog() : m.fog) || FOG0;
+  U.uFogCol.value.set(f.col); U.uFogNear.value = f.near; U.uFogFar.value = f.far;
+}
+
 export function updateVisuals(dt, rdt) {
   game.clock += dt;
   const m = mg();
+  applyFog(m);
 
   // animaciones de derrota (explosión, cortocircuito, eyección, caída…)
   for (const p of game.players) {
@@ -42,6 +51,7 @@ export function updateVisuals(dt, rdt) {
   }
 
   m.visuals(dt, rdt);
+  updateProps(dt);
   updateParticles(dt);
 
   // cámara: la de cada minijuego; se acerca suave al jugador cuando pierde

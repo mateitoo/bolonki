@@ -9,6 +9,7 @@ import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
+import { decorEmpujon } from '../world/decor.js';
 import { input } from '../input.js';
 import { burst, P } from '../fx/particles.js';
 import { FX } from '../game/fx.js';
@@ -69,6 +70,7 @@ function buildWorld() {
     m.rotation.set(rnd(0, 3), rnd(0, 3), 0);
     W.rocks.push({ m, y: m.position.y, ph: rnd(0, 6) });
   }
+  decorEmpujon(grp, plat, R0);
 }
 
 /* ---------- rondas ---------- */
@@ -266,6 +268,7 @@ const empujon = {
   howTo: 'EMBESTIDA',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: new THREE.Vector3(0, 24, 21), look: new THREE.Vector3(0, 0, -1.2), rotate: false, orbit: true },
+  fog: { col: 0x2a0c08, near: 45, far: 115 },
   humanOut: false,
   tense: () => game.elapsed > SHRINK_AT,        // música más rápida cuando se achica la plataforma
   thumbSteps: 90,

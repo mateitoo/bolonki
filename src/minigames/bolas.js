@@ -4,6 +4,7 @@ import { register } from './registry.js';
 import { BR, HUMAN_SPEED } from '../config.js';
 import { game, world } from '../state.js';
 import { buildArena, arenaGroup } from '../world/arena.js';
+import { decorBolas } from '../world/decor.js';
 import { buildBalls, removeBall } from '../world/balls.js';
 import { dropDot } from '../fx/particles.js';
 import { step as ballStep, movePod } from '../game/physics.js';
@@ -27,7 +28,7 @@ const bolas = {
   tense: () => game.players.filter((p) => p.alive && !p.empty).length <= 2,   // mano a mano: música más rápida
   thumbSteps: 460,
 
-  build() { buildArena(); buildBalls(); },
+  build() { buildArena(); decorBolas(arenaGroup); buildBalls(); },
   show(on) {
     arenaGroup.visible = on;
     if (!on) game.balls.forEach(removeBall);

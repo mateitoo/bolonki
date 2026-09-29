@@ -21,6 +21,7 @@ import { game } from '../state.js';
 import { settings } from '../settings.js';
 import { scene, mat, add, scaleUV, camera } from '../render/psx.js';
 import { TX } from '../render/textures.js';
+import { decorFiesta } from '../world/decor.js';
 import { input } from '../input.js';
 import { P } from '../fx/particles.js';
 import { FX } from '../game/fx.js';
@@ -179,6 +180,7 @@ function buildWorld() {
   W.ring = add(ring, mat({ color: 0xffd23a, unlit: true }), 0, 0.4, 0, grp);
   W.dice = add(new THREE.BoxGeometry(0.9, 0.9, 0.9), mat({ map: TX.dice, unlit: true }), 0, 3, 0, grp);
   W.dice2 = add(new THREE.BoxGeometry(0.9, 0.9, 0.9), mat({ map: TX.dice, unlit: true }), 0, 3, 0, grp);
+  decorFiesta(grp, { x: SPACES[0].x, z: SPACES[0].z, ang: dirAt(0) });
   // trampas puestas en el camino: pinches rojos
   const spikeM = mat({ color: 0xff3a2a }), baseM = mat({ color: 0x5a1a14 });
   for (let k = 0; k < 8; k++) {
@@ -1033,6 +1035,7 @@ const fiesta = {
   desc: 'TIRÁ EL DADO Y JUNTÁ COPAS',
   points: { label: 'TURNOS', values: [5, 10, 15, 20], key: 'turns', demo: 10 },
   cam: { pos: new THREE.Vector3(0, 26, 22), look: new THREE.Vector3(0, 0, 0), rotate: false },
+  fog: { col: 0x0a1a3a, near: 45, far: 115 },
   humanOut: false,
   tagY: 2.3,
   showTags: () => ['turn', 'move'].includes(S.ph),

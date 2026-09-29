@@ -179,6 +179,8 @@ src/
   game/match.js      reglas: reinicio, disparos de torre, goles, eliminación
   deaths/            animaciones de derrota (una por archivo; fall.js caída, crush.js aplastado, burn.js lava, blast.js petardo)
   world/walker.js    personajes a pie (sin nave), para Bombardeo y Petardos
+  world/decor.js     decorado de cada escenario (cielo, tribunas, volcán, espacio, jardín, fábrica, desierto, nieve, isla)
+  world/props.js     utilería low poly para el decorado (árboles, faroles, pantallas gigantes, géiseres, drones…)
   fx/particles.js    chispas, humo, escombros, estela de las pelotas
   visuals.js         animación por frame y cámara
   hud.js             retratos, puntajes, título y carteles

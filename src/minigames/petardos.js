@@ -17,6 +17,7 @@ import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
+import { decorPetardos } from '../world/decor.js';
 import { input } from '../input.js';
 import { FX } from '../game/fx.js';
 import { resetPodVisual } from '../world/pods.js';
@@ -75,7 +76,7 @@ function pickPower() {
 // X = pared fija · . piso · b arbusto · q arena movediza · ~ hielo · > < ^ v cinta transportadora
 // La fábrica tiene una máquina arriba de la cinta que larga cajones cada tanto (como la cinta de las valijas).
 const CANCHAS = [
-  { name: 'PATIO', floor: 'turf', wall: 'brick', wallCol: 0xffffff, out: 0x557755, deco: 'arboles', extra: 'ARBUSTOS PARA ESCONDERTE',
+  { name: 'PATIO', fog: 0xcfe0e8, floor: 'turf', wall: 'brick', wallCol: 0xffffff, out: 0x557755, deco: 'arboles', extra: 'ARBUSTOS PARA ESCONDERTE',
     map: [
       '...b.........',
       '.X.X..XX.X.X.',
@@ -89,7 +90,7 @@ const CANCHAS = [
       '...XX.b.X..X.',
       '.........b...'
     ] },
-  { name: 'FÁBRICA', floor: 'tile', wall: 'block', wallCol: 0xffffff, out: 0x5a6070, deco: 'cajas', extra: 'CINTA CON CAJONES',
+  { name: 'FÁBRICA', fog: 0x6a5a60, floor: 'tile', wall: 'block', wallCol: 0xffffff, out: 0x5a6070, deco: 'cajas', extra: 'CINTA CON CAJONES',
     machine: [6, 2],        // la máquina que larga cajones (columna y fila del mapa)
     fill: 0.6,              // menos cajones sueltos: la máquina va trayendo más
     map: [
@@ -105,7 +106,7 @@ const CANCHAS = [
       '.X..XX.X..X..',
       '.............'
     ] },
-  { name: 'DESIERTO', floor: 'sand', wall: 'brick', wallCol: 0xe0b878, out: 0xc8a060, deco: 'cactus', extra: 'ARENAS MOVEDIZAS',
+  { name: 'DESIERTO', fog: 0xf0dcb0, floor: 'sand', wall: 'brick', wallCol: 0xe0b878, out: 0xc8a060, deco: 'cactus', extra: 'ARENAS MOVEDIZAS',
     map: [
       '....q........',
       '.X.qqX..X.X..',
@@ -119,7 +120,7 @@ const CANCHAS = [
       '.X..Xqq.X....',
       '.........q...'
     ] },
-  { name: 'NIEVE', floor: 'snow', wall: 'brick', wallCol: 0xdfe8ff, out: 0xdde8f4, deco: 'pinos', extra: 'HIELO QUE RESBALA',
+  { name: 'NIEVE', fog: 0xe8eef6, floor: 'snow', wall: 'brick', wallCol: 0xdfe8ff, out: 0xdde8f4, deco: 'pinos', extra: 'HIELO QUE RESBALA',
     map: [
       '.............',
       '.X.X~~~X..X..',
@@ -198,7 +199,6 @@ function makeMap(ci) {
 
 /* ---------- mundo ---------- */
 const W = { grp: null, canchas: [], crates: [], bombs: [], flames: [], pups: [], puMats: [], shields: [], sdWalls: [], sdFall: [], skulls: [], bushes: [] };
-const DECO_AT = [[-16, -7], [16, -8], [-17, 5], [17, 6], [-9, -14], [10, -14.5], [-14, 13], [14, 13]];
 
 function buildCancha(ci) {
   const C = CANCHAS[ci], g = new THREE.Group(); g.visible = false; W.grp.add(g);
@@ -239,24 +239,8 @@ function buildCancha(ci) {
       W.bushes.push({ g: bg, k: idx(c, r), ci, shake: 0 });
     }
   }
-  // decoración de afuera, según la cancha
-  if (C.deco === 'arboles' || C.deco === 'pinos') {
-    const trunkM = mat({ color: 0x6b4a2a }), leafM = mat({ color: C.deco === 'pinos' ? 0x2a5a4a : 0x2f7a3a }), snowM = mat({ color: 0xf4f8ff });
-    DECO_AT.forEach(([x, z]) => {
-      add(new THREE.CylinderGeometry(0.3, 0.4, 1.6, 6), trunkM, x, -0.6, z, g);
-      add(new THREE.ConeGeometry(1.6, 3, 7), leafM, x, 1.6, z, g);
-      if (C.deco === 'pinos') add(new THREE.ConeGeometry(0.8, 1.2, 7), snowM, x, 2.8, z, g);
-    });
-  } else if (C.deco === 'cactus') {
-    const cm = mat({ color: 0x3f8a48 });
-    DECO_AT.forEach(([x, z], k) => {
-      add(new THREE.CylinderGeometry(0.35, 0.4, 3, 7), cm, x, 0.1, z, g);
-      add(new THREE.CylinderGeometry(0.22, 0.22, 1.1, 6), cm, x + (k % 2 ? 0.55 : -0.55), 0.6, z, g);
-    });
-  } else {
-    const bm = mat({ map: TX.block });
-    DECO_AT.forEach(([x, z], k) => { for (let h = 0; h <= k % 3; h++) add(new THREE.BoxGeometry(2, 2, 2), bm, x, -0.4 + h * 2, z, g).rotation.y = k * 0.4; });
-  }
+  // decoración de afuera, según la cancha (jardín, fábrica, desierto, nieve)
+  decorPetardos(g, C.deco, { TS, GW, GH, cx: cxOf, cz: czOf, wallCol: C.wallCol, wallTex: TX[C.wall] });
   W.canchas.push(g);
 }
 
@@ -836,6 +820,7 @@ const petardos = {
   howTo: 'PONER PETARDO',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: new THREE.Vector3(0, 31.5, 15.4), look: new THREE.Vector3(0, 0, 0.4), rotate: false, orbit: true },
+  fog: () => ({ col: CANCHAS[S.cancha].fog || 0x04060b, near: 50, far: 125 }),
   humanOut: false,
   tense: () => game.elapsed >= SD_AT,           // música más rápida en la muerte súbita
   tagY: 2.2, markMe: true,

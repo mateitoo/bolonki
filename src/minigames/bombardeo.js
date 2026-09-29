@@ -14,6 +14,7 @@ import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { scene, mat, add, scaleUV, camera } from '../render/psx.js';
 import { TX } from '../render/textures.js';
+import { decorBombardeo } from '../world/decor.js';
 import { input } from '../input.js';
 import { FX } from '../game/fx.js';
 import { burst, P } from '../fx/particles.js';
@@ -110,6 +111,7 @@ function buildWorld() {
   W.lavaM = mat({ map: TX.magma, unlit: true });
   const lg = scaleUV(new THREE.PlaneGeometry(GN * TS + 1.2, GN * TS + 1.2, 8, 8), 6); lg.rotateX(-Math.PI / 2);
   W.lava = add(lg, W.lavaM, 0, -5, 0, grp); W.lava.visible = false;
+  decorBombardeo(grp, HALF);
 }
 function newStackBox() { const b = add(W.stackGeo, W.stackMat, 0, -20, 0, W.grp); b.visible = false; W.stack.push(b); return b; }
 
@@ -438,6 +440,7 @@ const bombardeo = {
   howTo: 'SALTAR',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: CAM_POS.clone(), look: CAM_LOOK.clone(), rotate: false, orbit: true },
+  fog: { col: 0x05070f, near: 45, far: 115 },
   humanOut: false,
   tense: () => B.lava > 0,                      // música más rápida con la lava
   tagY: 2.6, tagFeet: true, markMe: true,     // nombre arriba de la cabeza (a la altura de la pila donde está parado)

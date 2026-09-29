@@ -81,6 +81,7 @@ export const TX = {
     x.fillStyle = '#fff6d0'; [[6, 3], [7, 3], [8, 3], [9, 4], [9, 5], [8, 6], [7, 7], [7, 8], [7, 11], [7, 12]].forEach(([a, b]) => x.fillRect(a, b, 2, 1));
   }),
   rock: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#3a3440', 0.3); x.fillStyle = '#26212b'; x.fillRect(0, 5, w, 1); x.fillRect(0, 12, w, 1); }),
+  pebble: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#d8d2ca', 0.22); x.fillStyle = 'rgba(0,0,0,.12)'; x.fillRect(0, 6, w, 1); x.fillRect(5, 11, w, 1); }),   // piedra clara (se tiñe)
   magma: tex(32, 32, (x, w, h) => {
     x.fillStyle = '#3a0a04'; x.fillRect(0, 0, w, h);
     for (let i = 0; i < 70; i++) { x.fillStyle = ['#7a1a06', '#b8320a', '#ff6a14', '#ffb040'][(Math.random() * 4) | 0]; x.fillRect(Math.random() * w, Math.random() * h, rnd(1, 5), rnd(1, 3)); }
@@ -184,6 +185,22 @@ export const TX = {
     x.fillStyle = '#fff'; x.fillRect(3, 9, 9, 3); x.fillRect(4, 6, 4, 4); x.fillRect(11, 10, 2, 2);
     x.fillStyle = '#ffd23a'; x.fillRect(1, 5, 3, 1); x.fillRect(0, 8, 3, 1); x.fillRect(1, 11, 2, 1);
   }),
+  /* ---------- decorado de los escenarios ---------- */
+  water: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#2f78c8'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 14; i++) { x.fillStyle = i % 2 ? 'rgba(170,220,255,.55)' : 'rgba(20,60,130,.4)'; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, rnd(4, 10), 1); }
+  }),
+  wood: tex(16, 16, (x, w, h) => {
+    noisy(x, w, h, '#9a6a3c', 0.08);
+    x.fillStyle = 'rgba(60,30,10,.35)'; for (let i = 3; i < h; i += 5) x.fillRect(0, i, w, 1);
+  }),
+  roof: tex(16, 16, (x, w, h) => {
+    x.fillStyle = '#b8402e'; x.fillRect(0, 0, w, h);
+    x.fillStyle = 'rgba(60,10,5,.4)'; for (let i = 0; i < h; i += 4) { x.fillRect(0, i, w, 1); for (let j = (i / 4) % 2 ? 0 : 2; j < w; j += 4) x.fillRect(j, i, 1, 4); }
+  }),
+  leaf: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#ffffff', 0.18); }),
+  stone: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#b8b4ae', 0.14); x.fillStyle = 'rgba(0,0,0,.18)'; x.fillRect(0, 7, w, 1); x.fillRect(7, 0, 1, 7); x.fillRect(3, 8, 1, 8); }),
+  window: tex(8, 8, (x, w, h) => { x.fillStyle = '#ffe9a0'; x.fillRect(0, 0, w, h); x.fillStyle = '#6b4a2a'; x.fillRect(3, 0, 2, h); x.fillRect(0, 3, w, 2); }),
   /* ---------- personajes con ropa (payaso, gnomo) ---------- */
   // caras: van en una esfera; el frente (+z) queda en u = 0.25 -> x = 32 de 128. Arriba de la imagen = arriba de la cabeza
   clownFace: tex(128, 64, (x, w, h) => {

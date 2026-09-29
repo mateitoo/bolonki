@@ -166,7 +166,7 @@ function hostOnData(conn, m) {
       broadcastLobby(); changed();
       break;
     }
-    case 'i': if (g) { g.s = m.s; g.v = m.v; g.x = m.x || 0; g.y = m.y || 0; if (m.h > g.h) { g.h = m.h; g.hit = true; } } break;
+    case 'i': if (g) { g.s = m.s; g.v = m.v; g.x = m.x || 0; g.y = m.y || 0; g.st = m.st || null; if (m.h > g.h) { g.h = m.h; g.hit = true; } } break;   // st: estado propio que simula el invitado (Bombardeo)
     case 'ready': if (g) { room.slots[conn.slot].ready = !!m.v; broadcastLobby(); changed(); } break;
     case 'vote': if (g) { setVote(conn.slot, !!m.v); } break;
     case 'pong': if (g && room.slots[conn.slot]) { room.slots[conn.slot].ping = Math.max(1, Math.round(now() - m.ts)); } break;

@@ -141,6 +141,16 @@ export const TX = {
     x.fillStyle = '#e8fbff'; x.fillRect(4, 3, 8, 6); x.fillRect(5, 9, 6, 2); x.fillRect(6, 11, 4, 1); x.fillRect(7, 12, 2, 1);
     x.fillStyle = '#1fa8b8'; x.fillRect(7, 4, 2, 6); x.fillRect(5, 6, 6, 2);
   }),
+  puKick: tex(16, 16, (x, w, h) => {
+    x.fillStyle = '#e07a1a'; x.fillRect(0, 0, w, h); x.fillStyle = '#ffc080'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+    x.fillStyle = '#fff'; x.fillRect(3, 4, 3, 6); x.fillRect(3, 9, 7, 3);
+    x.fillStyle = '#111'; x.fillRect(10, 6, 4, 4); x.fillRect(11, 5, 2, 6); x.fillStyle = '#ffd23a'; x.fillRect(13, 4, 1, 1);
+  }),
+  puSkull: tex(16, 16, (x, w, h) => {
+    x.fillStyle = '#5a1a7a'; x.fillRect(0, 0, w, h); x.fillStyle = '#a060c8'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+    x.fillStyle = '#f0ece0'; x.fillRect(4, 3, 8, 7); x.fillRect(3, 4, 10, 5); x.fillRect(5, 10, 6, 3);
+    x.fillStyle = '#111'; x.fillRect(5, 6, 2, 2); x.fillRect(9, 6, 2, 2); x.fillRect(7, 9, 2, 1); x.fillRect(6, 12, 1, 1); x.fillRect(9, 12, 1, 1);
+  }),
   fire: tex(16, 16, (x, w, h) => {
     x.fillStyle = '#ff7a14'; x.fillRect(0, 0, w, h);
     for (let i = 0; i < 40; i++) { x.fillStyle = ['#ffd23a', '#fff6b0', '#ff9a1f', '#ffe070'][(Math.random() * 4) | 0]; x.fillRect(Math.random() * w, Math.random() * h, rnd(1, 4), rnd(1, 3)); }

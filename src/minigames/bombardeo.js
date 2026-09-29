@@ -13,6 +13,7 @@ import { scene, mat, add, scaleUV, camera } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { input } from '../input.js';
 import { FX } from '../game/fx.js';
+import { burst, P } from '../fx/particles.js';
 import { SFX } from '../audio.js';
 import { resetPodVisual } from '../world/pods.js';
 import { drawWalker } from '../world/walker.js';
@@ -187,7 +188,9 @@ function pushOutOfTile(p, k) {
   if (vn < 0) { p.vx -= vn * nx; p.vz -= vn * nz; }
 }
 
+// Devuelve a quién pisoteó (-1 si a nadie)
 function move(p, wx, wz, jump, dt) {
+  if (p.stunT > 0) { p.stunT -= dt; wx = 0; wz = 0; jump = false; }       // mareado: no se mueve
   const l = Math.hypot(wx, wz);
   if (l > 1) { wx /= l; wz /= l; }
   // caminar: velocidad objetivo, agarre fuerte en el piso y un poco menos en el aire
@@ -200,7 +203,7 @@ function move(p, wx, wz, jump, dt) {
   if (jump) p.jumpBuf = BUFFER;
   if (p.jumpBuf > 0) p.jumpBuf -= dt;
   if (p.onGround) p.coyote = COYOTE; else if (p.coyote > 0) p.coyote -= dt;
-  if (p.jumpBuf > 0 && p.coyote > 0) { p.vy = JUMP_V; p.onGround = false; p.coyote = 0; p.jumpBuf = 0; FX.jump(p.i); }
+  if (p.jumpBuf > 0 && p.coyote > 0) { p.vy = JUMP_V; p.onGround = false; p.coyote = 0; p.jumpBuf = 0; p.jN = (p.jN || 0) + 1; FX.jump(p.i); }
   // horizontal y paredes de las pilas
   p.x += p.vx * dt; p.z += p.vz * dt;
   const lim = HALF - PR;
@@ -213,14 +216,32 @@ function move(p, wx, wz, jump, dt) {
   }
   // vertical
   const ground = top(tileOf(p.x, p.z));
+  let stomped = -1;
   if (p.vy <= 0 && p.fy <= ground + 0.02 && p.fy >= ground - STEP) {
     if (!p.onGround && p.vy < -8) SFX.land();
     p.fy = ground; p.vy = 0; p.onGround = true;
   } else {
+    const prev = p.fy;
     p.vy -= GRAV * dt; p.fy += p.vy * dt; p.onGround = false;
-    if (p.fy <= ground) { if (p.vy < -8) SFX.land(); p.fy = ground; p.vy = 0; p.onGround = true; }
+    if (p.vy < 0) stomped = stompCheck(p, prev);
+    if (stomped < 0 && p.fy <= ground) { if (p.vy < -8) SFX.land(); p.fy = ground; p.vy = 0; p.onGround = true; }
   }
+  return stomped;
 }
+
+// Pisotón: cayendo sobre la cabeza de otro, rebotás (y el otro queda mareado)
+function stompCheck(p, prevFy) {
+  for (const q of game.players) {
+    if (q === p || !q.alive || q.empty || q.death) continue;
+    const head = (q.fy || 0) + BODY_H;
+    if (Math.abs(q.x - p.x) < PR * 1.5 && Math.abs(q.z - p.z) < PR * 1.5 && prevFy >= head - 0.12 && p.fy <= head + 0.12) {
+      p.fy = head; p.vy = JUMP_V * 0.72; p.onGround = false; p.coyote = 0;
+      return q.i;
+    }
+  }
+  return -1;
+}
+
 
 function separate(a, b) {
   if (Math.abs(a.fy - b.fy) > BODY_H) return;
@@ -312,11 +333,21 @@ function step(dt) {
       jump = p.wantJump; p.wantJump = false;
     } else if (p.ctrl === 'remote') {
       const n = p.net;
+      // el invitado simula su propio personaje (sin demora) y manda cómo quedó: acá se usa tal cual
+      if (n && n.st) {
+        const s = n.st;
+        Object.assign(p, { x: s.x, z: s.z, fy: s.fy, vy: s.vy, onGround: !!s.og, vx: s.vx, vz: s.vz, ang: s.a });
+        if ((s.jN || 0) > (p.lastJN || 0)) { p.lastJN = s.jN; SFX.jump(); }
+        if ((s.sN || 0) > (p.lastSN || 0)) { p.lastSN = s.sN; if (game.players[s.sI] && game.players[s.sI].alive) FX.stun(s.sI); }
+        if (p.stunT > 0) p.stunT -= dt;
+        continue;
+      }
       if (n) { wx = n.x || 0; wz = -(n.y || 0); jump = n.hit; n.hit = false; }
     } else if (p.ctrl === 'ai') {
       const a = aiInput(p, dt); wx = a.x; wz = a.z; jump = a.jump;
     }
-    move(p, wx, wz, jump, dt);
+    const s = move(p, wx, wz, jump, dt);
+    if (s >= 0) FX.stun(s);
   }
   for (let i = 0; i < alive.length; i++) for (let j = i + 1; j < alive.length; j++) separate(alive[i], alive[j]);
 
@@ -363,6 +394,7 @@ function step(dt) {
 }
 
 const V3 = new THREE.Vector3();
+let guestRound = -1;
 
 /* ---------- el minijuego ---------- */
 let sendT = 0;
@@ -435,6 +467,11 @@ const bombardeo = {
     for (const p of game.players) {
       if (p.death || p.empty) { if (p.empty) { p.mesh.root.visible = false; p.mesh.sh.visible = false; } continue; }
       drawWalker(p, dt, CHAR_SCALE, top(tileOf(p.x, p.z)));
+      // mareado: estrellitas dando vueltas arriba de la cabeza
+      if (p.stunT > 0) {
+        p.mesh.root.rotation.z = Math.sin(clock * 18) * 0.15;
+        if (Math.random() < 0.35) { const a = clock * 10 + Math.random(); burst(p.x + Math.cos(a) * 0.6, (p.fy || 0) + 2.1, p.z + Math.sin(a) * 0.6, { mat: P.YELLOW, n: 1, sp: 0.2, up: [0.1, 0.4], life: [0.2, 0.35], g: 0, size: 0.7 }); }
+      }
     }
   },
 
@@ -487,7 +524,7 @@ const bombardeo = {
     const R = game.round;
     return {
       ro: [R.n, R.over ? 1 : 0, R.winner, Math.round(R.t * 10) / 10],
-      p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.fy || 0), r2(p.ang || 0), p.alive ? 1 : 0, p.onGround ? 1 : 0, p.score, r2(p.vx || 0), r2(p.vz || 0)]),
+      p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.fy || 0), r2(p.ang || 0), p.alive ? 1 : 0, p.onGround ? 1 : 0, p.score, r2(p.vx || 0), r2(p.vz || 0), p.stunT > 0 ? 1 : 0]),
       h: H.join(','), lv: r2(B.lava), el: r1(game.elapsed),
       d: drops.map((o) => [o.id, o.k, r2(o.t), r2(o.warn)]),
     };
@@ -498,10 +535,15 @@ const bombardeo = {
     const hs = A.h.split(',');
     for (let k = 0; k < GN * GN; k++) H[k] = +hs[k] || 0;
     B.lava = A.lv + ((Bs.lv || A.lv) - A.lv) * f;
+    const newRound = ro[0] !== guestRound; guestRound = ro[0];
     game.players.forEach((p, i) => {
       const pa = A.p[i], pb = Bs.p[i];
       if (pa[4] && p.death) { p.death = null; resetPodVisual(p); }
+      const mine = i === game.me && !!pa[4] && !p.death && !newRound;
+      if (mine) { p.alive = true; p.score = pa[6]; return; }      // tu personaje lo movés vos
       p.alive = !!pa[4]; p.score = pa[6]; p.onGround = !!pa[5]; p.vx = pa[7]; p.vz = pa[8];
+      if (i !== game.me) p.stunT = pa[9] ? Math.max(p.stunT || 0, 0.2) : 0;
+      if (newRound && i === game.me) { p.fy = pa[2]; p.vy = 0; p.stunT = 0; }
       if (!p.alive && !p.death && !p.empty) { p.fy = pa[2]; if (B.lava > 0 && p.fy < B.lava) FX.burn(i, B.lava); else FX.crush(i); }
       if (p.death || p.empty) return;
       p.x = pa[0] + (pb[0] - pa[0]) * f; p.z = pa[1] + (pb[1] - pa[1]) * f; p.fy = pa[2] + (pb[2] - pa[2]) * f;
@@ -512,15 +554,24 @@ const bombardeo = {
       return { id, k, t: b ? t + (b[2] - t) * f : t, warn };
     });
   },
+  // El invitado simula su propio personaje acá mismo (responde al instante) y le manda al anfitrión cómo quedó
   guestLocal(rdt, hits) {
+    const me = game.players[game.me];
+    const c = input.ctl.all, [wx, wz] = camMove(c.x, c.y);
+    if (me && me.alive && !me.empty && !me.death) {
+      const playing = game.state === 'play' && !(game.round && game.round.over);
+      const jump = playing && me.wantJump; me.wantJump = false;
+      const s = move(me, playing ? wx : 0, playing ? wz : 0, jump, Math.min(rdt, 1 / 30));
+      if (s >= 0) { me.sN = (me.sN || 0) + 1; me.sI = s; }
+    }
     sendT -= rdt;
     if (sendT > 0) return;
     sendT = 1 / 30;
-    // se manda la dirección ya girada según tu cámara (el anfitrión la usa tal cual)
-    const c = input.ctl.all, [wx, wz] = camMove(c.x, c.y);
-    sendInput({ x: Math.round(wx * 100) / 100, y: Math.round(-wz * 100) / 100, h: hits });
+    const st = me && me.alive ? { x: r2(me.x), z: r2(me.z), fy: r2(me.fy || 0), vy: r2(me.vy || 0), og: me.onGround ? 1 : 0,
+      vx: r2(me.vx || 0), vz: r2(me.vz || 0), a: r2(me.ang || 0), jN: me.jN || 0, sN: me.sN || 0, sI: me.sI || 0 } : null;
+    sendInput({ x: Math.round(wx * 100) / 100, y: Math.round(-wz * 100) / 100, h: hits, st });
   },
-  guestHitFx() {},
+  guestHitFx(me) { me.wantJump = true; },
 };
 
 register(bombardeo);

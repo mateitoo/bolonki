@@ -2,9 +2,10 @@
 // cada uno arranca en una esquina. Con el golpe ponés un petardo: explota en cruz, rompe cajones y
 // hace explotar a otros petardos que alcanza. De los cajones salen poderes:
 //   +fuego (alcance, arranca en 1) · +petardo (más raro) · +velocidad · botas (saltás un obstáculo empujándolo)
-//   · escudo (aguanta una explosión)
+//   · escudo (aguanta una explosión) · patada (empujás un petardo y sale deslizando)
+//   · calavera (una maldición por 10 s que se contagia tocando a otro)
 // Hay varias canchas (cambian las paredes fijas y el lugar) y sale una al azar en cada ronda.
-// Gana la ronda el último que queda. A los 30 s empieza la lluvia de petardos para que no se estire.
+// Gana la ronda el último que queda. A los 35 s empieza la muerte súbita: las paredes se cierran en espiral.
 import * as THREE from 'three';
 import { register } from './registry.js';
 import { CHARS, DIFFICULTIES, rnd, clamp } from '../config.js';
@@ -27,14 +28,22 @@ const FUSE = 2.4;            // mecha del petardo (s)
 const FLAME_T = 0.55;        // cuánto dura el fuego
 const CRATE_FILL = 0.72;     // qué tan lleno de cajones sale el mapa
 const DROP_CHANCE = 0.4;     // cajones que esconden un poder
-// poderes: 0 +petardo · 1 +fuego · 2 +velocidad · 3 botas · 4 escudo (qué tan seguido sale cada uno)
-const PU_WEIGHTS = [15, 38, 17, 15, 15];
+// poderes: 0 +petardo · 1 +fuego · 2 +velocidad · 3 botas · 4 escudo · 5 patada · 6 calavera (qué tan seguido sale cada uno)
+const PU_WEIGHTS = [14, 34, 15, 12, 12, 12, 9];
+const KICK_V = 8;            // celdas por segundo del petardo pateado
+const CURSE_T = 10;          // cuánto dura una maldición
+const CURSES = [
+  { id: 'invertido', label: '¡CONTROLES INVERTIDOS!' },
+  { id: 'lento', label: '¡ESTÁS LENTÍSIMO!' },
+  { id: 'diarrea', label: '¡PETARDOS SIN PARAR!' },
+  { id: 'sinpetardos', label: '¡NO PODÉS PONER PETARDOS!' },
+];
 const RANGE0 = 1;            // alcance inicial del fuego (en celdas)
 const VAULT_PUSH = 0.12, VAULT_T = 0.42;           // botas: cuánto empujar contra el obstáculo y cuánto dura el salto
 const INVUL_T = 1.3;         // después de que el escudo aguanta una explosión
 const SPEED0 = 3.3, SPEED_UP = 0.45, SPEED_MAX = 5.6;   // celdas por segundo
 const MAX_BOMBS = 6, MAX_RANGE = 7;
-const RAIN_AT = 30;                                      // lluvia de petardos (cada vez más seguida)
+const SD_AT = 35, SD_EVERY = 0.28, SD_FALL = 0.35;       // muerte súbita: cuándo empieza, cada cuánto cae una pared y cuánto tarda en caer
 const CHAR_SCALE = 0.7;
 const ROUND_PAUSE = 2.4;
 const EMPTY = 0, WALL = 1, CRATE = 2;
@@ -108,7 +117,19 @@ let bombs = [];                       // { id, k, t, range, owner, age }
 let flames = new Map();               // celda -> tiempo que le queda
 let pups = [];                        // { k, type, t } (t: tiempo hasta aparecer)
 let nextId = 1;
-const S = { rainT: 0, cancha: 0 };
+const S = { cancha: 0, sdIdx: 0, sdT: 0, sdFall: [] };
+// orden de la espiral: desde el borde de adentro hacia el centro, en el sentido de las agujas del reloj
+const SPIRAL = [];
+{
+  let c0 = 1, r0 = 1, c1 = GW - 2, r1 = GH - 2;
+  while (c0 <= c1 && r0 <= r1) {
+    for (let c = c0; c <= c1; c++) SPIRAL.push(idx(c, r0));
+    for (let r = r0 + 1; r <= r1; r++) SPIRAL.push(idx(c1, r));
+    if (r0 < r1) for (let c = c1 - 1; c >= c0; c--) SPIRAL.push(idx(c, r1));
+    if (c0 < c1) for (let r = r1 - 1; r > r0; r--) SPIRAL.push(idx(c0, r));
+    c0++; r0++; c1--; r1--;
+  }
+}
 
 function makeMap(ci) {
   G.fill(EMPTY); hidden.fill(-1);
@@ -125,7 +146,7 @@ function makeMap(ci) {
 }
 
 /* ---------- mundo ---------- */
-const W = { grp: null, canchas: [], crates: [], bombs: [], flames: [], pups: [], puMats: [], shields: [] };
+const W = { grp: null, canchas: [], crates: [], bombs: [], flames: [], pups: [], puMats: [], shields: [], sdWalls: [], sdFall: [], skulls: [] };
 const DECO_AT = [[-14, -6], [14, -7], [-15, 4], [15, 5], [-8, -12], [9, -12.5], [-12, 11], [12, 11]];
 
 function buildCancha(ci) {
@@ -178,7 +199,20 @@ function buildWorld() {
   const fg = new THREE.BoxGeometry(TS * 0.94, TS * 0.5, TS * 0.94), fm = mat({ map: TX.fire, unlit: true });
   W.flameM = fm;
   for (let k = 0; k < N; k++) { const m = add(fg, fm, cxOf(k % GW), TS * 0.25, czOf((k / GW) | 0), grp); m.visible = false; W.flames.push(m); }
-  W.puMats = [TX.puBomb, TX.puFire, TX.puSpeed, TX.puBoots, TX.puShield].map((t) => mat({ map: t, unlit: true }));
+  W.puMats = [TX.puBomb, TX.puFire, TX.puSpeed, TX.puBoots, TX.puShield, TX.puKick, TX.puSkull].map((t) => mat({ map: t, unlit: true }));
+  // muerte súbita: una pared por celda de adentro, y unas que caen
+  const sg = scaleUV(new THREE.BoxGeometry(TS, TS * 0.9, TS), 1, 1), sm = mat({ map: TX.block });
+  for (let k = 0; k < N; k++) { const m = add(sg, sm, cxOf(k % GW), TS * 0.45, czOf((k / GW) | 0), grp); m.visible = false; W.sdWalls.push(m); }
+  for (let n = 0; n < 6; n++) { const m = add(sg, sm, 0, -10, 0, grp); m.visible = false; W.sdFall.push(m); }
+  // calavera flotando arriba de la cabeza del maldito
+  const boneM = mat({ color: 0xf0ece0, unlit: true }), eyeM = mat({ color: 0x5a1a7a, unlit: true });
+  for (let i = 0; i < 4; i++) {
+    const g = new THREE.Group(); g.visible = false; grp.add(g);
+    add(new THREE.BoxGeometry(0.6, 0.5, 0.5), boneM, 0, 0, 0, g);
+    add(new THREE.BoxGeometry(0.4, 0.2, 0.4), boneM, 0, -0.3, 0, g);
+    [-0.14, 0.14].forEach((ex) => add(new THREE.BoxGeometry(0.14, 0.14, 0.05), eyeM, ex, 0.02, 0.26, g));
+    W.skulls.push(g);
+  }
   const pg = new THREE.BoxGeometry(TS * 0.55, TS * 0.55, TS * 0.55);
   for (let n = 0; n < 40; n++) { const m = add(pg, W.puMats[0], 0, 0, 0, grp); m.visible = false; W.pups.push(m); }
   // escudo: dos anillos que giran alrededor del personaje
@@ -198,14 +232,14 @@ function placeAll() {
   // otra cancha al azar (distinta de la anterior)
   if (game.online !== 'guest') { let c = (Math.random() * CANCHAS.length) | 0; if (c === S.cancha) c = (c + 1) % CANCHAS.length; S.cancha = c; }
   makeMap(S.cancha);
-  bombs = []; flames = new Map(); pups = []; S.rainT = RAIN_AT;
+  bombs = []; flames = new Map(); pups = []; S.sdIdx = 0; S.sdT = 0; S.sdFall = []; S.sdWarned = false;
   game.players.forEach((p) => {
     resetPodVisual(p);
     p.death = null;
     p.alive = !p.empty;
     const [c, r] = CORNERS[p.i];
     Object.assign(p, { x: cxOf(c), z: czOf(r), fy: 0, vx: 0, vz: 0, onGround: true, walk: 0, cd: 0,
-      maxBombs: 1, range: RANGE0, speed: SPEED0, boots: false, shield: false, invul: 0, jump: null, pushT: 0,
+      maxBombs: 1, range: RANGE0, speed: SPEED0, boots: false, shield: false, kick: false, curse: null, curseCD: 0, invul: 0, jump: null, pushT: 0,
       pass: [], wantBomb: false, thinkT: 0, path: [], aiGoal: -1 });
     p.ang = r > GH / 2 ? Math.PI : 0;
     if (p.empty) { p.mesh.root.visible = false; p.mesh.sh.visible = false; }
@@ -230,11 +264,31 @@ function placeBomb(p, force) {
   const k = cellOf(p);
   if (bombAt(k) || G[k] !== EMPTY) return;
   if (!force && activeBombs(p) >= p.maxBombs) return;
-  const b = { id: nextId++, k, t: FUSE, range: p.range || RANGE0, owner: p.i, age: 0 };
+  const b = { id: nextId++, k, t: FUSE, range: p.range || RANGE0, owner: p.i, age: 0, bx: cxOf(k % GW), bz: czOf((k / GW) | 0), mv: null };
   bombs.push(b);
   // los que están parados arriba pueden salir caminando
   for (const q of game.players) if (q.alive && cellOf(q) === k) q.pass.push(b.id);
   FX.place();
+}
+
+// Petardos pateados: se deslizan celda por celda hasta que algo los frena (pared, cajón, petardo o alguien)
+function slideBombs(dt) {
+  for (const b of bombs) {
+    if (!b.mv) continue;
+    const c = b.k % GW, r = (b.k / GW) | 0, cx0 = cxOf(c), cz0 = czOf(r);
+    const nc = c + b.mv.dc, nr = r + b.mv.dr, nk = idx(nc, nr);
+    const blocked = !interior(nc, nr) || G[nk] !== EMPTY || bombs.some((o) => o !== b && o.k === nk)
+      || game.players.some((q) => q.alive && !q.empty && cellOf(q) === nk);
+    const along = (b.bx - cx0) * b.mv.dc + (b.bz - cz0) * b.mv.dr;
+    let step = KICK_V * TS * dt;
+    if (blocked) {
+      if (along >= -1e-3) { b.bx = cx0; b.bz = cz0; b.mv = null; continue; }
+      step = Math.min(step, -along);
+    }
+    b.bx += b.mv.dc * step; b.bz += b.mv.dr * step;
+    b.k = idx(colOf(b.bx), rowOf(b.bz));
+    for (const q of game.players) q.pass = q.pass.filter((id) => id !== b.id);
+  }
 }
 
 // celdas que alcanza la explosión de un petardo en k con alcance range (sin romper nada)
@@ -346,7 +400,11 @@ function move(p, ix, iz, dt) {
     const primX = ax >= az;
     const moved = primX ? stepAxis(p, 'x', Math.sign(ix), dist) : stepAxis(p, 'z', Math.sign(iz), dist);
     if (!moved) {
-      if (p.boots) { p.pushT += dt; if (p.pushT > VAULT_PUSH && tryVault(p, primX ? 'x' : 'z', Math.sign(primX ? ix : iz))) p.pushT = 0; }
+      // patada: si lo que te frena es un petardo, sale deslizando
+      const sgn = Math.sign(primX ? ix : iz), c = colOf(p.x), r = rowOf(p.z);
+      const kb = p.kick && bombAt(idx(primX ? c + sgn : c, primX ? r : r + sgn));
+      if (kb && !kb.mv) { kb.mv = { dc: primX ? sgn : 0, dr: primX ? 0 : sgn }; FX.kick(kb.bx, kb.bz); p.pushT = 0; }
+      else if (p.boots) { p.pushT += dt; if (p.pushT > VAULT_PUSH && tryVault(p, primX ? 'x' : 'z', sgn)) p.pushT = 0; }
       if (primX && az > 0.3) stepAxis(p, 'z', Math.sign(iz), dist);
       else if (!primX && ax > 0.3) stepAxis(p, 'x', Math.sign(ix), dist);
     } else p.pushT = 0;
@@ -371,6 +429,12 @@ function dangerMap(extra, react, p) {
   const d = new Array(N).fill(Infinity);
   list.forEach((b, i) => { for (const kk of cells[i]) d[kk] = Math.min(d[kk], b.t); });
   for (const [kk] of flames) d[kk] = 0;
+  // muerte súbita: las próximas celdas de la espiral son peligrosas (y después quedan tapadas)
+  if (game.elapsed > SD_AT - 3) {
+    for (const f of S.sdFall) d[f.k] = Math.min(d[f.k], Math.max(0.01, SD_FALL - f.t));
+    let t = Math.max(0, S.sdT) + Math.max(0, SD_AT - game.elapsed);
+    for (let j = S.sdIdx; j < SPIRAL.length && t < 3; j++) { if (G[SPIRAL[j]] !== WALL) { d[SPIRAL[j]] = Math.min(d[SPIRAL[j]], t + SD_FALL); t += SD_EVERY; } }
+  }
   return d;
 }
 // Camino (por celdas) hasta la celda más cercana que cumpla want(k), pasando solo por celdas seguras a tiempo
@@ -439,7 +503,7 @@ function aiThink(p, D) {
   }
   // 3) moverse: poder cerca, un lugar al lado de un cajón, o ir a buscar a alguien
   if (p.path.length && safe(p.path[p.path.length - 1]) && Math.random() < 0.7) return;   // sigue con lo que venía
-  const puSet = new Set(pups.filter((u) => u.t <= 0).map((u) => u.k));
+  const puSet = new Set(pups.filter((u) => u.t <= 0 && u.type !== 6).map((u) => u.k));
   let path = findPath(p, danger, (k, d) => d > 0 && puSet.has(k), 6);
   if (!path) {
     path = findPath(p, danger, (k, d) => d > 0 && safe(k) && DIRS.some(([dc, dr]) => G[idx((k % GW) + dc, ((k / GW) | 0) + dr)] === CRATE), 10);
@@ -499,9 +563,18 @@ function step(dt) {
       bomb = p.wantBomb; p.wantBomb = false;
     }
     if (R.over) { ix = 0; iz = 0; bomb = false; }
+    // maldición de la calavera
+    const cu = p.curse && p.curse.id;
+    if (cu === 'invertido') { ix = -ix; iz = -iz; }
+    if (cu === 'sinpetardos') bomb = false;
+    if (cu === 'diarrea' && !R.over) bomb = true;
     if (bomb && !p.jump) placeBomb(p);  // el petardo queda donde estabas al apretar
+    const sp0 = p.speed; if (cu === 'lento') p.speed = SPEED0 * 0.45;
     move(p, ix, iz, dt);
+    p.speed = sp0;
     if (p.invul > 0) p.invul -= dt;
+    if (p.curseCD > 0) p.curseCD -= dt;
+    if (p.curse) { p.curse.t -= dt; if (p.curse.t <= 0) p.curse = null; }
     // agarrar poderes
     const k = cellOf(p);
     const pu = !p.jump && pups.find((u) => u.k === k && u.t <= 0);
@@ -511,24 +584,48 @@ function step(dt) {
       else if (pu.type === 1) p.range = Math.min(MAX_RANGE, p.range + 1);
       else if (pu.type === 2) p.speed = Math.min(SPEED_MAX, p.speed + SPEED_UP);
       else if (pu.type === 3) p.boots = true;
-      else p.shield = true;
-      FX.powerup(p.x, p.z);
+      else if (pu.type === 4) p.shield = true;
+      else if (pu.type === 5) p.kick = true;
+      else { p.curse = { id: CURSES[(Math.random() * CURSES.length) | 0].id, t: CURSE_T }; p.curseCD = 1; FX.curse(p.i); }
+      if (pu.type !== 6) FX.powerup(p.x, p.z);
     }
   }
-
-  // lluvia de petardos (para que la ronda no se estire)
-  if (!R.over && game.elapsed > RAIN_AT) {
-    S.rainT -= dt;
-    if (S.rainT <= 0) {
-      S.rainT = Math.max(0.12, 0.5 - (game.elapsed - RAIN_AT) * 0.03);
-      const free = [];
-      for (let k = 0; k < N; k++) if (G[k] === EMPTY && !bombAt(k) && !flames.has(k)) free.push(k);
-      if (free.length) { const k = free[(Math.random() * free.length) | 0]; bombs.push({ id: nextId++, k, t: FUSE, range: 3, owner: -2, age: 0 }); }
-    }
+  // la calavera se contagia: si el maldito toca a otro, se la pasa
+  for (const a of alive) {
+    if (!a.curse || a.curseCD > 0 || !a.alive) continue;
+    const b = alive.find((q) => q !== a && q.alive && !q.curse && Math.hypot(q.x - a.x, q.z - a.z) < TS * 0.7);
+    if (b) { b.curse = a.curse; a.curse = null; b.curseCD = 1; a.curseCD = 1; FX.curse(b.i); }
   }
 
-  // mechas, explosiones, fuego y poderes que aparecen
-  for (const b of bombs) { b.t -= dt; b.age += dt; }
+  // muerte súbita: las paredes se van cerrando en espiral desde el borde
+  if (!R.over && game.elapsed >= SD_AT) {
+    S.sdT -= dt;
+    while (S.sdT <= 0 && S.sdIdx < SPIRAL.length) {
+      const k = SPIRAL[S.sdIdx++];
+      if (G[k] === WALL) continue;
+      S.sdFall.push({ k, t: 0 });
+      S.sdT += SD_EVERY;
+    }
+    for (const f of S.sdFall) {
+      f.t += dt;
+      if (f.t < SD_FALL) continue;
+      f.done = true;
+      const k = f.k, x = cxOf(k % GW), z = czOf((k / GW) | 0);
+      G[k] = WALL; hidden[k] = -1;
+      bombs = bombs.filter((b) => b.k !== k);
+      pups = pups.filter((u) => u.k !== k);
+      FX.wall(x, z);
+      for (const p of alive) if (p.alive && cellOf(p) === k) { p.alive = false; game.elimOrder.push(p.i); p.fy = 0; FX.crush(p.i); if (p.i === game.me && game.mode === 'solo') game.timeScale = 1.5; }
+    }
+    S.sdFall = S.sdFall.filter((f) => !f.done);
+    if (game.elapsed > SD_AT - 0.1 && !S.sdWarned) { S.sdWarned = true; FX.shrinkWarn(); }
+  }
+
+  // petardos pateados
+  slideBombs(dt);
+
+  // mechas, explosiones, fuego y poderes que aparecen (un petardo que pasa por el fuego explota)
+  for (const b of bombs) { b.t -= dt; b.age += dt; if (flames.has(b.k)) b.t = Math.min(b.t, 0.05); }
   let guard = 0;
   while (guard++ < 50) { const b = bombs.find((q) => q.t <= 0); if (!b) break; explode(b); }
   for (const [k, t] of flames) { if (t - dt <= 0) flames.delete(k); else flames.set(k, t - dt); }
@@ -588,12 +685,20 @@ const petardos = {
   visuals(dt) {
     const clock = game.clock;
     W.canchas.forEach((g, i) => (g.visible = i === S.cancha));
-    for (let k = 0; k < N; k++) W.crates[k].visible = G[k] === CRATE;
+    for (let k = 0; k < N; k++) {
+      W.crates[k].visible = G[k] === CRATE;
+      W.sdWalls[k].visible = G[k] === WALL && !isWall(S.cancha, k % GW, (k / GW) | 0);   // paredes de la muerte súbita
+    }
+    W.sdFall.forEach((m, n) => {
+      const f = S.sdFall[n];
+      m.visible = !!f;
+      if (f) { const u = Math.min(1, f.t / SD_FALL); m.position.set(cxOf(f.k % GW), TS * 0.45 + (1 - u * u) * 12, czOf((f.k / GW) | 0)); }
+    });
     // petardos: se inflan cada vez más rápido y la chispa titila
     W.bombs.forEach((g) => (g.visible = false));
     bombs.forEach((b, n) => {
       const g = W.bombs[n]; if (!g) return;
-      g.visible = true; g.position.set(cxOf(b.k % GW), 0, czOf((b.k / GW) | 0));
+      g.visible = true; g.position.set(b.bx !== undefined ? b.bx : cxOf(b.k % GW), 0, b.bz !== undefined ? b.bz : czOf((b.k / GW) | 0));
       const f = 1 - clamp(b.t / FUSE, 0, 1), s = 1 + Math.sin(clock * (8 + f * 22)) * (0.05 + f * 0.08);
       g.scale.set(s, 1 / s, s);
       g.userData.spark.visible = ((clock * 20) | 0) % 2 === 0;
@@ -613,10 +718,12 @@ const petardos = {
       m.position.set(cxOf(u.k % GW), TS * 0.45 + Math.sin(clock * 4 + u.k) * 0.12, czOf((u.k / GW) | 0));
       m.rotation.set(0.3, clock * 2 + u.k, 0);
     });
-    // personajes a pie (con escudo: dos anillos girando; recién golpeado: titila)
+    // personajes a pie (con escudo: dos anillos girando; recién golpeado: titila; maldito: calavera arriba)
     for (const p of game.players) {
-      const sh = W.shields[p.i];
+      const sh = W.shields[p.i], sk = W.skulls[p.i];
       sh.visible = !!(p.shield && p.alive && !p.death && !p.empty);
+      sk.visible = !!(p.curse && p.alive && !p.death && !p.empty);
+      if (sk.visible) { sk.position.set(p.x, (p.fy || 0) + TS * 1.55 + Math.sin(clock * 5) * 0.1, p.z); sk.rotation.y = clock * 2; }
       if (p.death || p.empty) { if (p.empty) { p.mesh.root.visible = false; p.mesh.sh.visible = false; } continue; }
       p.onGround = !p.jump && !(p.fy > 0.05);
       drawWalker(p, dt, CHAR_SCALE, 0);
@@ -652,13 +759,15 @@ const petardos = {
       rect(0, 96, hw, 34, 'rgba(4,6,14,.7)');
       txt(t, hw / 2, 104, 16, w < 0 ? COL.white : CHARS[w].col, 'center', COL.goldShadow);
     }
-    if (st === 'play' && !R.over && game.elapsed > RAIN_AT && game.elapsed < RAIN_AT + 2.5 && ((game.clock * 3) | 0) % 2) txt('¡LLUVIA DE PETARDOS!', hw / 2, 64, 8, COL.red, 'center');
+    if (st === 'play' && !R.over && game.elapsed > SD_AT - 1 && game.elapsed < SD_AT + 2.5 && ((game.clock * 3) | 0) % 2) txt('¡MUERTE SÚBITA!', hw / 2, 64, 16, COL.red, 'center', COL.goldShadow);
     // tus poderes (arriba al medio): petardos, fuego, velocidad, botas y escudo
     const me = game.players[game.me];
     if ((st === 'play' || st === 'count') && me && me.alive && !me.empty && game.mode !== 'local') {
       const lv = Math.round((me.speed - SPEED0) / SPEED_UP) + 1, x0 = Math.round(hw / 2 - 62), y0 = 5;
-      rect(x0 - 4, y0 - 2, 132, 14, 'rgba(4,6,14,.65)');
-      const bc = me.boots ? '#ffd23a' : '#3a4050', sc = me.shield ? '#6ff6ff' : '#3a4050';
+
+      const bc = me.boots ? '#ffd23a' : '#3a4050', sc = me.shield ? '#6ff6ff' : '#3a4050', kc = me.kick ? '#ff9a3a' : '#3a4050';
+      rect(x0 - 4, y0 - 2, 146, 14, 'rgba(4,6,14,.65)');
+      rect(x0 + 120, y0 + 1, 3, 5, kc); rect(x0 + 120, y0 + 6, 5, 3, kc); rect(x0 + 127, y0 + 4, 4, 4, kc);   // patada
       rect(x0 + 92, y0 + 1, 3, 5, bc); rect(x0 + 92, y0 + 6, 6, 3, bc);                      // bota
       rect(x0 + 106, y0 + 1, 7, 5, sc); rect(x0 + 107, y0 + 6, 5, 2, sc); rect(x0 + 108, y0 + 8, 3, 1, sc);   // escudo
       rect(x0 + 1, y0 + 2, 6, 6, '#15151c'); rect(x0 + 2, y0 + 1, 4, 8, '#15151c'); rect(x0 + 5, y0, 2, 2, '#ffd23a');
@@ -669,6 +778,11 @@ const petardos = {
       txt(String(lv), x0 + 75, y0 + 1, 8, COL.white);
     }
     if (st === 'play' && me && !me.alive && !me.empty && !R.over && game.mode !== 'local') txt('¡VOLASTE!', hw / 2, 196, 16, COL.red, 'center');
+    // tu maldición
+    if (st === 'play' && me && me.alive && me.curse && game.mode !== 'local') {
+      const c = CURSES.find((q) => q.id === me.curse.id);
+      if (c && ((game.clock * 4) | 0) % 2) txt(`${c.label} ${Math.ceil(me.curse.t)}`, hw / 2, 24, 8, '#d8a0ff', 'center');
+    }
   },
 
   /* ---------- online (el anfitrión manda todo; el invitado manda para dónde va y cuándo pone un petardo) ---------- */
@@ -676,10 +790,10 @@ const petardos = {
     const R = game.round;
     return {
       ro: [R.n, R.over ? 1 : 0, R.winner, Math.round(R.t * 10) / 10],
-      g: G.join(''), cn: S.cancha,
+      g: G.join(''), cn: S.cancha, sf: S.sdFall.map((f) => [f.k, r2(f.t)]),
       p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.ang || 0), p.alive ? 1 : 0, p.score, p.maxBombs || 1, p.range || RANGE0, r2(p.speed || SPEED0),
-        p.boots ? 1 : 0, p.shield ? 1 : 0, p.invul > 0 ? 1 : 0, r2(p.fy || 0)]),
-      b: bombs.map((b) => [b.id, b.k, r2(b.t)]),
+        p.boots ? 1 : 0, p.shield ? 1 : 0, p.invul > 0 ? 1 : 0, r2(p.fy || 0), p.kick ? 1 : 0, p.curse ? CURSES.findIndex((c) => c.id === p.curse.id) : -1, p.curse ? Math.ceil(p.curse.t) : 0]),
+      b: bombs.map((b) => [b.id, b.k, r2(b.t), r2(b.bx), r2(b.bz)]),
       f: [...flames].map(([k, t]) => [k, r2(t)]),
       u: pups.map((u) => [u.k, u.type, r2(u.t)]),
     };
@@ -694,13 +808,18 @@ const petardos = {
       if (pa[3] && p.death) { p.death = null; resetPodVisual(p); }
       p.alive = !!pa[3]; p.score = pa[4]; p.maxBombs = pa[5]; p.range = pa[6]; p.speed = pa[7];
       p.boots = !!pa[8]; p.shield = !!pa[9]; p.invul = pa[10] ? 0.5 : 0; p.fy = pa[11] + ((pb[11] || 0) - pa[11]) * f;
+      p.kick = !!pa[12]; p.curse = pa[13] >= 0 ? { id: CURSES[pa[13]].id, t: pa[14] } : null;
       if (!p.alive && !p.death && !p.empty) FX.blast(i);
       if (p.death || p.empty) return;
       const nx = pa[0] + (pb[0] - pa[0]) * f, nz = pa[1] + (pb[1] - pa[1]) * f;
       p.vx = (pb[0] - pa[0]) * 20; p.vz = (pb[1] - pa[1]) * 20;
       p.x = nx; p.z = nz; p.ang = lerpAng(pa[2], pb[2], f);
     });
-    bombs = A.b.map(([id, k, t]) => ({ id, k, t, range: RANGE0, owner: -1, age: 9 }));
+    bombs = A.b.map(([id, k, t, bx, bz]) => {
+      const nb = Bs.b.find((q) => q[0] === id);
+      return { id, k, t, range: RANGE0, owner: -1, age: 9, bx: nb ? bx + (nb[3] - bx) * f : bx, bz: nb ? bz + (nb[4] - bz) * f : bz };
+    });
+    S.sdFall = (A.sf || []).map(([k, t]) => ({ k, t }));
     flames = new Map(A.f.map(([k, t]) => [k, t]));
     pups = A.u.map(([k, type, t]) => ({ k, type, t }));
   },

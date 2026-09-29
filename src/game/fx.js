@@ -131,6 +131,16 @@ export const FX = {
   },
 
   /* ---------- Fiesta ---------- */
+  // Futbolonki: gol (festejo con papelitos del color del equipo) y pelotazo
+  gol(team, x, z) {
+    SFX.cheer(); game.shake = Math.max(game.shake, 0.4);
+    const c = team === 0 ? P.CYAN : P.RED;
+    burst(x, 1, z, { mat: c, n: 16, sp: 7, up: [3, 9], life: [0.5, 1.0] });
+    burst(x, 1, z, { mat: P.YELLOW, n: 10, sp: 6, up: [3, 8], life: [0.5, 1.0] });
+    burst(x, 1, z, { mat: P.WHITE, n: 8, sp: 5, up: [2, 7], life: [0.4, 0.9] });
+    emit(['Gl', team, r2(x), r2(z)]);
+  },
+  shot(x, z) { SFX.kick(); game.shake = Math.max(game.shake, 0.12); burst(x, 0.5, z, { mat: P.WHITE, n: 6, sp: 4, up: [0.5, 3], life: [0.15, 0.35] }); emit(['Sh', r2(x), r2(z)]); },
   snd(name) { if (SFX[name]) SFX[name](); emit(['S', name]); },
   sparkle(x, y, z, m, n) { burst(x, y, z, { mat: m, n, sp: 3, up: [2, 6], life: [0.4, 0.8] }); emit(['X', r2(x), r2(y), r2(z), m, n]); },
 };
@@ -170,6 +180,8 @@ export function playEvent(ev) {
     case 'Mc': FX.machine(ev[1], ev[2]); break;
     case 'Cu': FX.curse(ev[1]); break;
     case 'Wl': FX.wall(ev[1], ev[2]); break;
+    case 'Gl': FX.gol(ev[1], ev[2], ev[3]); break;
+    case 'Sh': FX.shot(ev[1], ev[2]); break;
     case 'S': FX.snd(ev[1]); break;
     case 'X': FX.sparkle(ev[1], ev[2], ev[3], ev[4], ev[5]); break;
     default: break;

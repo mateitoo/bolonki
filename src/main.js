@@ -13,6 +13,7 @@ import './minigames/bolas.js';
 import './minigames/empujon.js';
 import './minigames/bombardeo.js';
 import './minigames/petardos.js';
+import './minigames/futbol.js';
 import fiesta, { S as fiestaState, startFiesta } from './fiesta/board.js';
 import salaStage from './sala/stage.js';
 import { updateVisuals } from './visuals.js';

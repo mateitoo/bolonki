@@ -92,5 +92,8 @@ export const SFX = {
   drumroll() { for (let k = 0; k < 22; k++) noise(0.05, 0.05 + k * 0.004, 1400, k * 0.055); noise(0.5, 0.14, 5000, 1.22); beep(196, 196, 0.35, 'square', 0.05, 1.22); beep(392, 392, 0.4, 'square', 0.04, 1.22); },
   spin() { beep(1200, 1200, 0.02, 'square', 0.025); },
   bonus() { [784, 988, 1175, 1568].forEach((f, k) => beep(f, f, 0.12, 'square', 0.05, k * 0.07)); beep(2093, 2093, 0.3, 'triangle', 0.04, 0.3); },
+  whistle() { [0, 0.09, 0.18].forEach((d) => beep(2350, 2250, 0.08, 'square', 0.03, d)); beep(2400, 2300, 0.28, 'square', 0.035, 0.28); },
+  cheer() { noise(1.6, 0.14, 1500); noise(1.1, 0.08, 3400, 0.25); [523, 659, 784, 1046, 1318].forEach((f, k) => beep(f, f, 0.12, 'square', 0.045, k * 0.08)); },
+  thump() { beep(260, 120, 0.07, 'square', 0.05); noise(0.05, 0.06, 1500); },
   warnShrink() { beep(300, 300, 0.1, 'square', 0.05); beep(300, 300, 0.1, 'square', 0.05, 0.2); },
 };

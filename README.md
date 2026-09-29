@@ -39,6 +39,12 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   algo propio: patio (arbustos para esconderte), fábrica (una cinta en circuito que te arrastra a vos y a los petardos, con una máquina que va largando cajones como la cinta de valijas del aeropuerto), desierto
   (arenas movedizas) y nieve (hielo: si soltás seguís resbalando). Al minuto empieza la muerte súbita: las paredes
   se cierran en espiral.
+- **Futbolonki:** fútbol de naves en un estadio de noche con tribunas. Los de la izquierda del marcador (AZUL) contra
+  los de la derecha (ROJO): 2 contra 2, 2 contra 1 con 3 jugadores o 1 contra 1 en un duelo de la Fiesta. Las naves manejan
+  como en Empujón y la **embestida** contra la pelota es un pelotazo que sale para donde ibas. Gana el primer equipo en llegar
+  a 3, 5 o 7 goles, o el que va ganando a los 2 minutos; si empatan hay **gol de oro** y los arcos se agrandan de a poco
+  hasta que alguien la meta. Los CPU se reparten: uno va a buscar la pelota y el otro ataja. Un tiro que el rival desvía
+  adentro cuenta como gol del que pateó.
 
 ## Música
 
@@ -50,7 +56,7 @@ El volumen está en Opciones → Audio.
 Para sumar un tema: agregarlo a `SONGS` (un acorde y un compás de melodía por compás, 16 pasos cada uno) y ponerle
 `music: '<nombre>'` al minijuego, o usar su mismo id.
 
-En Bombardeo, Petardos y Empujón la cámara se gira **arrastrando el mouse** (o con el stick derecho); los controles
+En Bombardeo, Petardos, Empujón y Futbolonki la cámara se gira **arrastrando el mouse** (o con el stick derecho); los controles
 siguen a la cámara y la tecla C la vuelve a centrar.
 
 Al elegir el minijuego se ve una vista previa chiquita (una foto que el juego saca de cada minijuego al arrancar, `src/render/thumbs.js`) y su descripción.
@@ -188,7 +194,7 @@ src/
   display.js         resolución, relación de aspecto y pantalla completa
   settings.js        opciones guardadas
   flow.js            título, menús, partida, pausa y fin
-  minigames/         cada minijuego (registry.js explica la forma; bolas, empujon, bombardeo y petardos)
+  minigames/         cada minijuego (registry.js explica la forma; bolas, empujon, bombardeo, petardos y futbol)
   fiesta/board.js    modo Fiesta: tablero, dado, casilleros, copa, duelos y minijuegos sorteados
   multiplayer.js     menú ONLINE (crear sala, unirse, salas públicas, apodo), pausa y fin online
   sala/sala.js       la sala: unirse, elegir personaje, opciones y arrancar (solo, local y online)

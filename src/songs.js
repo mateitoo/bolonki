@@ -71,6 +71,19 @@ export const SONGS = {
     drums: { A: 'k.h.s.hkk.h.s.h.', B: 'x.h.o.hkx.h.o.h.', fill: 'k.h.s.hkk.s.s.ss' },
   },
 
+  // Futbolonki: canto de hinchada, en Re mayor
+  futbol: {
+    bpm: 140, loop: true, leadWave: 'pulse25', arpWave: 'pulse125', bass: 'octave8', arp: 'up8', leadVol: 0.9,
+    chords: ['D', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A', 'D', 'D'],
+    lead: [
+      'D5:2 D5:2 F#5:2 A5:2 D6:4 A5:4', 'C#5:2 E5:2 A5:4 G5:2 F#5:2 E5:4', 'F#5:2 D5:2 B4:2 D5:2 F#5:4 B5:4', 'G5:4 B5:2 A5:2 G5:4 D5:4',
+      'D5:2 F#5:2 A5:2 D6:2 C#6:2 A5:2 F#5:4', 'E5:2 A5:2 C#6:4 B5:2 A5:2 E5:4', 'G5:2 F#5:2 E5:2 D5:2 B4:4 D5:4', 'E5:4 A5:4 C#6:4 E6:4',
+      'F#6:4 D6:2 B5:2 F#5:4 D6:4', 'D6:4 B5:2 G5:2 D5:4 G5:4', 'A5:2 F#5:2 D5:2 F#5:2 A5:4 D6:4', 'C#6:4 A5:4 E5:2 C#5:2 A4:4',
+      'B4:2 D5:2 G5:2 B5:2 D6:4 B5:4', 'C#6:2 B5:2 A5:2 G5:2 E5:4 C#5:4', 'D5:2 F#5:2 A5:2 D6:2 A5:2 F#5:2 D5:4', 'D5:8 r:8',
+    ],
+    drums: { A: 'x.h.o.h.x.h.o.h.', B: 'x.hko.hkx.hko.h.', fill: 'x.h.o.hhx.o.o.oo' },
+  },
+
   // Fiesta (el tablero): alegre, en Sol mayor
   fiesta: {
     bpm: 118, loop: true, leadWave: 'pulse25', arpWave: 'pulse125', bass: 'bounce', arp: 'up8', leadVol: 0.85,

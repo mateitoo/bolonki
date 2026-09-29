@@ -12,6 +12,31 @@ export function decorBolas(g) {
   P.sky(g, [[0, '#03040e'], [0.45, '#070a1c'], [0.52, '#0a0816'], [1, '#04060b']], { stars: 60 });
 }
 
+/* ---------- Futbolonki: estadio de noche ---------- */
+export function decorFutbol(g, HX, HZ) {
+  // piso de afuera (pista de cemento) debajo del pasto
+  // (bien subdividido y un poco más abajo: los triángulos grandes "bailan" con el temblor PS1 y se meten en el pasto)
+  const fl = new THREE.PlaneGeometry(90, 70, 18, 14); fl.rotateX(-Math.PI / 2);
+  add(fl, P.M(0x3a3e4a, { map: TX.floor }), 0, -0.3, 0, g);
+  // tribunas en los cuatro lados, con banderas arriba
+  const D = HZ + 4.3, DX = HX + 5.3;
+  const cols = [0x35a0ff, 0xff5a4a, 0xffe14a, 0xffffff, 0x39d98a];
+  [[0, -D, Math.PI, 34], [0, D, 0, 34], [DX, 0, Math.PI / 2, 22], [-DX, 0, -Math.PI / 2, 22]].forEach(([x, z, ry, w], k) => {
+    const s = P.stands(g, x, 0, z, ry, w, 4);
+    const nf = Math.floor(w / 5.5);
+    for (let i = 0; i < nf; i++) P.flag(s, -w / 2 + 2.5 + i * ((w - 5) / (nf - 1)), 3.6, 4.2, 3, cols[(i + k) % cols.length]);
+  });
+  // bancos de suplentes contra la pared de adelante
+  [-6, 6].forEach((x) => P.bench(g, x, 0, HZ + 1.6, Math.PI));
+  // torres de luces en las esquinas y pantallas gigantes detrás de las tribunas de los arcos y del fondo
+  [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sz]) => P.floodlight(g, sx * (HX + 9), 0, sz * (HZ + 8), 15));
+  P.jumbotron(g, 0, 8.5, -(D + 7.5), 0, 13, 5.2);
+  P.jumbotron(g, DX + 7.5, 7.5, 0, -Math.PI / 2, 10, 4.6);
+  P.jumbotron(g, -(DX + 7.5), 7.5, 0, Math.PI / 2, 10, 4.6);
+  P.planet(g, -40, 22, -60, 7, 0x3a6ab8, 0xa0d0ff);
+  P.sky(g, [[0, '#04061a'], [0.38, '#0b1236'], [0.48, '#1a2a5a'], [0.52, '#101830'], [1, '#04060b']], { stars: 80 });
+}
+
 /* ---------- Empujón: volcán ---------- */
 export function decorEmpujon(grp, plat, R0) {
   const Y = -26;

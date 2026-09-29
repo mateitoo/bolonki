@@ -250,5 +250,26 @@ export const TX = {
   }),
   tunic: tex(32, 32, (x, w, h) => { noisy(x, w, h, '#b9cd82', 0.04); x.fillStyle = 'rgba(60,80,20,.12)'; x.fillRect(0, 30, w, 2); }),
   cloth: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#ffffff', 0.06); }),   // tela neutra: se tiñe con el color del material
+  // Futbolonki: pelota de gajos (se envuelve en una esfera: 32 de ancho = la vuelta, 16 de alto = de polo a polo)
+  football: tex(32, 16, (x, w, h) => {
+    noisy(x, w, h, '#f4f4f0', 0.05);
+    const blob = (cx, cy, r) => { x.fillStyle = '#16161c'; for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) if (Math.abs(xx) + Math.abs(yy) * 1.2 <= r + 0.4) x.fillRect((cx + xx + w) % w, cy + yy, 1, 1); };
+    for (let k = 0; k < 5; k++) { blob(k * 6.4 + 1, 5, 2); blob(k * 6.4 + 4, 10, 2); }
+  }),
+  // publicidad de los carteles de la cancha: tiras de colores con "letras" de píxeles
+  ads: tex(64, 8, (x, w, h) => {
+    const cols = [['#ff9a1f', '#3a1200'], ['#1a2a6a', '#ffe14a'], ['#e8e8f0', '#d8262e'], ['#1f8a4a', '#ffffff']];
+    for (let k = 0; k < 4; k++) {
+      const [bg, fg] = cols[k]; x.fillStyle = bg; x.fillRect(k * 16, 0, 16, h);
+      x.fillStyle = fg; for (let i = 0; i < 5; i++) { const hh = 2 + ((i * 7 + k * 3) % 3); x.fillRect(k * 16 + 2 + i * 3, 4 - (hh >> 1), 2, hh); }
+      x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(k * 16 + 15, 0, 1, h);
+    }
+    x.fillStyle = 'rgba(255,255,255,.25)'; x.fillRect(0, 0, w, 1);
+  }),
+  // pasto de la cancha: franjas claras y oscuras (una franja por textura)
+  pitch: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#3f8f3a'; x.fillRect(0, 0, w, h); x.fillStyle = '#4aa243'; x.fillRect(0, 0, w / 2, h);
+    for (let i = 0; i < 90; i++) { x.fillStyle = ['rgba(120,200,90,.35)', 'rgba(20,60,20,.25)'][i % 2]; x.fillRect(Math.random() * w, Math.random() * h, 1, rnd(1, 3)); }
+  }),
 };
 setWhiteTexture(TX.white);

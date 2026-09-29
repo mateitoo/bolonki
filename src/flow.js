@@ -123,6 +123,7 @@ export const OPTIONS = {
       { kind: 'info', label: 'LOCAL J1', value: 'FLECHAS · ESPACIO / CTRL' },
       { kind: 'info', label: 'LOCAL J2', value: 'WASD · E / Q' },
       { kind: 'info', label: 'CAMBIAR SOLAPA', value: 'Q E / LB RB' },
+      { kind: 'info', label: 'GIRAR CÁMARA', value: 'ARRASTRAR · C CENTRA' },
       { kind: 'info', label: 'PANTALLA COMPLETA', value: 'F' },
     ] },
     // JUEGO: qué minijuegos salen en la Fiesta y cómo se ve la derrota

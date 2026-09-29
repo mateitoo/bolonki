@@ -112,6 +112,7 @@ export function drawHud() {
       const duel = !!game.setup.duel;
       txt(duel ? '¡DUELO!' : 'MINIJUEGO DE LA FIESTA', hw / 2, 64, 8, duel ? '#d8a0ff' : COL.teal, 'center');
     }
+    if (mg().cam.orbit && game.mode !== 'demo') txt(input.device === 'gamepad' ? 'STICK DERECHO: GIRAR LA CÁMARA' : 'ARRASTRÁ EL MOUSE: GIRAR CÁMARA · C', hw / 2, 204, 8, COL.dim, 'center');
     // local en Bola Brava: los de los costados se mueven con arriba/abajo
     if (game.mode === 'local' && game.minigame === 'bolas' && game.players.some((p) => p.ctrl === 'local' && p.i % 2 === 1)) {
       txt('LOS DE LOS COSTADOS: ARRIBA / ABAJO', hw / 2, 170, 8, '#ffb31a', 'center');

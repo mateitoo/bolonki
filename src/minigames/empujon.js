@@ -15,6 +15,7 @@ import { SFX } from '../audio.js';
 import { resetPodVisual } from '../world/pods.js';
 import { sendInput } from '../net/room.js';
 import { txt, rect, COL } from '../ui/draw.js';
+import { camMove } from '../game/controls.js';
 
 /* ---------- medidas ---------- */
 const R0 = 9.5;              // radio inicial de la plataforma
@@ -211,7 +212,7 @@ function step(dt) {
     let wx = 0, wz = 0, dash = false;
     if (p.ctrl === 'local') {
       const c = input.ctl[p.pad || 'all'];
-      wx = c.x; wz = -c.y;                      // arriba en la pantalla = hacia el fondo de la plataforma
+      [wx, wz] = camMove(c.x, c.y);             // arriba en la pantalla = hacia donde mira la cámara
       dash = p.wantDash; p.wantDash = false;
     } else if (p.ctrl === 'remote') {
       const n = p.net;
@@ -262,7 +263,7 @@ const empujon = {
   name: 'EMPUJÓN',
   desc: 'TIRALOS DE LA PLATAFORMA',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
-  cam: { pos: new THREE.Vector3(0, 24, 21), look: new THREE.Vector3(0, 0, -1.2), rotate: false },
+  cam: { pos: new THREE.Vector3(0, 24, 21), look: new THREE.Vector3(0, 0, -1.2), rotate: false, orbit: true },
   humanOut: false,
   thumbSteps: 90,
   thumbCam: { pos: new THREE.Vector3(0, 17, 16), look: new THREE.Vector3(0, -1, -0.5) },
@@ -358,8 +359,9 @@ const empujon = {
     sendT -= rdt;
     if (sendT > 0) return;
     sendT = 1 / 30;
-    const c = input.ctl.all;
-    sendInput({ x: Math.round(c.x * 100) / 100, y: Math.round(c.y * 100) / 100, h: hits });
+    // se manda la dirección ya girada según tu cámara (el anfitrión la usa tal cual)
+    const c = input.ctl.all, [wx, wz] = camMove(c.x, c.y);
+    sendInput({ x: Math.round(wx * 100) / 100, y: Math.round(-wz * 100) / 100, h: hits });
   },
   guestHitFx() {},
 };

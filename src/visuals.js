@@ -6,12 +6,24 @@ import { game } from './state.js';
 import { camera } from './render/psx.js';
 import { updateParticles } from './fx/particles.js';
 import { mg } from './minigames/registry.js';
+import { input } from './input.js';
 
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
 const orbitPos = new THREE.Vector3(), ORBIT_LOOK = new THREE.Vector3(0, 0, 0);
 const camBase = new THREE.Vector3(), lookBase = new THREE.Vector3(), tmpOff = new THREE.Vector3();
 const FOCUS_OFF = new THREE.Vector3(0, 0, 10);
 let orbit = 1, orbitA = 0;
+
+// gira la posición de la cámara alrededor del punto al que mira (yaw) y la sube/baja (pitch)
+const tmpV = new THREE.Vector3();
+function orbit3(pos, look, yaw, pitch) {
+  tmpV.subVectors(pos, look);
+  const r = tmpV.length();
+  let az = Math.atan2(tmpV.x, tmpV.z) + yaw;
+  let el = Math.asin(Math.max(-1, Math.min(1, tmpV.y / r))) + pitch;
+  el = Math.max(0.35, Math.min(1.45, el));
+  pos.set(look.x + Math.sin(az) * Math.cos(el) * r, look.y + Math.sin(el) * r, look.z + Math.cos(az) * Math.cos(el) * r);
+}
 
 export function updateVisuals(dt, rdt) {
   game.clock += dt;
@@ -40,6 +52,16 @@ export function updateVisuals(dt, rdt) {
   const ang = (side * Math.PI) / 2, ca = Math.cos(ang), sa = Math.sin(ang);
   const rot = (v, out) => out.set(v.x * ca + v.z * sa, v.y, -v.x * sa + v.z * ca);
   rot(m.cam.pos, camBase); rot(m.cam.look, lookBase);
+  // cámara que se gira arrastrando con el mouse / el dedo o con el stick derecho (en los minijuegos con cam.orbit)
+  const playing = game.state === 'play' || game.state === 'count' || game.state === 'end';
+  const d = input.drag;
+  if (m.cam.orbit && playing) {
+    game.camYaw = (game.camYaw || 0) - d.dx * 0.008 - input.camStick.x * 2.4 * rdt;
+    game.camPitch = Math.max(-0.55, Math.min(0.4, (game.camPitch || 0) + d.dy * 0.005 + input.camStick.y * 1.6 * rdt));
+    if (input.events.some((e) => e.a === 'camReset')) { game.camYaw = 0; game.camPitch = 0; }
+  }
+  d.dx = 0; d.dy = 0;
+  if (m.cam.orbit && (game.camYaw || game.camPitch)) orbit3(camBase, lookBase, game.camYaw || 0, game.camPitch || 0);
   const fDir = rot(FOCUS_OFF, tmpOff);
   const f = game.camFocus, fx = game.focus.x, fz = game.focus.z;
   camPos.set(camBase.x + (fx + fDir.x - camBase.x) * f, camBase.y + (9 - camBase.y) * f, camBase.z + (fz + fDir.z - camBase.z) * f);

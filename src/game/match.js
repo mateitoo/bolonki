@@ -44,7 +44,7 @@ export function resetMatch(mode, setup) {
   Object.assign(game, {
     state: mode, elapsed: 0, spawnT: 0.8, pending: null, winner: -1, timeScale: 1, slowT: 0, slowK: 1,
     humanOut: false, pendingEnd: false, demoResetT: 0, camFocusTarget: 0, showcaseT: 0,
-    me: cfg.me, setup: cfg, mode: cfg.mode || (demo ? 'demo' : 'solo'), target: cfg.points, elimOrder: [],
+    me: cfg.me, setup: cfg, mode: cfg.mode || (demo ? 'demo' : 'solo'), target: cfg.points, elimOrder: [], camYaw: 0, camPitch: 0,
   });
   game.players.forEach((p) => {
     const ctrl = cfg.ctrl[p.i];

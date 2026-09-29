@@ -14,6 +14,8 @@ export const input = {
   ctl: { all: zero(), p1: zero(), p2: zero(), p3: zero(), p4: zero() },
   device: 'keyboard',                 // 'keyboard' | 'gamepad' | 'pointer' (para mostrar las ayudas correctas)
   pointer: { x: -1, y: -1, moved: false },
+  drag: { on: false, id: null, lx: 0, ly: 0, dx: 0, dy: 0 },   // arrastre (mouse o dedo) para girar la cámara
+  camStick: { x: 0, y: 0 },           // stick derecho del joystick (girar la cámara)
   touch: { l: false, r: false, hit: false },
   pads: 0,                            // joysticks conectados
 };
@@ -38,6 +40,7 @@ const KEYMAP = {
   Enter: ['confirm'], NumpadEnter: ['confirm'],   // ('start' es solo el botón START del joystick)
   Escape: ['back', 'pause'], Backspace: ['back'], KeyP: ['pause'],
   KeyQ: ['tabPrev'], KeyE: ['tabNext'], PageUp: ['tabPrev'], PageDown: ['tabNext'],
+  KeyC: ['camReset'],
 };
 
 let hooks = { onGesture() {}, onFullscreenKey() {}, onPadConnect() {}, toHud: null };
@@ -72,6 +75,8 @@ export function initInput(stage, h) {
   window.addEventListener('blur', () => { held.clear(); input.touch.l = input.touch.r = false; queue.push({ a: 'blur' }); });
 
   stage.addEventListener('pointermove', (e) => {
+    const d = input.drag;
+    if (d.on && e.pointerId === d.id) { d.dx += e.clientX - d.lx; d.dy += e.clientY - d.ly; d.lx = e.clientX; d.ly = e.clientY; }
     if (e.pointerType !== 'mouse') return;
     const p = hooks.toHud(e.clientX, e.clientY);
     input.pointer.x = p.x; input.pointer.y = p.y; input.pointer.moved = true;
@@ -79,12 +84,16 @@ export function initInput(stage, h) {
   });
   stage.addEventListener('pointerdown', (e) => {
     if (e.target.closest && e.target.closest('.touch')) return;   // los botones táctiles se manejan aparte
+    Object.assign(input.drag, { on: true, id: e.pointerId, lx: e.clientX, ly: e.clientY });
     const p = hooks.toHud(e.clientX, e.clientY);
     queue.push({ a: 'click', x: p.x, y: p.y });
     queue.push({ a: 'any' });
     input.device = 'pointer';
     hooks.onGesture();
   });
+
+  const endDrag = (e) => { if (input.drag.id === e.pointerId) input.drag.on = false; };
+  window.addEventListener('pointerup', endDrag); window.addEventListener('pointercancel', endDrag);
 
   window.addEventListener('gamepadconnected', () => hooks.onPadConnect(true));
   window.addEventListener('gamepaddisconnected', () => hooks.onPadConnect(false));
@@ -141,6 +150,8 @@ function pollPads(dt, out) {
     if (x || y) input.device = 'gamepad';
     const hit = down(B.A) || down(B.X);
     mem.prev = now;
+    // stick derecho: girar la cámara (en los minijuegos que lo permiten)
+    input.camStick.x += dead(gp.axes[2] || 0); input.camStick.y += dead(gp.axes[3] || 0);
     return { x, y, hit };
   });
 }
@@ -159,6 +170,7 @@ function merge(...parts) {
 
 export function pollInput(dt) {
   const ev = queue.splice(0);
+  input.camStick.x = 0; input.camStick.y = 0;
   const pads = pollPads(dt, ev);
   const k1 = keySet(K1), k2 = keySet(K2);
   const touch = { x: (input.touch.r ? 1 : 0) - (input.touch.l ? 1 : 0), y: 0, hit: input.touch.hit };

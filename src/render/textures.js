@@ -126,6 +126,21 @@ export const TX = {
     for (let i = 0; i < w - 6; i++) { x.fillRect(3 + i, 3 + i * ((h - 8) / (w - 6)), 3, 2); }
     x.fillStyle = '#d8d0b0'; [[1, 1], [w - 3, 1], [1, h - 3], [w - 3, h - 3]].forEach(([a, b]) => x.fillRect(a, b, 2, 2));
   }),
+  sand: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#d8b26a'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 80; i++) { x.fillStyle = ['#e2c07c', '#c9a15a', '#ecd092'][(Math.random() * 3) | 0]; x.fillRect(Math.random() * w, Math.random() * h, rnd(1, 3), 1); }
+    x.fillStyle = 'rgba(0,0,0,.1)'; x.fillRect(0, h - 1, w, 1); x.fillRect(w - 1, 0, 1, h);
+  }),
+  puBoots: tex(16, 16, (x, w, h) => {
+    x.fillStyle = '#8a3ad8'; x.fillRect(0, 0, w, h); x.fillStyle = '#d0a0ff'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+    x.fillStyle = '#ffd23a'; x.fillRect(5, 3, 4, 7); x.fillRect(5, 9, 8, 3); x.fillStyle = '#b8801a'; x.fillRect(5, 12, 8, 1);
+    x.fillStyle = '#fff'; x.fillRect(1, 4, 3, 1); x.fillRect(2, 6, 3, 1); x.fillRect(1, 8, 3, 1);
+  }),
+  puShield: tex(16, 16, (x, w, h) => {
+    x.fillStyle = '#1fa8b8'; x.fillRect(0, 0, w, h); x.fillStyle = '#a0f0ff'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+    x.fillStyle = '#e8fbff'; x.fillRect(4, 3, 8, 6); x.fillRect(5, 9, 6, 2); x.fillRect(6, 11, 4, 1); x.fillRect(7, 12, 2, 1);
+    x.fillStyle = '#1fa8b8'; x.fillRect(7, 4, 2, 6); x.fillRect(5, 6, 6, 2);
+  }),
   fire: tex(16, 16, (x, w, h) => {
     x.fillStyle = '#ff7a14'; x.fillRect(0, 0, w, h);
     for (let i = 0; i < 40; i++) { x.fillStyle = ['#ffd23a', '#fff6b0', '#ff9a1f', '#ffe070'][(Math.random() * 4) | 0]; x.fillRect(Math.random() * w, Math.random() * h, rnd(1, 4), rnd(1, 3)); }

@@ -9,13 +9,14 @@ import * as THREE from 'three';
 import { register } from './registry.js';
 import { CHARS, DIFFICULTIES, rnd, clamp } from '../config.js';
 import { game } from '../state.js';
-import { scene, mat, add, scaleUV } from '../render/psx.js';
+import { scene, mat, add, scaleUV, camera } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { input } from '../input.js';
 import { FX } from '../game/fx.js';
 import { SFX } from '../audio.js';
 import { resetPodVisual } from '../world/pods.js';
 import { drawWalker } from '../world/walker.js';
+import { camMove } from '../game/controls.js';
 import { sendInput } from '../net/room.js';
 import { txt, rect, COL } from '../ui/draw.js';
 
@@ -307,7 +308,7 @@ function step(dt) {
     let wx = 0, wz = 0, jump = false;
     if (p.ctrl === 'local') {
       const c = input.ctl[p.pad || 'all'];
-      wx = c.x; wz = -c.y;
+      [wx, wz] = camMove(c.x, c.y);
       jump = p.wantJump; p.wantJump = false;
     } else if (p.ctrl === 'remote') {
       const n = p.net;
@@ -361,6 +362,8 @@ function step(dt) {
   }
 }
 
+const V3 = new THREE.Vector3();
+
 /* ---------- el minijuego ---------- */
 let sendT = 0;
 const CAM_POS = new THREE.Vector3(0, 29, 12.5), CAM_LOOK = new THREE.Vector3(0, 0, -0.6);   // bastante desde arriba: las pilas tapan menos
@@ -369,7 +372,7 @@ const bombardeo = {
   name: 'BOMBARDEO',
   desc: 'SALTÁ ARRIBA DE LAS CAJAS QUE CAEN',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
-  cam: { pos: CAM_POS.clone(), look: CAM_LOOK.clone(), rotate: false },
+  cam: { pos: CAM_POS.clone(), look: CAM_LOOK.clone(), rotate: false, orbit: true },
   humanOut: false,
   tagY: 2.6, tagFeet: true, markMe: true,     // nombre arriba de la cabeza (a la altura de la pila donde está parado)
   thumbSteps: 1500,
@@ -464,6 +467,19 @@ const bombardeo = {
     }
     const me = game.players[game.me];
     if (st === 'play' && me && !me.alive && !me.empty && !R.over && game.mode !== 'local') txt(me.burned ? '¡TE QUEMASTE!' : '¡APLASTADO!', hw / 2, 196, 16, COL.red, 'center');
+    // "¡!" arriba de tu cabeza si te va a caer una caja (a veces desde arriba no se ve bien)
+    if (st === 'play' && !R.over && ((game.clock * 8) | 0) % 2) {
+      for (const p of game.players) {
+        if (!p.alive || p.empty || p.ctrl !== 'local' && !(game.online === 'guest' && p.i === game.me)) continue;
+        const k = tileOf(p.x, p.z);
+        if (!drops.some((o) => o.k === k)) continue;
+        V3.set(p.x, (p.fy || 0) + 2.9, p.z).project(camera);
+        if (V3.z > 1) continue;
+        const x = Math.round(((V3.x + 1) / 2) * hw), y = Math.round(((1 - V3.y) / 2) * 240);
+        rect(x - 7, y - 10, 14, 17, '#ff2a1a'); rect(x - 5, y - 8, 10, 13, '#ffe14a');
+        txt('!', x, y - 7, 16, '#ff2a1a', 'center');
+      }
+    }
   },
 
   /* ---------- online (el anfitrión manda todo; el invitado solo manda para dónde va y si saltó) ---------- */
@@ -500,8 +516,9 @@ const bombardeo = {
     sendT -= rdt;
     if (sendT > 0) return;
     sendT = 1 / 30;
-    const c = input.ctl.all;
-    sendInput({ x: Math.round(c.x * 100) / 100, y: Math.round(c.y * 100) / 100, h: hits });
+    // se manda la dirección ya girada según tu cámara (el anfitrión la usa tal cual)
+    const c = input.ctl.all, [wx, wz] = camMove(c.x, c.y);
+    sendInput({ x: Math.round(wx * 100) / 100, y: Math.round(-wz * 100) / 100, h: hits });
   },
   guestHitFx() {},
 };

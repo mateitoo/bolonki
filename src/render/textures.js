@@ -250,6 +250,70 @@ export const TX = {
   }),
   tunic: tex(32, 32, (x, w, h) => { noisy(x, w, h, '#b9cd82', 0.04); x.fillStyle = 'rgba(60,80,20,.12)'; x.fillRect(0, 30, w, 2); }),
   cloth: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#ffffff', 0.06); }),   // tela neutra: se tiñe con el color del material
+  /* ---------- Petardos: paredes y cajones de cada cancha ---------- */
+  // cerco de ligustro podado (patio)
+  hedge: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#3a7a34'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 160; i++) { x.fillStyle = ['#4a9442', '#2f6a2a', '#56a44c', '#28592a', '#62b056'][(Math.random() * 5) | 0]; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, rnd(1, 3) | 0, rnd(1, 3) | 0); }
+    x.fillStyle = 'rgba(255,255,255,.08)'; x.fillRect(0, 0, w, 2);
+  }),
+  // maceta de ladrillo (patio: la base del cerco)
+  planter: tex(32, 16, (x, w, h) => {
+    x.fillStyle = '#9a4a2c'; x.fillRect(0, 0, w, h);
+    for (let r = 0; r < 2; r++) for (let c = -1; c < 3; c++) { const bx = c * 16 + (r % 2 ? 8 : 0); x.fillStyle = ['#c0643a', '#b25a34', '#cc7044'][(r + c + 3) % 3]; x.fillRect(bx + 1, r * 8 + 1, 14, 6); }
+    x.fillStyle = '#e8d8c0'; x.fillRect(0, 0, w, 2);
+  }),
+  // piedra arenisca en capas (desierto)
+  sandstone: tex(32, 32, (x, w, h) => {
+    const bands = ['#e0b070', '#d4a060', '#e8bc80', '#c8945a', '#dcaa6a'];
+    for (let y = 0; y < h; y += 4) { x.fillStyle = bands[(y / 4) % bands.length]; x.fillRect(0, y, w, 4); }
+    for (let i = 0; i < 70; i++) { x.fillStyle = Math.random() < 0.5 ? 'rgba(255,240,200,.3)' : 'rgba(90,50,20,.18)'; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, rnd(1, 4) | 0, 1); }
+    x.fillStyle = 'rgba(80,40,10,.45)';                                           // grietas
+    for (let k = 0; k < 2; k++) { let cx = rnd(4, w - 4), cy = rnd(2, 10); for (let i = 0; i < 14; i++) { cx += rnd(-1.2, 1.2); cy += 1; x.fillRect(cx | 0, cy | 0, 1, 1); } }
+    x.fillStyle = '#8a5a2c'; x.fillRect(0, h - 2, w, 2); x.fillRect(w - 1, 0, 1, h);
+  }),
+  // bloque de hielo (nieve): celeste con brillos
+  iceBlock: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#8ec8e8'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 30; i++) { x.fillStyle = Math.random() < 0.6 ? 'rgba(255,255,255,.25)' : 'rgba(30,90,140,.15)'; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, rnd(2, 8) | 0, 1); }
+    x.fillStyle = 'rgba(255,255,255,.7)'; for (let i = 0; i < 9; i++) x.fillRect(4 + i, 3 + i, 2, 1);   // brillo en diagonal
+    x.fillRect(22, 20, 5, 1); x.fillRect(24, 21, 3, 1);
+    x.fillStyle = '#5a9cc8'; x.fillRect(0, h - 2, w, 2); x.fillRect(w - 2, 0, 2, h);
+    x.fillStyle = '#d8f2ff'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+  }),
+  // tapa de cajón con escarcha y un poco de nieve (nieve: se distingue de las paredes, que tienen nieve entera)
+  crateSnow: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#9a7a5a'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 4; i++) { x.fillStyle = i % 2 ? '#8a6c4e' : '#a88a68'; x.fillRect(3, 3 + i * 6.5, w - 6, 6); }
+    x.fillStyle = '#5e4630'; x.fillRect(0, 0, w, 3); x.fillRect(0, h - 3, w, 3); x.fillRect(0, 0, 3, h); x.fillRect(w - 3, 0, 3, h);
+    x.fillStyle = '#f4f8ff';
+    [[6, 6, 7], [20, 9, 5], [11, 20, 6], [24, 24, 4]].forEach(([cx, cy, r]) => { for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) if (xx * xx + yy * yy * 1.6 <= r * r) x.fillRect(cx + xx, cy + yy, 1, 1); });
+    for (let i = 0; i < 25; i++) x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, 1, 1);
+  }),
+  // caja de cartón con cinta (fábrica)
+  cardboard: tex(32, 32, (x, w, h) => {
+    noisy(x, w, h, '#c89a5c', 0.1);
+    x.fillStyle = '#b0844a'; x.fillRect(0, 0, w, 2); x.fillRect(0, h - 2, w, 2); x.fillRect(0, 0, 2, h); x.fillRect(w - 2, 0, 2, h);
+    x.fillStyle = '#d8c290'; x.fillRect(13, 0, 6, h);                           // cinta
+    x.fillStyle = '#5a3a1a'; x.fillRect(5, 6, 5, 1); x.fillRect(7, 4, 1, 5); x.fillRect(6, 5, 3, 1);  // flecha "este lado arriba"
+    x.fillRect(22, 22, 6, 1); x.fillRect(22, 25, 6, 1); x.fillRect(22, 22, 1, 4); x.fillRect(27, 22, 1, 4);
+  }),
+  // panel de máquina con rejilla y luces (fábrica: algunas paredes)
+  panel: tex(32, 32, (x, w, h) => {
+    noisy(x, w, h, '#5a6274', 0.2);
+    x.fillStyle = '#7c8498'; x.fillRect(0, 0, w, 3); x.fillRect(0, 0, 3, h);
+    x.fillStyle = '#2a2e3a'; x.fillRect(0, h - 3, w, 3); x.fillRect(w - 3, 0, 3, h);
+    x.fillStyle = '#1c1f28'; for (let i = 0; i < 5; i++) x.fillRect(6, 7 + i * 3, 14, 2);   // rejilla
+    x.fillStyle = '#39d98a'; x.fillRect(24, 8, 3, 3); x.fillStyle = '#ff5a3a'; x.fillRect(24, 14, 3, 3);
+    x.fillStyle = '#e8e0c0'; x.fillRect(6, 24, 20, 3); x.fillStyle = '#ff9a1f'; x.fillRect(6, 24, 9, 3);  // medidor
+  }),
+  // barro cocido (desierto: vasijas)
+  clay: tex(32, 16, (x, w, h) => {
+    noisy(x, w, h, '#c06a3a', 0.12);
+    x.fillStyle = '#f0d8b0'; x.fillRect(0, 4, w, 2);
+    x.fillStyle = '#5a2a1a'; for (let i = 0; i < w; i += 4) { x.fillRect(i, 9, 2, 1); x.fillRect(i + 1, 10, 2, 1); }
+    x.fillStyle = '#f0d8b0'; x.fillRect(0, 12, w, 1);
+  }),
   // Futbolonki: pelota de gajos (se envuelve en una esfera: 32 de ancho = la vuelta, 16 de alto = de polo a polo)
   football: tex(32, 16, (x, w, h) => {
     noisy(x, w, h, '#f4f4f0', 0.05);

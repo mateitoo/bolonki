@@ -76,7 +76,7 @@ function pickPower() {
 // X = pared fija · . piso · b arbusto · q arena movediza · ~ hielo · > < ^ v cinta transportadora
 // La fábrica tiene una máquina arriba de la cinta que larga cajones cada tanto (como la cinta de las valijas).
 const CANCHAS = [
-  { name: 'PATIO', fog: 0xcfe0e8, floor: 'turf', wall: 'brick', wallCol: 0xffffff, out: 0x557755, deco: 'arboles', extra: 'ARBUSTOS PARA ESCONDERTE',
+  { name: 'PATIO', fog: 0xcfe0e8, floor: 'turf', wall: 'brick', wallCol: 0xffffff, style: 'hedge', crate: 'wood', out: 0x557755, deco: 'arboles', extra: 'ARBUSTOS PARA ESCONDERTE',
     map: [
       '...b.........',
       '.X.X..XX.X.X.',
@@ -90,7 +90,7 @@ const CANCHAS = [
       '...XX.b.X..X.',
       '.........b...'
     ] },
-  { name: 'FÁBRICA', fog: 0x6a5a60, floor: 'tile', wall: 'block', wallCol: 0xffffff, out: 0x5a6070, deco: 'cajas', extra: 'CINTA CON CAJONES',
+  { name: 'FÁBRICA', fog: 0x6a5a60, floor: 'tile', wall: 'block', wallCol: 0xffffff, style: 'metal', crate: 'cardboard', out: 0x5a6070, deco: 'cajas', extra: 'CINTA CON CAJONES',
     machine: [6, 2],        // la máquina que larga cajones (columna y fila del mapa)
     fill: 0.6,              // menos cajones sueltos: la máquina va trayendo más
     map: [
@@ -106,7 +106,7 @@ const CANCHAS = [
       '.X..XX.X..X..',
       '.............'
     ] },
-  { name: 'DESIERTO', fog: 0xf0dcb0, floor: 'sand', wall: 'brick', wallCol: 0xe0b878, out: 0xc8a060, deco: 'cactus', extra: 'ARENAS MOVEDIZAS',
+  { name: 'DESIERTO', fog: 0xf0dcb0, floor: 'sand', wall: 'sandstone', wallCol: 0xffffff, style: 'sandstone', crate: 'pot', out: 0xc8a060, deco: 'cactus', extra: 'ARENAS MOVEDIZAS',
     map: [
       '....q........',
       '.X.qqX..X.X..',
@@ -120,7 +120,7 @@ const CANCHAS = [
       '.X..Xqq.X....',
       '.........q...'
     ] },
-  { name: 'NIEVE', fog: 0xe8eef6, floor: 'snow', wall: 'brick', wallCol: 0xdfe8ff, out: 0xdde8f4, deco: 'pinos', extra: 'HIELO QUE RESBALA',
+  { name: 'NIEVE', fog: 0xe8eef6, floor: 'snow', wall: 'brick', wallCol: 0xdfe8ff, style: 'ice', crate: 'snow', out: 0xdde8f4, deco: 'pinos', extra: 'HIELO QUE RESBALA',
     map: [
       '.............',
       '.X.X~~~X..X..',
@@ -200,6 +200,90 @@ function makeMap(ci) {
 /* ---------- mundo ---------- */
 const W = { grp: null, canchas: [], crates: [], bombs: [], flames: [], pups: [], puMats: [], shields: [], sdWalls: [], sdFall: [], skulls: [], bushes: [] };
 
+// Materiales y formas de las paredes de adentro y de los cajones de cada cancha
+const WM = {};
+const wmat = (k, o) => WM[k] || (WM[k] = mat(o));
+const hashCell = (c, r) => { const v = Math.sin(c * 127.1 + r * 311.7) * 43758.5453; return v - Math.floor(v); };   // al azar pero siempre igual
+function innerWall(g, C, c, r, wm) {
+  const x = cxOf(c), z = czOf(r), hh = hashCell(c, r);
+  if (C.style === 'hedge') {
+    // patio: cerco de ligustro podado en una maceta de ladrillo
+    add(scaleUV(new THREE.BoxGeometry(TS, TS * 0.3, TS), 1, 1), wmat('planter', { map: TX.planter }), x, TS * 0.15, z, g);
+    add(new THREE.BoxGeometry(TS * 0.8, TS * 0.62, TS * 0.8), wmat('hedge', { map: TX.hedge, color: 0xb8d8a8 }), x, TS * 0.61, z, g);
+    if (hh < 0.3) add(new THREE.BoxGeometry(0.16, 0.12, 0.16), wmat('hedgeFl', { color: hh < 0.15 ? 0xffffff : 0xff7aa0, unlit: true }), x + (hh - 0.15) * 3, TS * 0.93, z - 0.2, g);   // alguna flor arriba
+  } else if (C.style === 'metal') {
+    // fábrica: bloques con franja y algunos paneles de máquina con una lucecita arriba
+    if (hh < 0.35) {
+      add(new THREE.BoxGeometry(TS, TS * 0.9, TS), wmat('panel', { map: TX.panel }), x, TS * 0.45, z, g);
+      add(new THREE.BoxGeometry(0.22, 0.14, 0.22), wmat('panelLamp', { color: 0x39d98a, unlit: true }), x + 0.35, TS * 0.97, z + 0.35, g);
+      add(new THREE.CylinderGeometry(0.12, 0.12, 0.35, 6), wmat('pipeS', { map: TX.metal, color: 0x8a92a6 }), x - 0.3, TS * 1.05, z - 0.3, g);
+    } else add(new THREE.BoxGeometry(TS, TS * 0.9, TS), wm, x, TS * 0.45, z, g);
+  } else if (C.style === 'sandstone') {
+    // desierto: bloques de arenisca con una losa arriba; algunos son columnas viejas
+    const stone = wmat('sandstone', { map: TX.sandstone });
+    if (hh < 0.25) {
+      add(new THREE.BoxGeometry(TS, TS * 0.16, TS), stone, x, TS * 0.08, z, g);
+      add(new THREE.CylinderGeometry(TS * 0.36, TS * 0.4, TS * 0.66, 8), stone, x, TS * 0.49, z, g);
+      add(new THREE.BoxGeometry(TS * 0.94, TS * 0.12, TS * 0.94), wmat('sandcap', { map: TX.sandstone, color: 0xd8b080 }), x, TS * 0.88, z, g).rotation.y = hh * 3;
+    } else {
+      add(new THREE.BoxGeometry(TS * 0.96, TS * 0.8, TS * 0.96), stone, x, TS * 0.4, z, g);
+      add(new THREE.BoxGeometry(TS, TS * 0.12, TS), wmat('sandcap', { map: TX.sandstone, color: 0xd8b080 }), x, TS * 0.86, z, g);
+    }
+  } else if (C.style === 'ice') {
+    // nieve: bloque de hielo con nieve arriba y carámbanos
+    add(new THREE.BoxGeometry(TS * 0.96, TS * 0.8, TS * 0.96), wmat('iceBlock', { map: TX.iceBlock }), x, TS * 0.4, z, g);
+    add(new THREE.BoxGeometry(TS * 1.02, TS * 0.14, TS * 1.02), wmat('snowCap', { map: TX.snow }), x, TS * 0.86, z, g);
+    const ic = wmat('icicle', { color: 0xd8f2ff, unlit: true });
+    for (let k = 0; k < 3; k++) { const m = add(new THREE.ConeGeometry(0.06, 0.26 + ((hh * 7 + k) % 1) * 0.2, 4), ic, x - 0.45 + k * 0.42, TS * 0.72, z + TS * 0.5, g); m.rotation.x = Math.PI; }
+  } else add(new THREE.BoxGeometry(TS, TS * 0.9, TS), wm, x, TS * 0.45, z, g);
+}
+// cosas chatitas en el piso (no molestan): piedras del camino, manchas de aceite, grietas, montoncitos de nieve
+function floorBits(g, ci) {
+  const C = CANCHAS[ci];
+  for (let r = 1; r < GH - 1; r++) for (let c = 1; c < GW - 1; c++) {
+    if (cellCh(ci, c, r) !== '.') continue;
+    const h = hashCell(c + ci * 17, r), x = cxOf(c) + (hashCell(r, c) - 0.5) * 0.6, z = czOf(r) + (hashCell(c * 3, r * 5) - 0.5) * 0.6;
+    if (C.style === 'hedge') {
+      if (h < 0.16) { const m = add(new THREE.CylinderGeometry(TS * 0.24, TS * 0.26, 0.05, 7), wmat('step', { map: TX.stone, color: 0xd0ccc4 }), x, 0.025, z, g); m.rotation.y = h * 20; }
+      else if (h < 0.24) [[0, 0], [0.18, 0.1], [-0.12, 0.16]].forEach(([dx, dz], k) => add(new THREE.BoxGeometry(0.1, 0.06, 0.1), wmat('daisy' + (k % 2), { color: k % 2 ? 0xffe14a : 0xffffff, unlit: true }), x + dx, 0.05, z + dz, g));
+    } else if (C.style === 'metal') {
+      if (h < 0.1) { const m = add(new THREE.CircleGeometry(TS * (0.2 + h), 8), wmat('oil', { color: 0x16161c }), x, 0.014, z, g); m.rotation.x = -Math.PI / 2; }
+      else if (h < 0.15) add(new THREE.BoxGeometry(TS * 0.5, 0.03, TS * 0.5), wmat('grate', { map: TX.panel, color: 0x6a7080 }), cxOf(c), 0.015, czOf(r), g);
+    } else if (C.style === 'sandstone') {
+      if (h < 0.14) for (let k = 0; k < 4; k++) add(new THREE.BoxGeometry(0.05, 0.02, 0.32), wmat('crack', { color: 0x8a6030 }), x + k * 0.1, 0.012, z + (k % 2) * 0.12, g).rotation.y = (k % 2 ? 0.6 : -0.5) + h;
+      else if (h < 0.22) add(new THREE.DodecahedronGeometry(0.14, 0), wmat('pebbleD', { map: TX.pebble, color: 0xc89a6a }), x, 0.06, z, g).scale.set(1, 0.5, 1);
+    } else if (C.style === 'ice') {
+      if (h < 0.12) add(new THREE.SphereGeometry(TS * 0.22, 7, 3, 0, Math.PI * 2, 0, Math.PI / 2), wmat('snowMound', { map: TX.snow }), x, 0, z, g).scale.set(1, 0.3, 0.8);
+      else if (h < 0.2) [[-0.12, 0], [0.12, 0.28]].forEach(([dx, dz]) => { const m = add(new THREE.CircleGeometry(0.1, 6), wmat('step2', { color: 0xb0c0d8 }), x + dx, 0.013, z + dz, g); m.rotation.x = -Math.PI / 2; m.scale.set(1, 1.6, 1); });
+    }
+  }
+}
+// cajones: la forma y el material de cada cancha (se cambian al cambiar de cancha)
+let crateStyleOf = -1;
+function crateLook(ci) {
+  const C = CANCHAS[ci], k = 'crate-' + C.crate;
+  if (WM[k]) return WM[k];
+  let look;
+  if (C.crate === 'cardboard') look = { geo: new THREE.BoxGeometry(TS * 0.86, TS * 0.76, TS * 0.86), m: mat({ map: TX.cardboard }), y: TS * 0.38 };
+  else if (C.crate === 'pot') {
+    const pts = [[0.2, -0.4], [0.34, -0.32], [0.43, -0.12], [0.42, 0.08], [0.32, 0.26], [0.22, 0.32], [0.27, 0.4], [0.2, 0.4]].map(([rr, y]) => new THREE.Vector2(rr * TS, y * TS));
+    look = { geo: new THREE.LatheGeometry(pts, 10), m: mat({ map: TX.clay, side: THREE.DoubleSide }), y: TS * 0.4 };
+  } else if (C.crate === 'snow') {
+    const cm = mat({ map: TX.crate, color: 0xc8d4e8 }), sm = mat({ map: TX.crateSnow });
+    look = { geo: new THREE.BoxGeometry(TS * 0.92, TS * 0.8, TS * 0.92), m: [cm, cm, sm, cm, cm, cm], y: TS * 0.4 };
+  } else look = { geo: new THREE.BoxGeometry(TS * 0.92, TS * 0.8, TS * 0.92), m: mat({ map: TX.crate }), y: TS * 0.4 };
+  return (WM[k] = look);
+}
+function applyCrateLook() {
+  if (crateStyleOf === S.cancha) return;
+  crateStyleOf = S.cancha;
+  const L = crateLook(S.cancha), C = CANCHAS[S.cancha];
+  W.crates.forEach((m) => { m.geometry = L.geo; m.material = L.m; m.userData.y = L.y; });
+  // las paredes de la muerte súbita son del mismo material que las de adentro
+  const sm = C.style === 'hedge' ? wmat('hedge', { map: TX.hedge, color: 0xb8d8a8 }) : C.style === 'sandstone' ? wmat('sandstone', { map: TX.sandstone }) : C.style === 'ice' ? wmat('iceBlock', { map: TX.iceBlock }) : C.innerM;
+  W.sdWalls.concat(W.sdFall).forEach((m) => { m.material = sm; });
+}
+
 function buildCancha(ci) {
   const C = CANCHAS[ci], g = new THREE.Group(); g.visible = false; W.grp.add(g);
   const fl = scaleUV(new THREE.PlaneGeometry(GW * TS, GH * TS, GW, GH), GW, GH); fl.rotateX(-Math.PI / 2);
@@ -208,7 +292,15 @@ function buildCancha(ci) {
   const out = scaleUV(new THREE.PlaneGeometry(160, 160, 10, 10), 30); out.rotateX(-Math.PI / 2);
   add(out, mat({ map: TX[C.floor], color: C.out }), 0, -1.4, 0, g);
   const wg = scaleUV(new THREE.BoxGeometry(TS, TS * 0.9, TS), 1, 1), wm = mat({ map: TX[C.wall], color: C.wallCol });
-  for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) if (isWall(ci, c, r)) add(wg, wm, cxOf(c), TS * 0.45, czOf(r), g);
+  // paredes: las del borde son de la cancha; las de adentro tienen la forma de cada lugar
+  C.innerM = wm;
+  for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) {
+    if (!isWall(ci, c, r)) continue;
+    const border = c === 0 || r === 0 || c === GW - 1 || r === GH - 1;
+    if (border) add(wg, wm, cxOf(c), TS * 0.45, czOf(r), g);
+    else innerWall(g, C, c, r, wm);
+  }
+  floorBits(g, ci);
   // la máquina de cajones (un arco arriba de la cinta, con cortinas de goma a la salida)
   if (C.machine) {
     const [mc, mr] = C.machine, x = cxOf(mc + 1), z = czOf(mr + 1);
@@ -867,10 +959,12 @@ const petardos = {
     }
     for (const [k, a] of crateAnim) { a.t += dt * (a.spawn ? 2.5 : CONV_V); if (a.t >= 1 || G[k] !== CRATE) crateAnim.delete(k); }
     if (W.machineLamp) W.machineLamp.visible = S.machT > 0.8 || ((clock * 10) | 0) % 2 === 0;
+    applyCrateLook();
     for (let k = 0; k < N; k++) {
       W.crates[k].visible = G[k] === CRATE;
       const cm = W.crates[k], a = crateAnim.get(k);
-      cm.position.set(cxOf(k % GW), TS * 0.4, czOf((k / GW) | 0)); cm.scale.setScalar(1);
+      cm.position.set(cxOf(k % GW), cm.userData.y || TS * 0.4, czOf((k / GW) | 0)); cm.scale.setScalar(1);
+      cm.rotation.y = CANCHAS[S.cancha].crate === 'pot' ? k * 1.3 : 0;
       if (a && a.from !== undefined) { const u = a.t; cm.position.x += (cxOf(a.from % GW) - cxOf(k % GW)) * (1 - u); cm.position.z += (czOf((a.from / GW) | 0) - czOf((k / GW) | 0)) * (1 - u); }
       else if (a && a.spawn) cm.scale.setScalar(0.4 + 0.6 * a.t);
       W.sdWalls[k].visible = G[k] === WALL && !isWall(S.cancha, k % GW, (k / GW) | 0);   // paredes de la muerte súbita

@@ -38,7 +38,9 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   petardos sin parar, sin petardos o **atontado**, que cada vez que apretás una dirección seguramente te manda para otro lado). Hay 4 canchas, cada una con
   algo propio: patio (arbustos para esconderte), fábrica (una cinta en circuito que te arrastra a vos y a los petardos, con una máquina que va largando cajones como la cinta de valijas del aeropuerto), desierto
   (arenas movedizas) y nieve (hielo: si soltás seguís resbalando). Al minuto empieza la muerte súbita: las paredes
-  se cierran en espiral.
+  se cierran en espiral. Cada cancha tiene sus paredes y sus cajones: cercos de ligustro en macetas y cajones de madera
+  en el patio, paneles de máquina y cajas de cartón en la fábrica, arenisca con columnas viejas y vasijas de barro en el
+  desierto, bloques de hielo con nieve y carámbanos y cajones escarchados en la nieve.
 - **Futbolonki:** fútbol de naves en un estadio de noche con tribunas. Los de la izquierda del marcador (AZUL) contra
   los de la derecha (ROJO): 2 contra 2, 2 contra 1 con 3 jugadores o 1 contra 1 en un duelo de la Fiesta. Las naves manejan
   como en Empujón y la **embestida** contra la pelota es un pelotazo que sale para donde ibas. Gana el primer equipo en llegar

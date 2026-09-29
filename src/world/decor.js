@@ -209,6 +209,13 @@ function cancha(g, deco, L) {
   add(new THREE.BoxGeometry(W2 + 0.1, 0.14, TS * 1.06), capM, 0, top + 0.07, cz(GH - 1), g);
   add(new THREE.BoxGeometry(TS * 1.06, 0.14, H2 + 0.1), capM, cx(0), top + 0.07, 0, g);
   add(new THREE.BoxGeometry(TS * 1.06, 0.14, H2 + 0.1), capM, cx(GW - 1), top + 0.07, 0, g);
+  if (deco === 'pinos') {                                       // nieve acumulada arriba del muro
+    const sn = P.M(0xffffff, { map: TX.snow });
+    add(new THREE.BoxGeometry(W2 - 0.2, 0.12, TS * 0.8), sn, 0, top + 0.2, cz(0), g);
+    add(new THREE.BoxGeometry(W2 - 0.2, 0.12, TS * 0.8), sn, 0, top + 0.2, cz(GH - 1), g);
+    add(new THREE.BoxGeometry(TS * 0.8, 0.12, H2 - 0.2), sn, cx(0), top + 0.2, 0, g);
+    add(new THREE.BoxGeometry(TS * 0.8, 0.12, H2 - 0.2), sn, cx(GW - 1), top + 0.2, 0, g);
+  }
   [[0, 0], [GW - 1, 0], [0, GH - 1], [GW - 1, GH - 1]].forEach(([c, r]) => {
     const x = cx(c), z = cz(r);
     add(new THREE.BoxGeometry(TS * 1.16, TS * 1.35, TS * 1.16), capM, x, TS * 0.675, z, g);

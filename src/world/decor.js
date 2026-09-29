@@ -37,6 +37,29 @@ export function decorFutbol(g, HX, HZ) {
   P.sky(g, [[0, '#04061a'], [0.38, '#0b1236'], [0.48, '#1a2a5a'], [0.52, '#101830'], [1, '#04060b']], { stars: 80 });
 }
 
+/* ---------- Rey de la colina: isla en el mar ---------- */
+export function decorColina(g, RI) {
+  // cielo de tarde soleada, gaviotas, islotes con palmeras y rocas alrededor
+  P.sky(g, [[0, '#2a6ad8'], [0.42, '#7ab8f0'], [0.5, '#f4e0b0'], [0.53, '#9ad0f0'], [1, '#2a6aa8']]);
+  P.flyers(g, 0, 14, 0, 24, 6, 0xf4f4f0, 0.6);
+  const islets = [[-26, -30, 1.3], [30, -24, 1.0], [-34, 8, 0.9], [36, 14, 1.2], [8, -40, 1.5]];
+  islets.forEach(([x, z, s], k) => {
+    const r = add(new THREE.CylinderGeometry(3.2 * s, 4.2 * s, 2.2, 10), P.M(0xd8b878, { map: TX.sand }), x, -0.4, z, g);
+    r.rotation.y = k;
+    P.palm(g, x + 0.6 * s, 0.7, z - 0.3 * s, 1.1 * s);
+    if (k % 2 === 0) P.palm(g, x - 1.2 * s, 0.7, z + 0.8 * s, 0.85 * s);
+    P.rock(g, x + 2 * s, 0.4, z + 1.4 * s, 0.9 * s, 0xb0a494);
+  });
+  // rocas saliendo del agua cerca de la isla
+  for (let k = 0; k < 9; k++) {
+    const a = (k / 9) * Math.PI * 2 + 0.3, r = RI + 3 + (k % 3) * 1.6;
+    P.rock(g, Math.sin(a) * r, -1.0, Math.cos(a) * r, 0.7 + (k % 3) * 0.35, 0x9a9488);
+  }
+  // pastito y flores en el llano de la isla (no molestan: son chatitos)
+  P.flowers(g, 0, 0.01, 0, 2.2, 2.2, 14);
+  P.grass(g, 0, 0.01, 0, (RI - 2) * 0.7, (RI - 2) * 0.7, 40, 0x5aa048);
+}
+
 /* ---------- Empujón: volcán ---------- */
 export function decorEmpujon(grp, plat, R0) {
   const Y = -26;

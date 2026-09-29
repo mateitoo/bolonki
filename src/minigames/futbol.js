@@ -36,6 +36,7 @@ const TEAM_COL = ['#35a0ff', '#ff5a4a'], TEAM_HEX = [0x35a0ff, 0xff5a4a], TEAM_N
 const r2 = (v) => Math.round(v * 100) / 100;
 const lerpAng = (a, b, f) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return a + d * f; };
 const demo = () => game.state === 'title' || game.state === 'menu';
+const matchT = () => (game.setup && game.setup.fiesta ? 90 : MATCH_T);   // en la Fiesta los partidos son más cortos
 
 /* ---------- estado del partido ---------- */
 const S = {
@@ -165,7 +166,7 @@ function kickoff(conceded) {
 
 function newMatch() {
   assignTeams();
-  S.goals = [0, 0]; S.pg = [0, 0, 0, 0]; S.touchAt = [-9, -9, -9, -9]; S.t = MATCH_T; S.golden = false; S.goldT = 0; S.gw = GW0; S.ending = false;
+  S.goals = [0, 0]; S.pg = [0, 0, 0, 0]; S.touchAt = [-9, -9, -9, -9]; S.t = matchT(); S.golden = false; S.goldT = 0; S.gw = GW0; S.ending = false;
   game.players.forEach((p) => { p.score = 0; });
   game.elapsed = 0; game.elimOrder = [];
   game.round = { n: 1, over: false, winner: -1, t: 0 };

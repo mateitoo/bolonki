@@ -140,6 +140,13 @@ export const FX = {
     burst(x, 1, z, { mat: P.WHITE, n: 8, sp: 5, up: [2, 7], life: [0.4, 0.9] });
     emit(['Gl', team, r2(x), r2(z)]);
   },
+  // Rey de la colina: alguien cayó al agua
+  splash(x, z) {
+    SFX.splash();
+    burst(x, -0.8, z, { mat: P.CYAN, n: 10, sp: 3, up: [3, 7], life: [0.4, 0.8] });
+    burst(x, -0.8, z, { mat: P.WHITE, n: 6, sp: 2, up: [2, 5], life: [0.3, 0.6] });
+    emit(['Sw', r2(x), r2(z)]);
+  },
   shot(x, z) { SFX.kick(); game.shake = Math.max(game.shake, 0.12); burst(x, 0.5, z, { mat: P.WHITE, n: 6, sp: 4, up: [0.5, 3], life: [0.15, 0.35] }); emit(['Sh', r2(x), r2(z)]); },
   snd(name) { if (SFX[name]) SFX[name](); emit(['S', name]); },
   sparkle(x, y, z, m, n) { burst(x, y, z, { mat: m, n, sp: 3, up: [2, 6], life: [0.4, 0.8] }); emit(['X', r2(x), r2(y), r2(z), m, n]); },
@@ -182,6 +189,7 @@ export function playEvent(ev) {
     case 'Wl': FX.wall(ev[1], ev[2]); break;
     case 'Gl': FX.gol(ev[1], ev[2], ev[3]); break;
     case 'Sh': FX.shot(ev[1], ev[2]); break;
+    case 'Sw': FX.splash(ev[1], ev[2]); break;
     case 'S': FX.snd(ev[1]); break;
     case 'X': FX.sparkle(ev[1], ev[2], ev[3], ev[4], ev[5]); break;
     default: break;

@@ -45,6 +45,15 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   a 3, 5 o 7 goles, o el que va ganando a los 2 minutos; si empatan hay **gol de oro** y los arcos se agrandan de a poco
   hasta que alguien la meta. Los CPU se reparten: uno va a buscar la pelota y el otro ataja. Un tiro que el rival desvía
   adentro cuenta como gol del que pateó.
+- **Rey de la colina** (a pie): una isla con tres colinas escalonadas y el mar alrededor. La corona flota sobre la cima
+  de una de las colinas: el que está **solo** arriba suma un punto por segundo; si hay dos o más, la cima titila en rojo y
+  nadie suma. Cada 20 s la corona se muda a otra colina (la próxima titila en dorado antes). El golpe es un **empujón**
+  (de espaldas empuja más) y cada tanto aparece un **palo** en el piso: empuja el doble y barre a todos los que tengas
+  adelante (dura 3 golpes). Si te caés al agua volvés a la orilla a los 2 s. De vez en cuando viene una **ola** que barre
+  la parte baja de la isla: arriba de las colinas no te toca. Gana el primero en llegar a 20, 30 o 45 puntos o el que
+  tiene más al terminar el tiempo (si empatan, desempate: el próximo punto gana).
+
+En la Fiesta, Futbolonki y Rey de la colina duran 90 segundos en lugar de 2 minutos.
 
 ## Música
 
@@ -56,7 +65,7 @@ El volumen está en Opciones → Audio.
 Para sumar un tema: agregarlo a `SONGS` (un acorde y un compás de melodía por compás, 16 pasos cada uno) y ponerle
 `music: '<nombre>'` al minijuego, o usar su mismo id.
 
-En Bombardeo, Petardos, Empujón y Futbolonki la cámara se gira **arrastrando el mouse** (o con el stick derecho); los controles
+En Bombardeo, Petardos, Empujón, Futbolonki y Rey de la colina la cámara se gira **arrastrando el mouse** (o con el stick derecho); los controles
 siguen a la cámara y la tecla C la vuelve a centrar.
 
 Al elegir el minijuego se ve una vista previa chiquita (una foto que el juego saca de cada minijuego al arrancar, `src/render/thumbs.js`) y su descripción.
@@ -194,7 +203,7 @@ src/
   display.js         resolución, relación de aspecto y pantalla completa
   settings.js        opciones guardadas
   flow.js            título, menús, partida, pausa y fin
-  minigames/         cada minijuego (registry.js explica la forma; bolas, empujon, bombardeo, petardos y futbol)
+  minigames/         cada minijuego (registry.js explica la forma; bolas, empujon, bombardeo, petardos, futbol y colina)
   fiesta/board.js    modo Fiesta: tablero, dado, casilleros, copa, duelos y minijuegos sorteados
   multiplayer.js     menú ONLINE (crear sala, unirse, salas públicas, apodo), pausa y fin online
   sala/sala.js       la sala: unirse, elegir personaje, opciones y arrancar (solo, local y online)

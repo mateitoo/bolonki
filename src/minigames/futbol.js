@@ -23,12 +23,12 @@ const HX = 12.5, HZ = 8;       // media cancha (largo y ancho)
 const CR = 3.2;                // esquinas redondeadas (así la pelota no se traba)
 const GW0 = 2.7, GD = 2.0;     // medio ancho del arco y profundidad
 const POST = 0.2;              // radio de los palos
-const PR = 1.12;               // radio de la nave para los choques
-const POD_SCALE = 0.68;
+const PR = 0.95;               // radio de la nave para los choques
+const POD_SCALE = 0.575;         // un 15% más chicas que antes
 const ACC = 22, MAXV = 7.4, FRICTION = 2.2;
 const DASH_V = 15, DASH_T = 0.22, DASH_CD = 1.0;
 const BOUNCE = 0.85, DASH_PUSH = 3.2, DASH_MASS = 2.2;
-const BR = 0.72, BMASS = 0.42;               // pelota
+const BR = 0.58, BMASS = 0.42;               // pelota
 const BFRIC = 0.75, BMAX = 21, WALL_B = 0.78, KICK = 4.5;
 const MATCH_T = 120, GOAL_PAUSE = 2.8, END_PAUSE = 2.2, FREEZE = 0.8;
 const TEAM_COL = ['#35a0ff', '#ff5a4a'], TEAM_HEX = [0x35a0ff, 0xff5a4a], TEAM_NAME = ['AZUL', 'ROJO'];
@@ -130,7 +130,7 @@ function buildWorld() {
   // aro del color del equipo debajo de cada nave
   for (let i = 0; i < 4; i++) {
     const m = mat({ color: 0xffffff, unlit: true }); W.ringM.push(m);
-    const rg = new THREE.RingGeometry(1.2, 1.46, 18); rg.rotateX(-Math.PI / 2);
+    const rg = new THREE.RingGeometry(1.02, 1.24, 18); rg.rotateX(-Math.PI / 2);
     W.rings.push(add(rg, m, 0, 0.03, 0, grp));
   }
   decorFutbol(grp, HX, HZ);
@@ -474,7 +474,7 @@ const futbol = {
   cam: { pos: new THREE.Vector3(0, 25, 19.5), look: new THREE.Vector3(0, 0, 0.9), rotate: false, orbit: true },
   fog: { col: 0x070a1c, near: 55, far: 130 },
   humanOut: false,
-  markMe: true, tagY: 3.2,
+  markMe: true, tagY: 2.8,
   tense: () => S.golden || (S.t < 20 && !S.ending),
   thumbSteps: 160,
   thumbCam: { pos: new THREE.Vector3(0, 19, 15), look: new THREE.Vector3(0, -1, 0.5) },

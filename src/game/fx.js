@@ -7,6 +7,7 @@ import { SFX } from '../audio.js';
 import { DEATH_ANIMS } from '../deaths/index.js';
 import FALL from '../deaths/fall.js';
 import CRUSH from '../deaths/crush.js';
+import BURN from '../deaths/burn.js';
 
 export const outbox = [];
 let recording = false;
@@ -72,11 +73,21 @@ export const FX = {
   /* ---------- Bombardeo ---------- */
   alert() { SFX.alert(); emit(['A']); },
   // un bloque tocó el piso en (x, z)
-  slam(x, z) {
+  slam(x, z, y = 0) {
     SFX.slam(); game.shake = Math.max(game.shake, 0.22);
-    for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) burst(x + dx * 1.1, 0.2, z + dz * 1.1, { mat: P.SMOKE, n: 2, sp: 2.5, up: [0.5, 1.5], life: [0.3, 0.6], g: -1, grow: 1.5 });
-    burst(x, 0.3, z, { mat: P.DEBRIS, n: 4, sp: 4, up: [2, 5], life: [0.3, 0.6] });
-    emit(['L', r2(x), r2(z)]);
+    for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) burst(x + dx * 0.9, y + 0.2, z + dz * 0.9, { mat: P.SMOKE, n: 2, sp: 2.5, up: [0.5, 1.5], life: [0.3, 0.6], g: -1, grow: 1.5 });
+    burst(x, y + 0.3, z, { mat: P.DEBRIS, n: 4, sp: 4, up: [2, 5], life: [0.3, 0.6] });
+    emit(['L', r2(x), r2(z), r2(y)]);
+  },
+  jump(i) { SFX.jump(); emit(['J', i]); },
+  // se cayó (o quedó) en la lava
+  burn(i, lavaY) {
+    const p = game.players[i];
+    if (p.death && p.death.anim === BURN) return;
+    p.burned = true; p.lavaY = lavaY;
+    p.death = { anim: BURN, t: 0, st: {}, done: false };
+    BURN.start(p, p.death.st);
+    emit(['B', i, r2(lavaY)]);
   },
   // aplastado por un bloque
   crush(i) {
@@ -112,8 +123,10 @@ export function playEvent(ev) {
     case 'R': FX.round(ev[1]); break;
     case 'W': FX.shrinkWarn(); break;
     case 'A': FX.alert(); break;
-    case 'L': FX.slam(ev[1], ev[2]); break;
+    case 'L': FX.slam(ev[1], ev[2], ev[3] || 0); break;
     case 'C': FX.crush(ev[1]); break;
+    case 'J': FX.jump(ev[1]); break;
+    case 'B': FX.burn(ev[1], ev[2]); break;
     case 'S': FX.snd(ev[1]); break;
     case 'X': FX.sparkle(ev[1], ev[2], ev[3], ev[4], ev[5]); break;
     default: break;

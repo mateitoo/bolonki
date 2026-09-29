@@ -67,15 +67,15 @@ function drawNameTags(hw, st) {
   if (st !== 'play' && st !== 'count' && st !== 'end' && st !== 'paused') return;
   // en Empujón las naves se mezclan: se marca también la tuya con "VOS"; en el tablero, todos con su nombre
   const board = game.minigame === 'fiesta';
-  const markMe = (game.minigame === 'empujon' || board) && game.mode !== 'local';
   const m = mg(), tagY = m.tagY || 4.1;
+  const markMe = (m.markMe || game.minigame === 'empujon' || board) && game.mode !== 'local';
   if (m.showTags && !m.showTags()) return;
   for (const p of game.players) {
     if (p.empty || p.death || (board && !p.mesh.root.visible)) continue;
     const mine = p.i === game.me && game.mode !== 'local';
     const name = mine ? (markMe ? 'VOS' : null) : p.name;
     if (!name) continue;
-    v3.set(p.x, tagY, p.z).project(camera);
+    v3.set(p.x, tagY + (m.tagFeet ? p.fy || 0 : 0), p.z).project(camera);
     if (v3.z > 1) continue;
     const x = Math.round((v3.x + 1) / 2 * hw), y = Math.round((1 - v3.y) / 2 * 240) - 4;
     txt(name, x, Math.max(58, Math.min(214, y)), 8, CHARS[p.i].col, 'center');

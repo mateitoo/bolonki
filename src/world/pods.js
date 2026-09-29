@@ -61,6 +61,16 @@ export function buildPod(i) {
     add(new THREE.BoxGeometry(0.7, 0.08, 0.08), black, 0, 0.4, 0.66, rider).rotation.z = 0.12;
   }
 
+  // piernas (solo se ven en los minijuegos a pie, sin nave)
+  const legs = new THREE.Group(); legs.visible = false; rider.add(legs);
+  const legM = M({ color: new THREE.Color(ch.dark) }), shoeM = M({ color: 0x2a2a34 });
+  const legL = new THREE.Group(), legR = new THREE.Group();
+  [[legL, -0.3], [legR, 0.3]].forEach(([g, lx]) => {
+    g.position.set(lx, -0.6, 0); legs.add(g);
+    add(new THREE.BoxGeometry(0.2, 0.42, 0.2), legM, 0, -0.2, 0, g);
+    add(new THREE.BoxGeometry(0.3, 0.14, 0.42), shoeM, 0, -0.44, 0.08, g);
+  });
+
   const sh = new THREE.Mesh(new THREE.CircleGeometry(1, 10), new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: 0.35, depthWrite: false }));
   sh.geometry.rotateX(-Math.PI / 2); sh.scale.set(1.95, 1, 1.6); scene.add(sh);
   const scorch = new THREE.Mesh(new THREE.CircleGeometry(1.8, 8), new THREE.MeshBasicMaterial({ color: 0x0a0806, transparent: true, opacity: 0.7, depthWrite: false }));
@@ -68,7 +78,7 @@ export function buildPod(i) {
 
   root.rotation.y = faceIn(s.nx, s.nz);
   return {
-    root, veh, rider, mats, hullM, lightM, sh, scorch,
+    root, veh, rider, mats, hullM, lightM, sh, scorch, legs, legL, legR,
     baseRot: root.rotation.y,
     riderBase: new THREE.Vector3(0, 2.05, -0.1),
   };
@@ -79,6 +89,7 @@ export function resetPodVisual(p) {
   m.root.visible = true; m.root.position.y = 0; m.root.rotation.set(0, m.baseRot, 0);
   m.veh.visible = true; m.veh.position.set(0, 0, 0); m.veh.rotation.set(0, 0, 0); m.veh.scale.set(1, 1, 1);
   m.rider.visible = true; m.rider.position.copy(m.riderBase); m.rider.rotation.set(0, 0, 0); m.rider.scale.set(1, 1, 1);
+  m.legs.visible = false; m.legL.rotation.set(0, 0, 0); m.legR.rotation.set(0, 0, 0);
   m.mats.forEach((o) => { o.m.uniforms.uColor.value.copy(o.base); o.m.uniforms.uEmissive.value.setRGB(0, 0, 0); });
   m.scorch.visible = false;
 }

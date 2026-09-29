@@ -66,6 +66,9 @@ export const SFX = {
   // Bombardeo
   alert() { const n = performance.now(); if (n - lastAlert < 120) return; lastAlert = n; beep(1040, 1040, 0.05, 'square', 0.03); beep(780, 780, 0.05, 'square', 0.03, 0.07); },
   slam() { const n = performance.now(); if (n - lastSlam < 60) return; lastSlam = n; noise(0.25, 0.22, 900); beep(110, 45, 0.22, 'square', 0.1); },
+  burn() { noise(0.6, 0.12, 4000); beep(700, 1300, 0.15, 'square', 0.04); beep(1300, 500, 0.3, 'sawtooth', 0.04, 0.15); },
+  jump() { beep(260, 720, 0.12, 'square', 0.035); },
+  land() { const n = performance.now(); if (n - lastSlam < 40) return; beep(140, 90, 0.05, 'square', 0.03); },
   crush() { beep(300, 60, 0.35, 'sawtooth', 0.09); noise(0.2, 0.15, 2500, 0.02); beep(1400, 1900, 0.08, 'square', 0.03, 0.3); },
   // Fiesta
   dice() { beep(900, 900, 0.025, 'square', 0.02); },

@@ -3,6 +3,8 @@
 // Cada uno tira el dado y avanza por un camino de 24 casilleros:
 //   azul +3 monedas · rojo −3 · evento (algo al azar) · duelo (minijuego 1 contra 1, el ganador le saca 10)
 // Al pasar por la copa se puede comprar por 20 monedas (después la copa se muda).
+// Al pasar por una tienda se compran objetos (hasta 2): dado doble, dado dorado, trampa, escudo y campana.
+// Los objetos se usan al empezar el turno, antes de tirar el dado (el escudo se usa solo).
 // Al final de cada vuelta, un minijuego entre todos (sorteado entre los activos) reparte monedas por puesto.
 // Después de N turnos gana el que tiene más copas (y si empatan, más monedas).
 // Los últimos 3 turnos: los casilleros azules y rojos valen el doble y el que va último gira una ruleta de ayuda.
@@ -31,7 +33,7 @@ import { drawThumb } from '../render/thumbStore.js';
 
 /* ---------- reglas ---------- */
 const N = 24;
-const TYPES = 'SBBEBRBDBEBRBBEBRDBEBRBE';     // S inicio · B azul · R rojo · E evento · D duelo
+const TYPES = 'SBBEBRTDBEBRBBEBRDTEBRBE';     // S inicio · B azul · R rojo · E evento · D duelo · T tienda
 const COPA_COST = 20, START_COINS = 10, BLUE = 3, RED = 3, DUEL_STEAL = 10;
 const HOP = 0.28;
 const PRIZES = { 4: [10, 5, 3, 1], 3: [10, 5, 2], 2: [10, 3] };
@@ -44,6 +46,17 @@ const EVENTS = [
   { id: 'mala', title: '¡MALA SUERTE!', sub: '−5 MONEDAS' },
 ];
 const LAST_N = 3;             // últimos turnos (casilleros al doble y ruleta de ayuda)
+// Objetos de la tienda. use: se elige al empezar el turno (el escudo no: se gasta solo cuando te van a sacar monedas)
+const ITEMS = {
+  doble: { name: 'DADO DOBLE', price: 6, use: true, desc: 'TIRÁS DOS DADOS Y SE SUMAN' },
+  dorado: { name: 'DADO DORADO', price: 10, use: true, desc: 'ELEGÍS EL NÚMERO, DEL 1 AL 6' },
+  trampa: { name: 'TRAMPA', price: 6, use: true, desc: 'EL QUE CAIGA AHÍ TE PAGA 10' },
+  escudo: { name: 'ESCUDO', price: 5, use: false, desc: 'TE CUIDA UNA VEZ DE PERDER MONEDAS' },
+  campana: { name: 'CAMPANA', price: 15, use: true, desc: 'TE LLEVA DERECHO A LA COPA' },
+};
+const ITEM_IDS = Object.keys(ITEMS);
+const MAX_ITEMS = 2, TRAP_PAY = 10;
+const cheapest = Math.min(...ITEM_IDS.map((k) => ITEMS[k].price));
 const AID = [                 // ruleta de ayuda para el que va último
   { id: 'c10', label: '+10 MONEDAS' },
   { id: 'c20', label: '+20 MONEDAS' },
@@ -56,7 +69,7 @@ const BONUS = [               // premios extra del final
   { id: 'events', title: 'AVENTURERO', sub: 'EL QUE MÁS VECES CAYÓ EN EVENTOS' },
 ];
 const FAST = 3;               // cuánto se acelera al mantener el botón
-const FASTABLE = ['turn', 'roll', 'move', 'buy', 'land', 'event', 'duelPick', 'mgRes', 'duelRes', 'last', 'aid', 'bonus'];
+const FASTABLE = ['turn', 'roll', 'move', 'buy', 'land', 'event', 'duelPick', 'items', 'shop', 'gold', 'mgRes', 'duelRes', 'last', 'aid', 'bonus'];
 
 /* ---------- camino ---------- */
 const SPACES = [];
@@ -74,6 +87,7 @@ export const S = {
   msg: '', sub: '', col: '', flash: '', flashT: 0, ch: null, pick: 'bolas', duel: null, res: null, fin: null, noEvent: false,
   last: false, aid: null, bonus: null, bk: -1, fast: 1,
   stats: { wins: [0, 0, 0, 0], earned: [0, 0, 0, 0], events: [0, 0, 0, 0] },
+  items: [[], [], [], []], traps: {}, dbl: false, dice2: 1,
 };
 let base = null;           // quiénes juegan y cómo (control, nombres, joysticks) para toda la Fiesta
 
@@ -93,7 +107,7 @@ const isHuman = (i) => { const c = game.players[i].ctrl; return c === 'local' ||
 const who = () => S.order[S.cur];
 
 /* ---------- mundo ---------- */
-const W = { grp: null, tiles: [], copa: null, ring: null, dice: null, props: [], spin: [] };
+const W = { grp: null, tiles: [], copa: null, ring: null, dice: null, dice2: null, props: [], spin: [], traps: [] };
 
 function buildWorld() {
   const grp = new THREE.Group(); grp.visible = false; scene.add(grp); W.grp = grp;
@@ -126,13 +140,24 @@ function buildWorld() {
   // casilleros
   const tileG = new THREE.CylinderGeometry(0.95, 1.05, 0.3, 10);
   const ringG = new THREE.RingGeometry(0.6, 0.85, 10); ringG.rotateX(-Math.PI / 2);
-  const COLS = { S: 0xf4f4f4, B: 0x3a7bff, R: 0xff3a3a, E: 0x39d98a, D: 0xb06aff };
+  const COLS = { S: 0xf4f4f4, B: 0x3a7bff, R: 0xff3a3a, E: 0x39d98a, D: 0xb06aff, T: 0xffb31a };
+  const woodM = mat({ color: 0x8a5a32 }), awnA = mat({ color: 0xff5a4a }), awnB = mat({ color: 0xfff0d8 }), signM = mat({ color: 0xffc83a, unlit: true });
   SPACES.forEach((s, i) => {
     const m = mat({ color: COLS[s.type] });
     add(tileG, m, s.x, 0.15, s.z, grp);
     add(ringG, mat({ color: new THREE.Color(COLS[s.type]).multiplyScalar(0.55), unlit: true }), s.x, 0.31, s.z, grp);
     if (s.type === 'E') { const o = add(new THREE.OctahedronGeometry(0.35, 0), mat({ color: 0xa8ffc0, unlit: true }), s.x, 1.1, s.z, grp); W.spin.push(o); }
     if (s.type === 'D') { const o = add(new THREE.ConeGeometry(0.3, 0.7, 4), mat({ color: 0xe0b0ff, unlit: true }), s.x, 1.1, s.z, grp); W.spin.push(o); }
+    if (s.type === 'T') {
+      // puestito de la tienda al costado del casillero: mostrador, parantes y toldo a rayas
+      const [ox, oz] = outward(i), booth = new THREE.Group();
+      booth.position.set(s.x + ox * 1.7, 0, s.z + oz * 1.7); booth.rotation.y = Math.atan2(-ox, -oz); grp.add(booth);
+      add(new THREE.BoxGeometry(1.5, 0.6, 0.6), woodM, 0, 0.3, 0, booth);
+      [-0.68, 0.68].forEach((px) => add(new THREE.BoxGeometry(0.08, 1.4, 0.08), woodM, px, 0.7, -0.25, booth));
+      for (let k = 0; k < 5; k++) add(new THREE.BoxGeometry(0.34, 0.06, 0.8), k % 2 ? awnB : awnA, -0.68 + k * 0.34, 1.42, -0.05, booth).rotation.x = 0.25;
+      add(new THREE.BoxGeometry(0.5, 0.26, 0.04), signM, 0, 0.36, 0.31, booth);
+      const o = add(new THREE.OctahedronGeometry(0.2, 0), mat({ color: 0xffe070, unlit: true }), 0, 0.85, 0, booth); W.spin.push(o);
+    }
     if (s.type === 'S') {
       add(new THREE.CylinderGeometry(0.05, 0.05, 1.6, 4), mat({ color: 0xdddddd }), s.x + 0.7, 0.9, s.z, grp);
       add(new THREE.BoxGeometry(0.05, 0.4, 0.6), mat({ color: 0xff9a1f, unlit: true }), s.x + 0.7, 1.5, s.z + 0.3, grp);
@@ -153,6 +178,16 @@ function buildWorld() {
   const ring = new THREE.TorusGeometry(0.75, 0.08, 4, 16); ring.rotateX(Math.PI / 2);
   W.ring = add(ring, mat({ color: 0xffd23a, unlit: true }), 0, 0.4, 0, grp);
   W.dice = add(new THREE.BoxGeometry(0.9, 0.9, 0.9), mat({ map: TX.dice, unlit: true }), 0, 3, 0, grp);
+  W.dice2 = add(new THREE.BoxGeometry(0.9, 0.9, 0.9), mat({ map: TX.dice, unlit: true }), 0, 3, 0, grp);
+  // trampas puestas en el camino: pinches rojos
+  const spikeM = mat({ color: 0xff3a2a }), baseM = mat({ color: 0x5a1a14 });
+  for (let k = 0; k < 8; k++) {
+    const g = new THREE.Group(); g.visible = false; grp.add(g);
+    add(new THREE.CylinderGeometry(0.5, 0.55, 0.08, 8), baseM, 0, 0.34, 0, g);
+    for (let j = 0; j < 5; j++) { const a = (j / 5) * Math.PI * 2; add(new THREE.ConeGeometry(0.1, 0.34, 4), spikeM, Math.sin(a) * 0.3, 0.5, Math.cos(a) * 0.3, g); }
+    add(new THREE.ConeGeometry(0.12, 0.42, 4), spikeM, 0, 0.55, 0, g);
+    W.traps.push(g);
+  }
 }
 
 function buildCup(k) {
@@ -178,7 +213,9 @@ function newFiesta(cfg) {
     pick: activeMinigames()[0].id, duel: null, res: null, fin: null, noEvent: false,
     last: false, aid: null, bonus: null, bk: -1, fast: 1,
     stats: { wins: [0, 0, 0, 0], earned: [0, 0, 0, 0], events: [0, 0, 0, 0] },
+    items: [[], [], [], []], traps: {}, dbl: false, dice2: 1,
   });
+  S.copa = copaSpot(S.copa);
   FX.snd('fanfare');
 }
 
@@ -266,7 +303,7 @@ function startAid() {
   if (w === undefined || (S.cups[w] === S.cups[top] && S.coins[w] === S.coins[top])) { S.cur = 0; enter('turn'); return; }   // todos parejos: nada
   S.aid = { who: w, k: 0, res: (Math.random() * AID.length) | 0, done: false, spinT: 0, text: '' };
   S.ph = 'aid'; S.t = 0;
-  say('RULETA DE AYUDA', `{${w}} VA ÚLTIMO`, charOf(w).col);
+  say('RULETA DE AYUDA', `VA ÚLTIMO: {${w}}`, charOf(w).col);
 }
 function applyAid(a) {
   const w = a.who, id = AID[a.res].id, sp = SPACES[S.pos[w]];
@@ -277,7 +314,7 @@ function applyAid(a) {
   } else {
     const leader = rankOrder().filter((k) => k !== w).pop();
     const n = Math.min(10, S.coins[leader]); addCoins(leader, -n); addCoins(w, n);
-    a.text = `{${w}} LE SACA ${n} MONEDAS A {${leader}}`; FX.snd('coin');
+    a.text = `${n} MONEDAS DE {${leader}} PARA {${w}}`; FX.snd('coin');
   }
   FX.sparkle(sp.x, 1.5, sp.z, P.YELLOW, 14);
 }
@@ -295,13 +332,26 @@ const BONUS_T0 = 2.6, BONUS_EACH = 3.4;
 
 function land(i) {
   const s = SPACES[S.pos[i]];
+  // trampa de otro: le pagás (en vez del efecto del casillero)
+  const owner = S.traps[S.pos[i]];
+  if (owner !== undefined && owner !== i) {
+    delete S.traps[S.pos[i]];
+    const n = hurt(i, TRAP_PAY);
+    if (n > 0) addCoins(owner, n);
+    say('¡TRAMPA!', n > 0 ? `${n} MONEDAS DE {${i}} PARA {${owner}}` : `{${i}}: ¡ESCUDO!`, '#ff5a5a');
+    FX.snd(n > 0 ? 'lose' : 'confirm');
+    return;
+  }
   let type = s.type;
   if (type === 'E' && S.noEvent) type = 'B';
   S.noEvent = false;
   if (type === 'D' && S.order.length < 2) type = 'B';
   const pt = SPACES[S.pos[i]], k2 = S.last ? 2 : 1;          // últimos turnos: al doble
-  if (type === 'B' || type === 'S') { addCoins(i, BLUE * k2); say(`+${BLUE * k2} MONEDAS`, S.last ? '¡AL DOBLE!' : '', '#6ea8ff'); FX.snd('coin'); FX.sparkle(pt.x, 1, pt.z, P.YELLOW, 8); }
-  else if (type === 'R') { addCoins(i, -RED * k2); say(`−${RED * k2} MONEDAS`, S.last ? '¡AL DOBLE!' : '', '#ff5a5a'); FX.snd('lose'); }
+  if (type === 'B' || type === 'S' || type === 'T') { addCoins(i, BLUE * k2); say(`+${BLUE * k2} MONEDAS`, S.last ? '¡AL DOBLE!' : '', '#6ea8ff'); FX.snd('coin'); FX.sparkle(pt.x, 1, pt.z, P.YELLOW, 8); }
+  else if (type === 'R') {
+    const n = hurt(i, RED * k2);
+    say(n > 0 ? `−${n} MONEDAS` : '¡EL ESCUDO TE CUIDÓ!', S.last && n > 0 ? '¡AL DOBLE!' : '', n > 0 ? '#ff5a5a' : '#6ea8ff'); FX.snd(n > 0 ? 'lose' : 'confirm');
+  }
   else if (type === 'E') { S.ph = 'event'; S.t = 0; S.stats.events[i]++; doEvent(i); }
   else if (type === 'D') { S.ph = 'duelPick'; S.t = 0; say('¡DUELO!', '', '#d8a0ff'); FX.snd('duel'); askDuel(i); }
 }
@@ -313,11 +363,14 @@ function doEvent(i) {
   let sub = ev.sub;
   switch (ev.id) {
     case 'lluvia': S.order.forEach((k) => addCoins(k, 5)); FX.snd('coin'); break;
-    case 'ladron': if (other !== undefined) { const n = Math.min(5, S.coins[other]); addCoins(other, -n); addCoins(i, n); sub = `${n} MONEDAS DE {${other}} PARA {${i}}`; } FX.snd('coin'); break;
+    case 'ladron': if (other !== undefined) {
+      const n = hurt(other, 5); addCoins(i, n);
+      sub = n > 0 ? `${n} MONEDAS DE {${other}} PARA {${i}}` : `{${other}}: ¡ESCUDO!`;
+    } FX.snd('coin'); break;
     case 'turbo': S.steps = 3; S.noEvent = true; break;
     case 'cambio': if (other !== undefined) { const a = S.pos[i]; S.pos[i] = S.pos[other]; S.pos[other] = a; sub = `{${i}} Y {${other}} CAMBIAN DE LUGAR`; } break;
     case 'mudanza': moveCopa(); break;
-    case 'mala': addCoins(i, -5); FX.snd('lose'); break;
+    case 'mala': if (!hurt(i, 5)) sub = '¡EL ESCUDO TE CUIDÓ!'; FX.snd('lose'); break;
     default: break;
   }
   S.evId = ev.id;
@@ -330,9 +383,80 @@ function moveCopa() {
   while (guard++ < 50) {
     k = 1 + ((Math.random() * (N - 1)) | 0);
     const d = Math.min(Math.abs(k - S.copa), N - Math.abs(k - S.copa));
-    if (d >= 6 && !S.order.some((p) => S.pos[p] === k)) break;
+    if (d >= 6 && SPACES[k].type !== 'T' && !S.order.some((p) => S.pos[p] === k)) break;
   }
   S.copa = k;
+}
+// la copa nunca queda en una tienda (se corre al casillero siguiente)
+function copaSpot(k) { while (SPACES[k].type === 'T' || k === 0) k = (k + 1) % N; return k; }
+
+// Perder monedas por algo malo (casillero rojo, ladrón, trampa…): el escudo lo evita una vez.
+// Devuelve cuántas se perdieron.
+function hurt(i, n) {
+  const it = S.items[i], k = it.indexOf('escudo');
+  if (k >= 0 && n > 0) { it.splice(k, 1); flash(`{${i}}: ¡ESCUDO! NO PIERDE NADA`); FX.snd('confirm'); return 0; }
+  const lost = Math.min(n, S.coins[i]);
+  addCoins(i, -lost);
+  return lost;
+}
+
+/* ---------- tienda y objetos ---------- */
+const canShop = (i) => S.items[i].length < MAX_ITEMS && S.coins[i] >= cheapest;
+function askShop(i) {
+  const opts = ITEM_IDS.map((k) => `${ITEMS[k].name}  ${ITEMS[k].price}`);
+  S.ch = { type: 'shop', who: i, title: 'TIENDA', opts: opts.concat(['NADA']), vals: ITEM_IDS.concat(['nada']), sel: 0, list: true };
+  S.ph = 'shop'; S.t = 0; S.botT = rnd(0.8, 1.3);
+}
+// al empezar el turno: ¿usar un objeto o tirar el dado?
+function askItems(i) {
+  const usable = S.items[i].filter((k) => ITEMS[k].use);
+  S.ch = { type: 'items', who: i, title: '¿USÁS UN OBJETO?', opts: ['TIRAR EL DADO'].concat(usable.map((k) => ITEMS[k].name)), vals: ['roll'].concat(usable), sel: 0, list: true };
+  S.ph = 'items'; S.t = 0; S.botT = rnd(0.6, 1.0);
+}
+function askGold(i) {
+  S.ch = { type: 'gold', who: i, title: 'DADO DORADO: ELEGÍ EL NÚMERO', opts: ['1', '2', '3', '4', '5', '6'], vals: [1, 2, 3, 4, 5, 6], sel: 2 };
+  S.ph = 'gold'; S.t = 0; S.botT = rnd(0.6, 1.0);
+}
+const copaDist = (i) => (S.copa - S.pos[i] + N) % N;
+// bots: qué comprar (dejando plata para la copa si está cerca)
+function botShop(i) {
+  const keep = copaDist(i) <= 12 ? COPA_COST : 6;
+  const can = ITEM_IDS.filter((k) => S.coins[i] - ITEMS[k].price >= keep && !(k === 'escudo' && S.items[i].includes('escudo')));
+  if (!can.length || Math.random() < 0.3) return 'nada';
+  if (can.includes('campana') && S.coins[i] >= ITEMS.campana.price + COPA_COST) return 'campana';
+  const w = { doble: 2, dorado: 2, trampa: 1.5, escudo: 1.2, campana: 0 };
+  let r = Math.random() * can.reduce((a, k) => a + w[k], 0);
+  for (const k of can) { r -= w[k]; if (r <= 0) return k; }
+  return can[0];
+}
+// bots: qué objeto usar al empezar el turno
+function botItem(i, c) {
+  const has = (k) => c.vals.includes(k), d = copaDist(i), rich = S.coins[i] >= COPA_COST;
+  if (has('campana') && rich) return 'campana';
+  if (has('dorado') && rich && d >= 1 && d <= 6) return 'dorado';
+  if (has('doble') && ((rich && d >= 7 && d <= 12) || Math.random() < 0.25)) return 'doble';
+  if (has('trampa') && S.pos[i] !== 0 && S.traps[S.pos[i]] === undefined && Math.random() < 0.4) return 'trampa';
+  return 'roll';
+}
+function useItem(i, id) {
+  const it = S.items[i], k = it.indexOf(id);
+  if (k >= 0) it.splice(k, 1);
+  const sp = SPACES[S.pos[i]];
+  switch (id) {
+    case 'doble': S.dbl = true; flash(`{${i}}: ¡DADO DOBLE!`); enter('roll'); break;
+    case 'dorado': askGold(i); break;
+    case 'trampa':
+      S.traps[S.pos[i]] = i; FX.snd('place'); FX.sparkle(sp.x, 0.8, sp.z, P.RED, 10);
+      flash(`{${i}}: ¡TRAMPA PUESTA!`); enter('roll'); break;
+    case 'campana': {
+      S.pos[i] = S.copa; S.steps = 0; FX.snd('event');
+      const c = SPACES[S.copa]; FX.sparkle(c.x, 1.5, c.z, P.YELLOW, 14);
+      flash(`{${i}}: ¡CAMPANA! DERECHO A LA COPA`);
+      if (S.coins[i] >= COPA_COST) askBuy(i); else { flash('NO ALCANZAN LAS MONEDAS PARA LA COPA'); enter('land'); }
+      break;
+    }
+    default: enter('roll');
+  }
 }
 
 function askBuy(i) {
@@ -374,6 +498,9 @@ function handleChoice(dt) {
   }
   if (S.t < S.botT) return null;
   if (c.type === 'buy') return true;
+  if (c.type === 'shop') return botShop(c.who);
+  if (c.type === 'items') return botItem(c.who, c);
+  if (c.type === 'gold') { const d = copaDist(c.who); return d >= 1 && d <= 6 ? d : 6; }
   // bot: desafía al que más monedas tiene
   return c.vals.reduce((a, b) => (S.coins[b] > S.coins[a] ? b : a), c.vals[0]);
 }
@@ -386,25 +513,55 @@ function step(dt) {
   syncLeft();
   const i = who();
   // mantener el botón apretado acelera los turnos de los demás (y los carteles de resultados)
-  const myTurn = game.players[i] && game.players[i].ctrl === 'local' && ['turn', 'roll', 'move', 'buy', 'land', 'event', 'duelPick'].includes(S.ph);
+  const myTurn = game.players[i] && game.players[i].ctrl === 'local' && ['turn', 'roll', 'move', 'buy', 'land', 'event', 'duelPick', 'items', 'shop', 'gold'].includes(S.ph);
   const someoneHere = game.players.some((p) => p.ctrl === 'local' && S.order.includes(p.i));
   S.fast = game.online !== 'guest' && someoneHere && !myTurn && FASTABLE.includes(S.ph) && input.holdHit ? FAST : 1;
   dt *= S.fast;
   S.t += dt;
   if (S.flashT > 0) S.flashT -= dt;
   // los que no están de turno no acumulan golpes
-  game.players.forEach((p) => { if (p.i !== i || !['roll', 'buy', 'duelPick'].includes(S.ph)) { p.bHit = false; if (p.net && S.ph !== 'roll' && S.ph !== 'buy' && S.ph !== 'duelPick') p.net.hit = false; } });
+  const CHOOSE = ['roll', 'buy', 'duelPick', 'items', 'shop', 'gold'];
+  game.players.forEach((p) => { if (p.i !== i || !CHOOSE.includes(S.ph)) { p.bHit = false; if (p.net && !CHOOSE.includes(S.ph)) p.net.hit = false; } });
 
   switch (S.ph) {
     case 'intro': if (S.t > 3) enter('turn'); break;
-    case 'turn': if (S.t > (isHuman(i) ? 1.3 : 0.9)) enter('roll'); break;
+    case 'turn':
+      if (S.t > (isHuman(i) ? 1.3 : 0.9)) { if (S.items[i].some((k) => ITEMS[k].use)) askItems(i); else enter('roll'); }
+      break;
+    case 'items': {
+      const v = handleChoice(dt);
+      if (v === null) break;
+      S.ch = null;
+      if (v === 'roll') enter('roll'); else useItem(i, v);
+      break;
+    }
+    case 'gold': {
+      const v = handleChoice(dt);
+      if (v === null) break;
+      S.ch = null; S.dice = v; S.steps = v; FX.snd('confirm');
+      enter('move');
+      break;
+    }
+    case 'shop': {
+      const v = handleChoice(dt);
+      if (v === null) break;
+      if (v !== 'nada' && S.coins[i] < ITEMS[v].price) { flash('NO TE ALCANZAN LAS MONEDAS'); FX.snd('lose'); break; }
+      S.ch = null;
+      if (v !== 'nada') { addCoins(i, -ITEMS[v].price); S.items[i].push(v); FX.snd('coin'); flash(`{${i}}: +${ITEMS[v].name}`); }
+      S.ph = S.steps > 0 ? 'move' : 'land'; S.t = 0;
+      if (S.ph === 'land') enter('land');
+      break;
+    }
     case 'roll': {
       S.spin += dt;
-      if (S.spin > 0.07) { S.spin = 0; S.dice = (S.dice % 6) + 1; if (isHuman(i)) FX.snd('dice'); }
+      if (S.spin > 0.07) { S.spin = 0; S.dice = (S.dice % 6) + 1; S.dice2 = ((S.dice2 + 2) % 6) + 1; if (isHuman(i)) FX.snd('dice'); }
       const inp = isHuman(i) ? readIn(i) : null;
       if ((inp && inp.hit && S.t > 0.3) || (!isHuman(i) && S.t > S.botT)) {
-        if (!isHuman(i)) S.dice = 1 + ((Math.random() * 6) | 0);
-        S.steps = S.dice; FX.snd('confirm');
+        if (!isHuman(i)) { S.dice = 1 + ((Math.random() * 6) | 0); S.dice2 = 1 + ((Math.random() * 6) | 0); }
+        if (isHuman(i) && S.dbl) S.dice2 = 1 + ((Math.random() * 6) | 0);   // el segundo dado no se puede "cazar"
+        S.steps = S.dice + (S.dbl ? S.dice2 : 0); FX.snd('confirm');
+        if (S.dbl) flash(`${S.dice} + ${S.dice2} = ${S.steps}`);
+        S.dbl = false;
         const s = SPACES[S.pos[i]]; FX.sparkle(s.x, 2.8, s.z, P.YELLOW, 10);
         enter('move');
       }
@@ -418,6 +575,7 @@ function step(dt) {
           if (S.coins[i] >= COPA_COST) { askBuy(i); break; }
           flash('NO ALCANZAN LAS MONEDAS PARA LA COPA');
         }
+        if (SPACES[S.pos[i]].type === 'T' && canShop(i)) { askShop(i); break; }
         if (S.steps <= 0) enter('land');
       }
       break;
@@ -588,8 +746,18 @@ function visuals(dt) {
   W.ring.position.set(av.x, 0.36, av.z);
   W.ring.scale.setScalar(1 + Math.sin(clock * 6) * 0.08);
   W.dice.visible = S.ph === 'roll';
-  W.dice.position.set(av.x, 2.9 + Math.sin(clock * 4) * 0.1, av.z);
+  W.dice.position.set(av.x - (S.dbl ? 0.6 : 0), 2.9 + Math.sin(clock * 4) * 0.1, av.z);
   W.dice.rotation.set(clock * 3, clock * 4, 0);
+  W.dice2.visible = S.ph === 'roll' && S.dbl;
+  W.dice2.position.set(av.x + 0.6, 2.9 + Math.sin(clock * 4 + 1) * 0.1, av.z);
+  W.dice2.rotation.set(clock * 4, clock * 3, 0.5);
+  // trampas
+  const tk = Object.keys(S.traps || {});
+  W.traps.forEach((g, k) => {
+    const sp = tk[k] !== undefined ? SPACES[+tk[k]] : null;
+    g.visible = !!sp;
+    if (sp) { g.position.set(sp.x, 0, sp.z); g.rotation.y = clock * 0.5; }
+  });
   // copa: se desliza a su casillero nuevo
   const cs = SPACES[S.copa], [ox, oz] = outward(S.copa);
   const cx = cs.x + ox * 1.5, cz = cs.z + oz * 1.5;
@@ -619,6 +787,9 @@ function drawScore(p, x, y) {
   cupIcon(x - 14, y + 1); txt(String(S.cups[p.i]), x + 2, y, 8, COL.gold, 'left');
   coinIcon(x - 14, y + 11); txt(String(S.coins[p.i]), x + 2, y + 10, 8, '#ffe070', 'left');
   if (who() === p.i && ((game.clock * 4) | 0) % 2) { rect(x - 13, 2, 26, 1, COL.gold); rect(x - 13, 27, 26, 1, COL.gold); }
+  // objetos que tiene (hasta 2)
+  const its = (S.items && S.items[p.i]) || [];
+  its.forEach((id, k) => { const ix = x - its.length * 5 + k * 10; rect(ix - 1, y + 29, 10, 10, 'rgba(4,6,14,.7)'); itemIcon(id, ix, y + 30); });
 }
 
 const V3 = new THREE.Vector3();
@@ -653,11 +824,15 @@ function hud(hw) {
     case 'intro':
       banner(hw, 86, '¡FIESTA!', `${S.maxT} TURNOS · GANA EL QUE JUNTE MÁS COPAS`);
       txt(`LA COPA CUESTA ${COPA_COST} MONEDAS`, hw / 2, 140, 8, '#ffe070', 'center');
+      txt('EN LAS TIENDAS (NARANJAS) HAY OBJETOS', hw / 2, 154, 8, '#ffb31a', 'center');
       break;
     case 'turn': banner(hw, 156, i === game.me && game.mode !== 'local' ? '¡TU TURNO!' : `TURNO DE {${i}}`, '', S.col); break;
     case 'roll': {
       const [x, y] = project(av.x, 3.6, av.z, hw);
-      panel(x - 12, y - 12, 24, 22); txt(String(S.dice), x, y - 7, 16, COL.white, 'center');
+      if (S.dbl) {
+        panel(x - 27, y - 12, 24, 22); txt(String(S.dice), x - 15, y - 7, 16, COL.white, 'center');
+        panel(x + 3, y - 12, 24, 22); txt(String(S.dice2), x + 15, y - 7, 16, COL.white, 'center');
+      } else { panel(x - 12, y - 12, 24, 22); txt(String(S.dice), x, y - 7, 16, COL.white, 'center'); }
       if (mine(i)) txt(`${keyFor(i)}: TIRAR EL DADO`, hw / 2, 208, 8, COL.white, 'center');
       else txt(`TIRA ${pname(i)}...`, hw / 2, 208, 8, COL.dim, 'center');
       break;
@@ -668,6 +843,7 @@ function hud(hw) {
       break;
     }
     case 'land': case 'event': banner(hw, 150, S.msg, S.sub, S.col); break;
+    case 'items': case 'shop': case 'gold': drawChoice(hw); break;
     case 'buy': case 'duelPick':
       if (S.ph === 'duelPick' && S.t < 1.0) { banner(hw, 150, S.msg, mine(i) ? 'ELEGÍ A QUIÉN DESAFIAR' : `{${i}} ELIGE RIVAL`, S.col); break; }
       drawChoice(hw);
@@ -703,11 +879,13 @@ function howTo(hw, id) {
   txt(`${input.device === 'gamepad' ? 'A' : 'ESPACIO'}: ${m.howTo || 'GOLPE'}`, hw / 2, 201, 8, '#ffb31a', 'center');
 }
 
+const OTHER_TITLE = { duel: 'DUELO: ELIGIENDO RIVAL', buy: '¿{w} COMPRA LA COPA?', shop: '{w} ESTÁ EN LA TIENDA', items: '{w} ELIGE...', gold: '{w} USA EL DADO DORADO' };
 function drawChoice(hw) {
   const c = S.ch; if (!c) return;
+  if (c.list) { drawList(hw, c); return; }
   const w = Math.min(hw - 30, Math.max(textWidth(c.title, 8) + 30, c.opts.length * 70 + 20)), h = 58, x = Math.round(hw / 2 - w / 2), y = 150;
   panel(x, y, w, h);
-  const title = mine(c.who) ? c.title : c.type === 'duel' ? 'DUELO: ELIGIENDO RIVAL' : `¿{${c.who}} COMPRA LA COPA?`;
+  const title = mine(c.who) ? c.title : OTHER_TITLE[c.type].replace('{w}', `{${c.who}}`);
   txt(fmt(title), hw / 2, y + 8, 8, COL.gold, 'center');
   const bw = Math.floor((w - 20) / c.opts.length);
   c.opts.forEach((o, k) => {
@@ -717,6 +895,41 @@ function drawChoice(hw) {
   });
   const tip = mine(c.who) ? `←→ ELEGIR · ${keyFor(c.who)}: ACEPTAR` : `ELIGE ${pname(c.who)}...`;
   txt(tip, hw / 2, y + 44, 8, COL.dim, 'center');
+}
+
+// Lista vertical (tienda y objetos): ícono, nombre, precio y la descripción del elegido
+function drawList(hw, c) {
+  const rowH = 14, w = Math.min(hw - 24, 250), h = 30 + c.opts.length * rowH + 26, x = Math.round(hw / 2 - w / 2);
+  const y = Math.max(40, 214 - h);
+  panel(x, y, w, h);
+  const title = mine(c.who) ? c.title : OTHER_TITLE[c.type].replace('{w}', `{${c.who}}`);
+  txt(fmt(title), hw / 2, y + 7, 8, COL.gold, 'center');
+  if (c.type === 'shop') { coinIcon(x + w - 44, y + 7); txt(String(S.coins[c.who]), x + w - 10, y + 7, 8, '#ffe070', 'right'); }
+  c.vals.forEach((v, k) => {
+    const yy = y + 22 + k * rowH, on = k === c.sel, it = ITEMS[v];
+    if (on) { rect(x + 5, yy - 3, w - 10, rowH - 1, 'rgba(255,154,31,.22)'); tri(x + 9, yy, 'r', COL.gold); }
+    if (it) itemIcon(v, x + 20, yy - 1);
+    const poor = c.type === 'shop' && it && S.coins[c.who] < it.price;
+    txt(it ? it.name : fmt(c.opts[k]), x + 34, yy, 8, poor ? '#555b6e' : on ? COL.white : COL.text);
+    if (c.type === 'shop' && it) { txt(String(it.price), x + w - 10, yy, 8, poor ? '#555b6e' : '#ffe070', 'right'); coinIcon(x + w - 30, yy + 1); }
+  });
+  const sel = ITEMS[c.vals[c.sel]];
+  const info = sel ? sel.desc : c.type === 'items' ? 'O GUARDÁS LOS OBJETOS PARA DESPUÉS' : 'SEGUÍS DE LARGO';
+  txt(info, hw / 2, y + h - 30, 8, COL.teal, 'center');
+  const tip = mine(c.who) ? `↑↓ ELEGIR · ${keyFor(c.who)}: ACEPTAR` : `ELIGE ${pname(c.who)}...`;
+  txt(tip, hw / 2, y + h - 16, 8, COL.dim, 'center');
+}
+
+// Íconos de 8x8 de los objetos
+function itemIcon(id, x, y) {
+  switch (id) {
+    case 'doble': rect(x, y + 2, 5, 5, '#fff'); rect(x + 1, y + 3, 1, 1, '#000'); rect(x + 3, y, 5, 5, '#e8e8e8'); rect(x + 5, y + 2, 1, 1, '#000'); break;
+    case 'dorado': rect(x + 1, y + 1, 6, 6, '#ffc83a'); rect(x + 2, y + 2, 1, 1, '#7a4a00'); rect(x + 4, y + 4, 1, 1, '#7a4a00'); rect(x + 5, y + 2, 1, 1, '#7a4a00'); break;
+    case 'trampa': for (let k = 0; k < 3; k++) { rect(x + k * 3, y + 4, 2, 3, '#ff4a3d'); rect(x + k * 3, y + 2, 1, 2, '#ffb0a0'); } rect(x, y + 7, 8, 1, '#7a1a12'); break;
+    case 'escudo': rect(x + 1, y, 6, 5, '#4a8cff'); rect(x + 2, y + 5, 4, 1, '#4a8cff'); rect(x + 3, y + 6, 2, 1, '#4a8cff'); rect(x + 3, y + 1, 2, 4, '#bcd8ff'); break;
+    case 'campana': rect(x + 2, y + 1, 4, 4, '#ffc83a'); rect(x + 1, y + 4, 6, 2, '#ffc83a'); rect(x + 3, y, 2, 1, '#b8801a'); rect(x + 3, y + 6, 2, 2, '#b8801a'); break;
+    default: break;
+  }
 }
 
 function drawResults(hw) {
@@ -849,7 +1062,7 @@ const fiesta = {
   snapshot() {
     const o = {};
     ['ph', 't', 'cur', 'turn', 'maxT', 'order', 'dice', 'steps', 'pos', 'coins', 'cups', 'copa', 'msg', 'sub', 'col', 'flash', 'flashT', 'ch', 'pick', 'duel', 'res', 'fin',
-      'last', 'aid', 'bonus', 'bk', 'stats', 'fast']
+      'last', 'aid', 'bonus', 'bk', 'stats', 'fast', 'items', 'traps', 'dbl', 'dice2']
       .forEach((k) => { o[k] = S[k]; });
     o.t = Math.round(S.t * 100) / 100;
     return o;

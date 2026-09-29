@@ -69,6 +69,10 @@ La Fiesta es un tablero estilo party game (`src/fiesta/board.js`):
   **azul** +3 monedas · **rojo** −3 · **evento** (lluvia de monedas, ladrón, turbo, cambio de lugar, la copa se muda, mala suerte) ·
   **duelo** (elegís un rival y juegan un minijuego 1 contra 1; el que gana le saca hasta 10 monedas).
 - Al pasar por la **copa** la podés comprar por 20 monedas; después se muda a otro casillero.
+- Al pasar por una **tienda** (casillero naranja con puestito) comprás objetos, hasta 2 por jugador. Se usan al empezar el turno:
+  **dado doble** (6, dos dados que se suman), **dado dorado** (10, elegís el número), **trampa** (6, la dejás en tu casillero
+  y el que caiga te paga 10), **campana** (15, te lleva derecho a la copa) y **escudo** (5, se usa solo: te cuida una vez
+  de perder monedas por casillero rojo, ladrón, mala suerte o trampa). Los objetos de cada uno se ven abajo de su retrato.
 - Cuando juegan todos, sale sorteado un **minijuego para todos**: 10, 5, 3 y 1 monedas según el puesto.
 - **Últimos 3 turnos:** aparece un aviso, los casilleros azules y rojos valen el doble y el que va último gira una
   **ruleta de ayuda** (+10 o +20 monedas, la copa se le acerca, o le saca 10 monedas al primero).

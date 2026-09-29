@@ -131,6 +131,20 @@ export const TX = {
     for (let i = 0; i < 80; i++) { x.fillStyle = ['#e2c07c', '#c9a15a', '#ecd092'][(Math.random() * 3) | 0]; x.fillRect(Math.random() * w, Math.random() * h, rnd(1, 3), 1); }
     x.fillStyle = 'rgba(0,0,0,.1)'; x.fillRect(0, h - 1, w, 1); x.fillRect(w - 1, 0, 1, h);
   }),
+  snow: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#e8eef8'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 60; i++) { x.fillStyle = ['#f8fbff', '#d6e0ee', '#ffffff'][(Math.random() * 3) | 0]; x.fillRect(Math.random() * w, Math.random() * h, rnd(1, 3), 1); }
+    x.fillStyle = 'rgba(0,0,40,.08)'; x.fillRect(0, h - 1, w, 1); x.fillRect(w - 1, 0, 1, h);
+  }),
+  belt: tex(16, 16, (x, w, h) => {                 // cinta transportadora: flechas hacia "arriba" de la textura
+    x.fillStyle = '#2a2d36'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#44485a'; x.fillRect(0, 0, 2, h); x.fillRect(w - 2, 0, 2, h);
+    x.fillStyle = '#f2c21a'; for (let k = 0; k < 5; k++) { x.fillRect(3 + k, 9 - k, 2, 2); x.fillRect(11 - k, 9 - k, 2, 2); }
+  }),
+  quicksand: tex(32, 32, (x, w, h) => {
+    x.fillStyle = '#a4783c'; x.fillRect(0, 0, w, h);
+    for (let a = 0; a < 26; a += 0.12) { const r = a * 0.6; x.fillStyle = a % 2 < 1 ? '#8a6230' : '#b88a4a'; x.fillRect(16 + Math.cos(a) * r, 16 + Math.sin(a) * r, 2, 2); }
+  }),
   puBoots: tex(16, 16, (x, w, h) => {
     x.fillStyle = '#8a3ad8'; x.fillRect(0, 0, w, h); x.fillStyle = '#d0a0ff'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
     x.fillStyle = '#ffd23a'; x.fillRect(5, 3, 4, 7); x.fillRect(5, 9, 8, 3); x.fillStyle = '#b8801a'; x.fillRect(5, 12, 8, 1);

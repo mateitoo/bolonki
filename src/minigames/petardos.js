@@ -4,7 +4,9 @@
 //   +fuego (alcance, arranca en 1) · +petardo (más raro) · +velocidad · botas (saltás un obstáculo empujándolo)
 //   · escudo (aguanta una explosión) · patada (empujás un petardo y sale deslizando)
 //   · calavera (una maldición por 10 s que se contagia tocando a otro)
-// Hay varias canchas (cambian las paredes fijas y el lugar) y sale una al azar en cada ronda.
+// Hay varias canchas (cambian las paredes fijas y el lugar) y sale una al azar en cada ronda. Cada una tiene algo propio:
+//   patio: arbustos donde esconderte · fábrica: cintas que te arrastran (y a los petardos)
+//   · desierto: arenas movedizas que te frenan · nieve: hielo, si soltás seguís resbalando
 // Gana la ronda el último que queda. A los 35 s empieza la muerte súbita: las paredes se cierran en espiral.
 import * as THREE from 'three';
 import { register } from './registry.js';
@@ -55,7 +57,18 @@ function pickPower() {
 
 // Canchas: paredes fijas adentro del borde (11 x 9; X = pared) y cómo se ve cada una
 const CANCHAS = [
-  { name: 'PATIO', floor: 'turf', wall: 'brick', wallCol: 0xffffff, out: 0x557755, deco: 'arboles', layout: [
+  { name: 'PATIO', floor: 'turf', wall: 'brick', wallCol: 0xffffff, out: 0x557755, deco: 'arboles', extra: 'ARBUSTOS PARA ESCONDERTE',
+    special: [
+      '.....b.....',
+      '.X.X.X.X.X.',
+      '..b.....b..',
+      '.X.X.X.X.X.',
+      'b...b.b...b',
+      '.X.X.X.X.X.',
+      '..b.....b..',
+      '.X.X.X.X.X.',
+      '.....b.....'],
+    layout: [
     '...........',
     '.X.X.X.X.X.',
     '...........',
@@ -65,7 +78,18 @@ const CANCHAS = [
     '...........',
     '.X.X.X.X.X.',
     '...........'] },
-  { name: 'FÁBRICA', floor: 'tile', wall: 'block', wallCol: 0xffffff, out: 0x5a6070, deco: 'cajas', layout: [
+  { name: 'FÁBRICA', floor: 'tile', wall: 'block', wallCol: 0xffffff, out: 0x5a6070, deco: 'cajas', extra: 'CINTAS QUE TE ARRASTRAN',
+    special: [
+      '...........',
+      '.XX.XXX.XX.',
+      '>>>>>>>>>>v',
+      '^X..X.X..Xv',
+      '^X.......Xv',
+      '^X..X.X..Xv',
+      '^<<<<<<<<<<',
+      '.XX.XXX.XX.',
+      '...........'],
+    layout: [
     '...........',
     '.XX.XXX.XX.',
     '...........',
@@ -75,7 +99,18 @@ const CANCHAS = [
     '...........',
     '.XX.XXX.XX.',
     '...........'] },
-  { name: 'DESIERTO', floor: 'sand', wall: 'brick', wallCol: 0xe0b878, out: 0xc8a060, deco: 'cactus', layout: [
+  { name: 'DESIERTO', floor: 'sand', wall: 'brick', wallCol: 0xe0b878, out: 0xc8a060, deco: 'cactus', extra: 'ARENAS MOVEDIZAS',
+    special: [
+      '...........',
+      '.X..X.X..X.',
+      '.qq.X.X.qq.',
+      '.XX.qqq.XX.',
+      '...qqXqq...',
+      '.XX.qqq.XX.',
+      '.qq.X.X.qq.',
+      '.X..X.X..X.',
+      '...........'],
+    layout: [
     '...........',
     '.X..X.X..X.',
     '....X.X....',
@@ -85,7 +120,18 @@ const CANCHAS = [
     '....X.X....',
     '.X..X.X..X.',
     '...........'] },
-  { name: 'NIEVE', floor: 'ice', wall: 'brick', wallCol: 0xdfe8ff, out: 0xdde8f4, deco: 'pinos', layout: [
+  { name: 'NIEVE', floor: 'snow', wall: 'brick', wallCol: 0xdfe8ff, out: 0xdde8f4, deco: 'pinos', extra: 'HIELO QUE RESBALA',
+    special: [
+      '...........',
+      '.X.X~~~X.X.',
+      '..~~~~~~~..',
+      '.X..X~X..X.',
+      '...X~~~X...',
+      '.X..X~X..X.',
+      '..~~~~~~~..',
+      '.X.X~~~X.X.',
+      '...........'],
+    layout: [
     '...........',
     '.X.X...X.X.',
     '...........',
@@ -96,6 +142,11 @@ const CANCHAS = [
     '.X.X...X.X.',
     '...........'] },
 ];
+// qué hay en el piso de la celda: '.' nada · b arbusto · q arena movediza · ~ hielo · > < ^ v cinta
+const specialAt = (ci, c, r) => (c > 0 && r > 0 && c < GW - 1 && r < GH - 1 ? CANCHAS[ci].special[r - 1][c - 1] : '.');
+const CONV = { '>': [1, 0], '<': [-1, 0], '^': [0, -1], 'v': [0, 1] };
+const CONV_V = 1.7;          // celdas por segundo de las cintas
+const spAt = (k) => specialAt(S.cancha, k % GW, (k / GW) | 0);
 const isWall = (ci, c, r) => r === 0 || c === 0 || r === GH - 1 || c === GW - 1 || CANCHAS[ci].layout[r - 1][c - 1] === 'X';
 
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -138,7 +189,7 @@ function makeMap(ci) {
     if (isWall(ci, c, r)) { G[k] = WALL; continue; }
     // las esquinas quedan libres (la celda de salida y sus dos vecinas)
     const nearCorner = CORNERS.some(([cc, rr]) => Math.abs(cc - c) + Math.abs(rr - r) <= 1);
-    if (!nearCorner && Math.random() < CRATE_FILL) {
+    if (!nearCorner && specialAt(ci, c, r) !== 'b' && Math.random() < CRATE_FILL) {
       G[k] = CRATE;
       if (Math.random() < DROP_CHANCE) hidden[k] = pickPower();
     }
@@ -146,7 +197,7 @@ function makeMap(ci) {
 }
 
 /* ---------- mundo ---------- */
-const W = { grp: null, canchas: [], crates: [], bombs: [], flames: [], pups: [], puMats: [], shields: [], sdWalls: [], sdFall: [], skulls: [] };
+const W = { grp: null, canchas: [], crates: [], bombs: [], flames: [], pups: [], puMats: [], shields: [], sdWalls: [], sdFall: [], skulls: [], bushes: [] };
 const DECO_AT = [[-14, -6], [14, -7], [-15, 4], [15, 5], [-8, -12], [9, -12.5], [-12, 11], [12, 11]];
 
 function buildCancha(ci) {
@@ -158,6 +209,22 @@ function buildCancha(ci) {
   add(out, mat({ map: TX[C.floor], color: C.out }), 0, -1.4, 0, g);
   const wg = scaleUV(new THREE.BoxGeometry(TS, TS * 0.9, TS), 1, 1), wm = mat({ map: TX[C.wall], color: C.wallCol });
   for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) if (isWall(ci, c, r)) add(wg, wm, cxOf(c), TS * 0.45, czOf(r), g);
+  // lo propio del piso: hielo, arena movediza, cintas y arbustos
+  const pg = new THREE.PlaneGeometry(TS, TS); pg.rotateX(-Math.PI / 2);
+  const bushM = mat({ color: 0x3f8a3a }), bush2M = mat({ color: 0x2f7430 });
+  for (let r = 1; r < GH - 1; r++) for (let c = 1; c < GW - 1; c++) {
+    const sp = specialAt(ci, c, r), x = cxOf(c), z = czOf(r);
+    if (sp === '~') add(pg, W.iceM, x, 0.012, z, g);
+    else if (sp === 'q') add(pg, W.sandM, x, 0.012, z, g);
+    else if (CONV[sp]) { const [dc, dr] = CONV[sp]; add(pg, W.beltM, x, 0.012, z, g).rotation.y = Math.atan2(-dc, -dr); }
+    else if (sp === 'b') {
+      const bg = new THREE.Group(); bg.position.set(x, 0, z); g.add(bg);
+      [[0, 0, 0.62], [-0.35, 0.25, 0.42], [0.36, -0.2, 0.46], [0.2, 0.35, 0.38], [-0.3, -0.3, 0.4]].forEach(([dx, dz, rr], i) => {
+        add(new THREE.DodecahedronGeometry(rr * TS, 0), i % 2 ? bush2M : bushM, dx * TS * 0.6, rr * TS * 0.8, dz * TS * 0.6, bg);
+      });
+      W.bushes.push({ g: bg, k: idx(c, r), ci, shake: 0 });
+    }
+  }
   // decoración de afuera, según la cancha
   if (C.deco === 'arboles' || C.deco === 'pinos') {
     const trunkM = mat({ color: 0x6b4a2a }), leafM = mat({ color: C.deco === 'pinos' ? 0x2a5a4a : 0x2f7a3a }), snowM = mat({ color: 0xf4f8ff });
@@ -181,6 +248,7 @@ function buildCancha(ci) {
 
 function buildWorld() {
   const grp = new THREE.Group(); grp.visible = false; scene.add(grp); W.grp = grp;
+  W.iceM = mat({ map: TX.ice }); W.sandM = mat({ map: TX.quicksand }); W.beltM = mat({ map: TX.belt, unlit: true });
   CANCHAS.forEach((_, ci) => buildCancha(ci));
   // cajones (uno por celda posible), petardos, fuego y poderes
   const cg = new THREE.BoxGeometry(TS * 0.92, TS * 0.8, TS * 0.92), cm = mat({ map: TX.crate });
@@ -274,13 +342,23 @@ function placeBomb(p, force) {
 // Petardos pateados: se deslizan celda por celda hasta que algo los frena (pared, cajón, petardo o alguien)
 function slideBombs(dt) {
   for (const b of bombs) {
-    if (!b.mv) continue;
+    if (!b.mv) {
+      const cv = CONV[spAt(b.k)];                 // arriba de una cinta: la cinta lo lleva
+      if (!cv) continue;
+      b.mv = { dc: cv[0], dr: cv[1], conv: true };
+    }
     const c = b.k % GW, r = (b.k / GW) | 0, cx0 = cxOf(c), cz0 = czOf(r);
+    let along = (b.bx - cx0) * b.mv.dc + (b.bz - cz0) * b.mv.dr;
+    if (b.mv.conv && along >= -1e-3) {
+      // en el centro de la celda: la cinta decide para dónde sigue (o se frena si no hay cinta)
+      const cv = CONV[spAt(b.k)];
+      if (!cv) { b.bx = cx0; b.bz = cz0; b.mv = null; continue; }
+      if (cv[0] !== b.mv.dc || cv[1] !== b.mv.dr) { b.bx = cx0; b.bz = cz0; b.mv.dc = cv[0]; b.mv.dr = cv[1]; along = 0; }
+    }
     const nc = c + b.mv.dc, nr = r + b.mv.dr, nk = idx(nc, nr);
     const blocked = !interior(nc, nr) || G[nk] !== EMPTY || bombs.some((o) => o !== b && o.k === nk)
       || game.players.some((q) => q.alive && !q.empty && cellOf(q) === nk);
-    const along = (b.bx - cx0) * b.mv.dc + (b.bz - cz0) * b.mv.dr;
-    let step = KICK_V * TS * dt;
+    let step = (b.mv.conv ? CONV_V : KICK_V) * TS * dt;
     if (blocked) {
       if (along >= -1e-3) { b.bx = cx0; b.bz = cz0; b.mv = null; continue; }
       step = Math.min(step, -along);
@@ -394,11 +472,13 @@ function move(p, ix, iz, dt) {
     p.pass = [];
     return;
   }
-  const dist = p.speed * TS * dt;
+  const sp0 = spAt(cellOf(p));
+  const dist = p.speed * (sp0 === 'q' ? 0.5 : 1) * TS * dt;       // arena movediza: la mitad de rápido
   const ax = Math.abs(ix), az = Math.abs(iz);
   if (ax > 0.3 || az > 0.3) {
     const primX = ax >= az;
     const moved = primX ? stepAxis(p, 'x', Math.sign(ix), dist) : stepAxis(p, 'z', Math.sign(iz), dist);
+    p.slide = moved ? { ax: primX ? 'x' : 'z', s: Math.sign(primX ? ix : iz) } : null;
     if (!moved) {
       // patada: si lo que te frena es un petardo, sale deslizando
       const sgn = Math.sign(primX ? ix : iz), c = colOf(p.x), r = rowOf(p.z);
@@ -408,7 +488,15 @@ function move(p, ix, iz, dt) {
       if (primX && az > 0.3) stepAxis(p, 'z', Math.sign(iz), dist);
       else if (!primX && ax > 0.3) stepAxis(p, 'x', Math.sign(ix), dist);
     } else p.pushT = 0;
-  } else p.pushT = 0;
+  } else {
+    p.pushT = 0;
+    // hielo: si soltás, seguís resbalando para el mismo lado hasta chocar o salir del hielo
+    if (sp0 === '~' && p.slide) { if (!stepAxis(p, p.slide.ax, p.slide.s, dist * 1.1)) p.slide = null; }
+    else p.slide = null;
+  }
+  // cintas: te arrastran para su lado
+  const cv = CONV[spAt(cellOf(p))];
+  if (cv) { if (cv[0]) stepAxis(p, 'x', cv[0], CONV_V * TS * dt); else stepAxis(p, 'z', cv[1], CONV_V * TS * dt); }
   p.vx = (p.x - ox) / Math.max(dt, 1e-4); p.vz = (p.z - oz) / Math.max(dt, 1e-4);
   if (Math.hypot(p.vx, p.vz) > 0.3) p.ang = lerpAng(p.ang, Math.atan2(p.vx, p.vz), Math.min(1, dt * 16));
   // los petardos que dejó atrás pasan a ser sólidos para él
@@ -418,9 +506,22 @@ function move(p, ix, iz, dt) {
 
 /* ---------- IA ---------- */
 // Mapa de peligro: en cuántos segundos le llega fuego a cada celda (teniendo en cuenta las cadenas).
+// dónde va a explotar un petardo que se mueve (pateado o arriba de una cinta)
+function predictK(b) {
+  if (!b.mv && !CONV[spAt(b.k)]) return b.k;
+  let k = b.k, dc = b.mv ? b.mv.dc : 0, dr = b.mv ? b.mv.dr : 0, conv = !b.mv || b.mv.conv;
+  const n = Math.floor(b.t * (conv ? CONV_V : KICK_V));
+  for (let i = 0; i < n; i++) {
+    if (conv) { const cv = CONV[spAt(k)]; if (!cv) break; [dc, dr] = cv; }
+    const c = (k % GW) + dc, r = ((k / GW) | 0) + dr;
+    if (!interior(c, r) || G[idx(c, r)] !== EMPTY) break;
+    k = idx(c, r);
+  }
+  return k;
+}
 function dangerMap(extra, react, p) {
   // los petardos propios los ve siempre; los de los demás, un ratito después de que aparecen
-  const list = bombs.filter((b) => b.age >= react || (p && b.owner === p.i)).map((b) => ({ k: b.k, t: b.t, range: b.range }));
+  const list = bombs.filter((b) => b.age >= react || (p && b.owner === p.i)).map((b) => ({ k: predictK(b), t: b.t, range: b.range }));
   if (extra) list.push(extra);
   const cells = list.map((b) => blastCells(b.k, b.range, G));
   for (let it = 0; it < 4; it++) {
@@ -490,7 +591,8 @@ function aiThink(p, D) {
     return;
   }
   // 2) ¿poner un petardo? (al lado de un cajón o con un rival en la línea) solo si hay por dónde escapar
-  const rivals = game.players.filter((q) => q !== p && q.alive && !q.empty);
+  const md = (a, b) => Math.abs((a % GW) - (b % GW)) + Math.abs(((a / GW) | 0) - ((b / GW) | 0));
+  const rivals = game.players.filter((q) => q !== p && q.alive && !q.empty && (spAt(cellOf(q)) !== 'b' || md(cellOf(q), here) <= 2));
   const nearCrate = DIRS.some(([dc, dr]) => G[idx((here % GW) + dc, ((here / GW) | 0) + dr)] === CRATE);
   const hitsRival = rivals.some((q) => lineHits(here, p.range, cellOf(q)));
   const wantBomb = (nearCrate && Math.random() < 0.7) || (hitsRival && Math.random() < 0.3 + D.swing);
@@ -686,6 +788,17 @@ const petardos = {
   visuals(dt) {
     const clock = game.clock;
     W.canchas.forEach((g, i) => (g.visible = i === S.cancha));
+    W.beltM.uniforms.uOff.value.set(0, (-clock * CONV_V) % 1);          // las cintas corren
+    W.sandM.uniforms.uOff.value.set((clock * 0.05) % 1, (clock * 0.03) % 1);
+    // arbustos: se sacuden cuando alguien se mete o camina adentro
+    for (const b of W.bushes) {
+      if (b.ci !== S.cancha) continue;
+      const inside = game.players.some((q) => q.alive && !q.empty && !q.death && cellOf(q) === b.k && Math.hypot(q.vx || 0, q.vz || 0) > 0.5);
+      if (inside) b.shake = 1;
+      b.shake = Math.max(0, b.shake - dt * 2.5);
+      const w = Math.sin(clock * 30) * 0.06 * b.shake;
+      b.g.scale.set(1 + w, 1 - w, 1 + w);
+    }
     for (let k = 0; k < N; k++) {
       W.crates[k].visible = G[k] === CRATE;
       W.sdWalls[k].visible = G[k] === WALL && !isWall(S.cancha, k % GW, (k / GW) | 0);   // paredes de la muerte súbita
@@ -728,6 +841,10 @@ const petardos = {
       if (p.death || p.empty) { if (p.empty) { p.mesh.root.visible = false; p.mesh.sh.visible = false; } continue; }
       p.onGround = !p.jump && !(p.fy > 0.05);
       drawWalker(p, dt, CHAR_SCALE, 0);
+      // escondido en un arbusto: los demás no lo ven (en el local, con la pantalla compartida, se ve igual)
+      const hide = game.mode !== 'local' && p.i !== game.me && spAt(cellOf(p)) === 'b' && !(p.fy > 0.3);
+      p.hideTag = hide;
+      if (hide) { p.mesh.root.visible = false; p.mesh.sh.visible = false; W.skulls[p.i].visible = false; W.shields[p.i].visible = false; }
       if (p.invul > 0 && ((clock * 16) | 0) % 2) p.mesh.root.visible = false;
       if (sh.visible) { sh.position.set(p.x, (p.fy || 0) + TS * 0.55, p.z); sh.rotation.set(clock * 2.3, clock * 3.1, 0); }
     }
@@ -749,6 +866,7 @@ const petardos = {
     if (st === 'count') {
       txt(`RONDA ${R.n}`, hw / 2, 80, 16, COL.teal, 'center');
       txt(`CANCHA: ${CANCHAS[S.cancha].name}`, hw / 2, 48, 8, COL.white, 'center');
+      txt(CANCHAS[S.cancha].extra, hw / 2, 60, 8, '#ffb31a', 'center');
     }
     if (st === 'count' && R.n === 1 && game.mode !== 'demo') {
       txt('¡ROMPÉ CAJONES Y VOLÁ A LOS DEMÁS!', hw / 2, 170, 8, '#ffb31a', 'center');
@@ -834,6 +952,9 @@ const petardos = {
   },
   guestHitFx() {},
 };
+
+// para las pruebas (?debug): acceso al mapa
+petardos._dbg = { G, clearCrates() { for (let k = 0; k < N; k++) if (G[k] === CRATE) G[k] = EMPTY; } };
 
 register(petardos);
 export default petardos;

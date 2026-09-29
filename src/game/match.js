@@ -49,7 +49,7 @@ export function resetMatch(mode, setup) {
   game.players.forEach((p) => {
     const ctrl = cfg.ctrl[p.i];
     Object.assign(p, {
-      ctrl, empty: ctrl === 'none', alive: ctrl !== 'none', score: ctrl === 'none' ? 0 : cfg.points,
+      ctrl, empty: ctrl === 'none', alive: ctrl !== 'none', score: ctrl === 'none' ? 0 : cfg.points, hideTag: false,
       s: 0, v: 0, swing: 0, cd: 0, flash: 0, death: null, spin: 0, hitDone: false,
       pad: cfg.pads ? cfg.pads[p.i] : 'all', name: cfg.names ? cfg.names[p.i] : null,
     });

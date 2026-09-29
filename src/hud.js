@@ -71,7 +71,7 @@ function drawNameTags(hw, st) {
   const markMe = (m.markMe || game.minigame === 'empujon' || board) && game.mode !== 'local';
   if (m.showTags && !m.showTags()) return;
   for (const p of game.players) {
-    if (p.empty || p.death || (board && !p.mesh.root.visible)) continue;
+    if (p.empty || p.death || p.hideTag || (board && !p.mesh.root.visible)) continue;
     const mine = p.i === game.me && game.mode !== 'local';
     const name = mine ? (markMe ? 'VOS' : null) : p.name;
     if (!name) continue;

@@ -68,8 +68,8 @@ export function updateVisuals(dt, rdt) {
   camLook.set(lookBase.x + (fx - lookBase.x) * f, lookBase.y + (1.2 - lookBase.y) * f, lookBase.z + (fz - lookBase.z) * f);
 
   // en el título y los menús la cámara gira lento alrededor de la arena
-  const demo = game.state === 'title' || game.state === 'menu';
-  orbit += ((demo ? 1 : 0) - orbit) * Math.min(1, rdt * 2);
+  const demo = (game.state === 'title' || game.state === 'menu') && !m.cam.fixed;   // la sala tiene cámara quieta
+  orbit += ((demo ? 1 : 0) - orbit) * Math.min(1, rdt * 2.5);
   if (orbit > 0.001) {
     orbitA += rdt * 0.12;
     orbitPos.set(Math.sin(orbitA) * 27, 17, Math.cos(orbitA) * 27);

@@ -5,12 +5,12 @@ import { scene, mat, add, faceIn } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 
 export function buildPod(i) {
-  const ch = CHARS[i], col = new THREE.Color(ch.col), s = SIDES[i];
+  const s = SIDES[i];
   const root = new THREE.Group(); scene.add(root);
   const veh = new THREE.Group(); root.add(veh);       // la nave
   const rider = new THREE.Group(); root.add(rider);   // el piloto
-  const mats = [];
-  const M = (o) => { const m = mat(o); mats.push({ m, base: m.uniforms.uColor.value.clone() }); return m; };
+  const vehMats = [];
+  const M = (o) => { const m = mat(o); vehMats.push({ m, base: m.uniforms.uColor.value.clone() }); return m; };
 
   // nave: autito chocador redondo — casco tipo bowl, paragolpes grueso con luces al frente,
   // colmillos, aleta atrás (para ver para dónde mira) y un anillo de luz abajo (flota)
@@ -21,7 +21,8 @@ export function buildPod(i) {
   add(lip, M({ color: 0x7fd6c4 }), 0, 1.58, 0, veh).scale.set(1.3, 1, 1.16);        // borde redondeado de la cabina
   add(new THREE.CylinderGeometry(0.9, 0.9, 0.08, 14), M({ color: 0x1d4f47 }), 0, 1.52, 0, veh).scale.set(1.3, 1, 1.16);
   const bump = new THREE.TorusGeometry(1.0, 0.24, 7, 16); bump.rotateX(Math.PI / 2);
-  add(bump, M({ color: new THREE.Color(ch.col).multiplyScalar(0.7) }), 0, 0.6, 0, veh).scale.set(1.36, 1.35, 1.18);
+  const bumpM = M({ color: 0xffffff });                                             // color del personaje (dressPod)
+  add(bump, bumpM, 0, 0.6, 0, veh).scale.set(1.36, 1.35, 1.18);
   const lightM = M({ color: 0xffd23a, unlit: true });
   for (let k = 0; k < 7; k++) {
     const a = (-0.5 + k / 6) * Math.PI * 0.8;
@@ -34,7 +35,36 @@ export function buildPod(i) {
   const glow = new THREE.TorusGeometry(0.75, 0.08, 4, 14); glow.rotateX(Math.PI / 2);
   add(glow, M({ color: 0x35f0ff, unlit: true }), 0, 0.1, 0, veh);
 
-  // piloto
+  const sh = new THREE.Mesh(new THREE.CircleGeometry(1, 10), new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: 0.35, depthWrite: false }));
+  sh.geometry.rotateX(-Math.PI / 2); sh.scale.set(1.95, 1, 1.6); scene.add(sh);
+  const scorch = new THREE.Mesh(new THREE.CircleGeometry(1.8, 8), new THREE.MeshBasicMaterial({ color: 0x0a0806, transparent: true, opacity: 0.7, depthWrite: false }));
+  scorch.geometry.rotateX(-Math.PI / 2); scorch.visible = false; scene.add(scorch);
+
+  root.rotation.y = faceIn(s.nx, s.nz);
+  const mesh = {
+    root, veh, rider, mats: [], vehMats, bumpM, hullM, lightM, sh, scorch, legs: null, legL: null, legR: null, ci: -1,
+    baseRot: root.rotation.y,
+    riderBase: new THREE.Vector3(0, 2.05, -0.1),
+  };
+  dressPod(mesh, i);
+  return mesh;
+}
+
+// Viste la nave con un personaje: rehace el piloto (cuerpo, ojos, accesorio, piernas) y pinta el paragolpes
+export function dressPod(mesh, ci) {
+  if (mesh.ci === ci) return;
+  mesh.ci = ci;
+  const ch = CHARS[ci], col = new THREE.Color(ch.col), rider = mesh.rider;
+  for (const c of [...rider.children]) {
+    rider.remove(c);
+    c.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  }
+  const riderMats = [];
+  const M = (o) => { const m = mat(o); riderMats.push({ m, base: m.uniforms.uColor.value.clone() }); return m; };
+  const bumpCol = new THREE.Color(ch.col).multiplyScalar(0.7);
+  mesh.bumpM.uniforms.uColor.value.copy(bumpCol);
+  const vb = mesh.vehMats.find((o) => o.m === mesh.bumpM); if (vb) vb.base.copy(bumpCol);
+
   add(new THREE.SphereGeometry(0.78, 8, 6), M({ color: col }), 0, 0, 0, rider).scale.set(1, 0.95, 0.9);
   const white = M({ color: 0xffffff }), black = M({ color: 0x101010, unlit: true }), dark = M({ color: new THREE.Color(ch.dark) });
   [-0.27, 0.27].forEach((ex) => {
@@ -62,7 +92,8 @@ export function buildPod(i) {
   }
 
   // piernas (solo se ven en los minijuegos a pie, sin nave)
-  const legs = new THREE.Group(); legs.visible = false; rider.add(legs);
+  const wasLegs = mesh.legs ? mesh.legs.visible : false;
+  const legs = new THREE.Group(); legs.visible = wasLegs; rider.add(legs);
   const legM = M({ color: new THREE.Color(ch.dark) }), shoeM = M({ color: 0x2a2a34 });
   const legL = new THREE.Group(), legR = new THREE.Group();
   [[legL, -0.3], [legR, 0.3]].forEach(([g, lx]) => {
@@ -70,18 +101,7 @@ export function buildPod(i) {
     add(new THREE.BoxGeometry(0.2, 0.42, 0.2), legM, 0, -0.2, 0, g);
     add(new THREE.BoxGeometry(0.3, 0.14, 0.42), shoeM, 0, -0.44, 0.08, g);
   });
-
-  const sh = new THREE.Mesh(new THREE.CircleGeometry(1, 10), new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: 0.35, depthWrite: false }));
-  sh.geometry.rotateX(-Math.PI / 2); sh.scale.set(1.95, 1, 1.6); scene.add(sh);
-  const scorch = new THREE.Mesh(new THREE.CircleGeometry(1.8, 8), new THREE.MeshBasicMaterial({ color: 0x0a0806, transparent: true, opacity: 0.7, depthWrite: false }));
-  scorch.geometry.rotateX(-Math.PI / 2); scorch.visible = false; scene.add(scorch);
-
-  root.rotation.y = faceIn(s.nx, s.nz);
-  return {
-    root, veh, rider, mats, hullM, lightM, sh, scorch, legs, legL, legR,
-    baseRot: root.rotation.y,
-    riderBase: new THREE.Vector3(0, 2.05, -0.1),
-  };
+  Object.assign(mesh, { legs, legL, legR, mats: mesh.vehMats.concat(riderMats) });
 }
 
 export function resetPodVisual(p) {

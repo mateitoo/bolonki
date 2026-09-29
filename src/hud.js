@@ -1,10 +1,11 @@
 // HUD (retratos y puntajes anclados a los bordes), pantalla de título, carteles y menús.
 // Se dibuja en un canvas de hw x 240 (hw depende de la relación de aspecto).
-import { CHARS, DIFFICULTIES } from './config.js';
+import { DIFFICULTIES } from './config.js';
+import { charOf } from './chars.js';
 import { game } from './state.js';
 import { view } from './display.js';
 import { ui, txt, rect, tri, COL, PX } from './ui/draw.js';
-import { drawMenu, menuOpen } from './ui/menu.js';
+import { drawMenu, menuOpen, topMenu } from './ui/menu.js';
 import { input } from './input.js';
 import { camera } from './render/psx.js';
 import { room } from './net/room.js';
@@ -26,7 +27,7 @@ function pcircle(cx, cy, r, col) {
   for (let y = -r; y <= r; y++) { const w = Math.floor(Math.sqrt(r * r - y * y + r * 0.8)); hx.fillRect(cx - w, cy + y, w * 2, 1); }
 }
 function face(i, x, y) {
-  const ch = CHARS[i], p = game.players[i];
+  const ch = charOf(i), p = game.players[i];
   if (p.empty) { rect(x, y, 24, 24, '#000'); rect(x + 1, y + 1, 22, 22, '#20263a'); rect(x + 6, y + 11, 12, 2, '#3a4570'); return; }
   rect(x, y, 24, 24, '#000');
   rect(x + 1, y + 1, 22, 22, p.flash > 0 && ((game.clock * 16) | 0) % 2 ? '#fff' : ch.col);
@@ -54,7 +55,7 @@ function drawScores(hw, st) {
     const tag = game.mode === 'local' ? (p.empty ? '' : bot ? 'CPU' : p.name)
       : i === game.me ? 'VOS' : p.empty ? '' : bot ? 'CPU' : 'JUG';
     const mine = game.mode === 'local' ? !bot && !p.empty : i === game.me;
-    if (tag) txt(tag, x + 12, 48, 8, mine ? CHARS[i].col : COL.dim, 'center');
+    if (tag) txt(tag, x + 12, 48, 8, mine ? charOf(i).col : COL.dim, 'center');
   }
 }
 
@@ -78,7 +79,7 @@ function drawNameTags(hw, st) {
     v3.set(p.x, tagY + (m.tagFeet ? p.fy || 0 : 0), p.z).project(camera);
     if (v3.z > 1) continue;
     const x = Math.round((v3.x + 1) / 2 * hw), y = Math.round((1 - v3.y) / 2 * 240) - 4;
-    txt(name, x, Math.max(58, Math.min(214, y)), 8, CHARS[p.i].col, 'center');
+    txt(name, x, Math.max(58, Math.min(214, y)), 8, charOf(p.i).col, 'center');
   }
 }
 
@@ -134,7 +135,7 @@ export function drawHud() {
     if (w) {
       const me = game.winner === game.me && game.mode !== 'local';
       rect(0, 90, hw, 40, 'rgba(4,6,14,.72)');
-      txt(me ? '¡GANASTE!' : `GANA ${w.name || CHARS[w.i].name}`, hw / 2, 96, 16, me ? COL.gold : CHARS[w.i].col, 'center', COL.goldShadow);
+      txt(me ? '¡GANASTE!' : `GANA ${w.name || charOf(w.i).name}`, hw / 2, 96, 16, me ? COL.gold : charOf(w.i).col, 'center', COL.goldShadow);
       txt('VOLVIENDO AL TABLERO...', hw / 2, 117, 8, COL.dim, 'center');
     }
   }
@@ -151,7 +152,7 @@ export function drawHud() {
   }
 
   if (menuOpen() && !(game.showcaseT > 0)) {
-    rect(0, 0, hw, 240, st === 'menu' ? 'rgba(4,6,14,.4)' : COL.dark);
+    rect(0, 0, hw, 240, topMenu().def.dim || (st === 'menu' ? 'rgba(4,6,14,.4)' : COL.dark));
     drawMenu(hw);
   }
 

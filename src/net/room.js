@@ -12,8 +12,9 @@
 import { Peer } from 'peerjs';
 import { settings } from '../settings.js';
 import { mgById } from '../minigames/registry.js';
+import { CHARS } from '../config.js';
 
-export const NET_VERSION = 3;          // v3: modo Fiesta
+export const NET_VERSION = 4;          // v3: modo Fiesta · v4: cada uno elige personaje en la sala
 export const MAX_PLAYERS = 4;
 export const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const JOIN_ORDER = [2, 1, 3];          // el primer invitado va enfrente del anfitrión
@@ -28,7 +29,7 @@ export const room = {
   code: '',
   mySlot: 0,
   myPing: 0,
-  slots: [],            // [{ kind: 'host' | 'guest' | 'empty', name, ready, ping, away }]
+  slots: [],            // [{ kind: 'host' | 'guest' | 'empty', name, ready, ping, away, ch }]  ch: personaje · ready: ya lo eligió
   opts: { mg: 'bolas', bots: true, difficulty: 'intermedio', points: 15, rounds: 2, public: false, mode: 'libre', turns: 10 },
   inGame: false,
   votes: [],            // lugares que votaron revancha
@@ -104,12 +105,12 @@ export function leaveRoom() {
 
 /* ================= ANFITRIÓN ================= */
 
-export function createRoom() {
+export function createRoom(mode, ch) {
   leaveRoom();
   Object.assign(room, {
     role: 'host', status: 'opening', code: genCode(), mySlot: 0, inGame: false, votes: [],
-    slots: [{ kind: 'host', name: myName(), ready: true, ping: 0 }, empty(), empty(), empty()],
-    opts: { mg: settings.mg, bots: true, difficulty: settings.difficulty, points: settings.points, rounds: settings.rounds, public: false, mode: settings.mode, turns: settings.turns },
+    slots: [{ kind: 'host', name: myName(), ready: true, ping: 0, ch: ch || 0 }, empty(), empty(), empty()],
+    opts: { mg: settings.mg, bots: true, difficulty: settings.difficulty, points: settings.points, rounds: settings.rounds, public: false, mode: mode || settings.mode, turns: settings.turns },
   });
   openHostPeer(0);
   startTicker(hostTicker);
@@ -159,7 +160,7 @@ function hostOnData(conn, m) {
       if (room.inGame) return deny(conn, 'ingame');
       const slot = JOIN_ORDER.find((s) => room.slots[s].kind === 'empty');
       if (slot === undefined) return deny(conn, 'full');
-      room.slots[slot] = { kind: 'guest', name, ready: false, ping: 0, away: false };
+      room.slots[slot] = { kind: 'guest', name, ready: false, ping: 0, away: false, ch: freeChar(slot) };
       room.guests.set(slot, { conn, s: 0, v: 0, h: 0, hit: false, last: now(), token: m.token || '', awayUntil: 0 });
       conn.slot = slot;
       conn.send({ t: 'welcome', slot, code: room.code });
@@ -168,6 +169,13 @@ function hostOnData(conn, m) {
     }
     case 'i': if (g) { g.s = m.s; g.v = m.v; g.x = m.x || 0; g.y = m.y || 0; g.st = m.st || null; if (m.h > g.h) { g.h = m.h; g.hit = true; } } break;   // st: estado propio que simula el invitado (Bombardeo)
     case 'ready': if (g) { room.slots[conn.slot].ready = !!m.v; broadcastLobby(); changed(); } break;
+    case 'char': if (g) {
+      // el invitado cambió de personaje (o lo confirmó): si otro ya lo tiene, se queda con el que tenía
+      const sl = room.slots[conn.slot], c = m.c | 0;
+      if (c >= 0 && c < CHARS.length && !charTaken(c, conn.slot)) sl.ch = c;
+      sl.ready = !!m.lock && sl.ch === c;
+      broadcastLobby(); changed();
+    } break;
     case 'vote': if (g) { setVote(conn.slot, !!m.v); } break;
     case 'pong': if (g && room.slots[conn.slot]) { room.slots[conn.slot].ping = Math.max(1, Math.round(now() - m.ts)); } break;
     case 'bye': if (g) { conn.bye = true; dropGuest(conn.slot); } break;
@@ -231,6 +239,19 @@ export function setRoomOpt(key, v) {
 }
 
 export const humanCount = () => room.slots.filter((s) => s.kind !== 'empty').length;
+
+/* ---------- personajes ---------- */
+// ¿lo tiene otro jugador (no bot)?
+export const charTaken = (c, exceptSlot) => room.slots.some((s, i) => i !== exceptSlot && s.kind !== 'empty' && s.ch === c);
+function freeChar(slot) { for (let c = 0; c < CHARS.length; c++) if (!charTaken(c, slot)) return c; return 0; }
+// anfitrión: su personaje
+export function setHostChar(c) { if (room.role !== 'host' || !room.slots[0]) return; room.slots[0].ch = c; broadcastLobby(); changed(); }
+// invitado: elegir (lock = confirmado; confirmar es estar listo)
+export function sendChar(c, lock) {
+  const me = room.slots[room.mySlot]; if (me) { me.ch = c; me.ready = !!lock; }
+  const conn = room.hostConn; if (conn && conn.open) { try { conn.send({ t: 'char', c, lock: !!lock }); } catch (e) { /* nada */ } }
+  changed();
+}
 const presentHumans = () => room.slots.map((s, i) => ({ s, i })).filter(({ s }) => s.kind !== 'empty' && !s.away).map(({ i }) => i);
 
 // Por qué todavía no se puede empezar (o null si se puede)
@@ -241,7 +262,7 @@ export function startBlocker() {
   if (away) return `ESPERANDO QUE VUELVA ${away.name}`;
   if (!room.opts.bots && humanCount() < 2) return 'FALTAN JUGADORES (O ACTIVÁ LOS BOTS)';
   const notReady = room.slots.find((s) => s.kind === 'guest' && !s.ready);
-  if (notReady && !room.inGame) return `FALTA QUE ${notReady.name} ESTÉ LISTO`;
+  if (notReady && !room.inGame) return `FALTA QUE ${notReady.name} ELIJA PERSONAJE`;
   return null;
 }
 export const canStart = () => !startBlocker();

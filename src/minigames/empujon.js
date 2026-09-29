@@ -4,7 +4,8 @@
 // A los 14 s la plataforma empieza a achicarse para que nadie se quede quieto.
 import * as THREE from 'three';
 import { register } from './registry.js';
-import { CHARS, DIFFICULTIES, rnd } from '../config.js';
+import { DIFFICULTIES, rnd } from '../config.js';
+import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
@@ -324,9 +325,9 @@ const empujon = {
     }
     if (st === 'play' && R.over) {
       const w = R.winner, p = game.players[w];
-      const t = w < 0 ? '¡NADIE!' : w === game.me && game.mode !== 'local' ? '¡GANASTE LA RONDA!' : `RONDA PARA ${p.name || CHARS[w].name}`;
+      const t = w < 0 ? '¡NADIE!' : w === game.me && game.mode !== 'local' ? '¡GANASTE LA RONDA!' : `RONDA PARA ${p.name || charOf(w).name}`;
       rect(0, 96, hw, 34, 'rgba(4,6,14,.7)');
-      txt(t, hw / 2, 104, 16, w < 0 ? COL.white : CHARS[w].col, 'center', COL.goldShadow);
+      txt(t, hw / 2, 104, 16, w < 0 ? COL.white : charOf(w).col, 'center', COL.goldShadow);
     }
     const me = game.players[game.me];
     if (st === 'play' && me && !me.alive && !R.over && game.mode !== 'local') txt('¡TE CAÍSTE!', hw / 2, 196, 16, COL.red, 'center');

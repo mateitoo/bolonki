@@ -10,7 +10,8 @@
 // del tablero (S) es un objeto simple que se manda entero a los invitados.
 import * as THREE from 'three';
 import { register, MINIGAMES, mgById } from '../minigames/registry.js';
-import { CHARS, rnd } from '../config.js';
+import { rnd } from '../config.js';
+import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { settings } from '../settings.js';
 import { scene, mat, add, scaleUV, camera } from '../render/psx.js';
@@ -67,7 +68,7 @@ const fiestaPoints = (id) => mgById(id).fiestaPoints || mgById(id).points.values
 function pname(i) {
   if (i === game.me && game.mode !== 'local') return 'VOS';
   const p = game.players[i];
-  return (p && p.name) || CHARS[i].name;
+  return (p && p.name) || charOf(i).name;
 }
 const isHuman = (i) => { const c = game.players[i].ctrl; return c === 'local' || c === 'remote'; };
 const who = () => S.order[S.cur];
@@ -149,7 +150,7 @@ function buildCup(k) {
 
 /* ---------- inicio ---------- */
 function newFiesta(cfg) {
-  base = { mode: cfg.mode, ctrl: cfg.ctrl.slice(), pads: cfg.pads || null, names: cfg.names || null, me: cfg.me, kinds: cfg.kinds || null };
+  base = { mode: cfg.mode, ctrl: cfg.ctrl.slice(), pads: cfg.pads || null, names: cfg.names || null, me: cfg.me, kinds: cfg.kinds || null, chars: cfg.chars || game.chars };
   Object.assign(S, {
     ph: 'intro', t: 0, cur: 0, turn: 1, maxT: cfg.points || 10, dice: 1, steps: 0, spin: 0, botT: 1,
     order: cfg.ctrl.map((c, i) => (c !== 'none' ? i : -1)).filter((i) => i >= 0),
@@ -227,7 +228,7 @@ function enter(ph) {
   S.ph = ph; S.t = 0; S.botT = rnd(0.7, 1.3);
   const i = who();
   switch (ph) {
-    case 'turn': say('', '', CHARS[i].col); break;
+    case 'turn': say('', '', charOf(i).col); break;
     case 'roll': S.dice = 1 + ((Math.random() * 6) | 0); S.spin = 0; break;
     case 'land': land(i); break;
     case 'mgIntro': S.pick = null; FX.snd('event'); break;
@@ -607,7 +608,7 @@ function drawResults(hw) {
   r.ranking.forEach((i, k) => {
     const yy = y + 24 + k * 14;
     txt(`${k + 1}°`, x + 14, yy, 8, COL.dim);
-    txt(pname(i), x + 40, yy, 8, CHARS[i].col);
+    txt(pname(i), x + 40, yy, 8, charOf(i).col);
     const g = r.gains[i];
     txt(g > 0 ? `+${g}` : String(g), x + w - 34, yy, 8, g > 0 ? '#ffe070' : g < 0 ? COL.red : COL.dim, 'right');
     coinIcon(x + w - 28, yy + 1);
@@ -622,7 +623,7 @@ function drawFinal(hw) {
   f.forEach((i, k) => {
     const yy = y + 32 + k * 16;
     txt(`${k + 1}°`, x + 14, yy, 8, k === 0 ? COL.gold : COL.dim);
-    txt(pname(i), x + 40, yy, 8, CHARS[i].col);
+    txt(pname(i), x + 40, yy, 8, charOf(i).col);
     cupIcon(x + w - 86, yy); txt(String(S.cups[i]), x + w - 74, yy, 8, COL.gold);
     coinIcon(x + w - 46, yy + 1); txt(String(S.coins[i]), x + w - 36, yy, 8, '#ffe070');
   });
@@ -638,7 +639,7 @@ export function fiestaRankArt() {
       f.forEach((i, k) => {
         const yy = y + 3 + k * 14;
         txt(`${k + 1}°`, cx, yy, 8, k === 0 ? COL.gold : COL.dim);
-        txt(pname(i), cx + 28, yy, 8, CHARS[i].col);
+        txt(pname(i), cx + 28, yy, 8, charOf(i).col);
         cupIcon(cx + cw - 76, yy); txt(String(S.cups[i]), cx + cw - 64, yy, 8, COL.gold);
         coinIcon(cx + cw - 36, yy + 1); txt(String(S.coins[i]), cx + cw - 26, yy, 8, '#ffe070');
       });

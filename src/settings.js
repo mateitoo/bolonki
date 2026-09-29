@@ -15,13 +15,13 @@ export const DEFAULTS = {
   points: 15,
   deathId: 'random',
   name: '',              // apodo para el online (vacío = se pide la primera vez)
-  localPlayers: 2,       // multijugador local: cantidad de jugadores
   localBots: true,       // multijugador local: bots en los lugares libres
   mg: 'bolas',           // último minijuego elegido
   rounds: 2,             // Empujón: rondas para ganar
   mode: 'libre',         // 'libre' (elegís el minijuego) | 'fiesta' (tablero)
   turns: 10,             // Fiesta: cantidad de turnos
   mgOff: [],             // minijuegos desactivados (no salen en la Fiesta)
+  char: 0,               // último personaje que elegiste (J1)
 };
 
 function load() {

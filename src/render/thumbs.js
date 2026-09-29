@@ -16,6 +16,7 @@ export function makeThumbs() {
   const px = new Uint8Array(TW * TH * 4);
   const saveRes = U.uRes.value.clone(), saveAspect = camera.aspect;
   for (const m of SCENES) {
+    if (m.noThumb) continue;
     try {
       resetMatch('menu', demoSetup(m.id));
       if (m.thumbPrep) m.thumbPrep();

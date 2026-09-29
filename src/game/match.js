@@ -12,6 +12,7 @@ import { game, world } from '../state.js';
 import { resetPodVisual } from '../world/pods.js';
 import { removeBall } from '../world/balls.js';
 import { pickDeath } from '../deaths/index.js';
+import { applyChars } from '../chars.js';
 import { FX } from './fx.js';
 import { MINIGAMES, mgById, activate } from '../minigames/registry.js';
 
@@ -41,6 +42,8 @@ export function resetMatch(mode, setup) {
   const demo = mode === 'title' || mode === 'menu';
   const cfg = setup || (demo ? demoSetup() : soloSetup());
   const m = activate(cfg.mg || game.minigame);
+  // personajes: los que vienen en la partida; la demo de los menús usa los de siempre
+  if (cfg.chars) applyChars(cfg.chars); else if (demo || !game.chars) applyChars(null);
   Object.assign(game, {
     state: mode, elapsed: 0, spawnT: 0.8, pending: null, winner: -1, timeScale: 1, slowT: 0, slowK: 1,
     humanOut: false, pendingEnd: false, demoResetT: 0, camFocusTarget: 0, showcaseT: 0,

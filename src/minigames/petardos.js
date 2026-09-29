@@ -12,7 +12,8 @@
 // Gana la ronda el último que queda. Al minuto empieza la muerte súbita: las paredes se cierran en espiral.
 import * as THREE from 'three';
 import { register } from './registry.js';
-import { CHARS, DIFFICULTIES, rnd, clamp } from '../config.js';
+import { DIFFICULTIES, rnd, clamp } from '../config.js';
+import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
@@ -960,9 +961,9 @@ const petardos = {
     }
     if (st === 'play' && R.over) {
       const w = R.winner, p = game.players[w];
-      const t = w < 0 ? '¡NADIE!' : w === game.me && game.mode !== 'local' ? '¡GANASTE LA RONDA!' : `RONDA PARA ${p.name || CHARS[w].name}`;
+      const t = w < 0 ? '¡NADIE!' : w === game.me && game.mode !== 'local' ? '¡GANASTE LA RONDA!' : `RONDA PARA ${p.name || charOf(w).name}`;
       rect(0, 96, hw, 34, 'rgba(4,6,14,.7)');
-      txt(t, hw / 2, 104, 16, w < 0 ? COL.white : CHARS[w].col, 'center', COL.goldShadow);
+      txt(t, hw / 2, 104, 16, w < 0 ? COL.white : charOf(w).col, 'center', COL.goldShadow);
     }
     if (st === 'play' && !R.over && game.elapsed > SD_AT - 1 && game.elapsed < SD_AT + 2.5 && ((game.clock * 3) | 0) % 2) txt('¡MUERTE SÚBITA!', hw / 2, 64, 16, COL.red, 'center', COL.goldShadow);
     // tus poderes (arriba al medio): petardos, fuego, velocidad, botas y escudo

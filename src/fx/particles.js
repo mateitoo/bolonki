@@ -25,6 +25,9 @@ export function initParticles() {
 }
 
 // o: {mat, n, sp, up:[min,max], life:[min,max], g, grow, size, spread, vx, vz}
+// Las partículas 0..3 son del color del personaje de cada lugar (cambia al elegir personaje)
+export function tintSlotParticles(i, col) { if (pMats[i]) pMats[i].uniforms.uColor.value.set(col); }
+
 export function burst(x, y, z, o) {
   let n = o.n || 8;
   for (const p of PARTS) {

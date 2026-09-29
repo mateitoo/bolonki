@@ -12,6 +12,7 @@ const zero = () => ({ x: 0, y: 0, hit: false });
 export const input = {
   events: [],
   ctl: { all: zero(), p1: zero(), p2: zero(), p3: zero(), p4: zero() },
+  pev: { p1: [], p2: [], p3: [], p4: [] },   // acciones de este frame de cada jugador local (sala): left right up down ok back
   device: 'keyboard',                 // 'keyboard' | 'gamepad' | 'pointer' (para mostrar las ayudas correctas)
   pointer: { x: -1, y: -1, moved: false },
   drag: { on: false, id: null, lx: 0, ly: 0, dx: 0, dy: 0 },   // arrastre (mouse o dedo) para girar la cámara
@@ -120,16 +121,18 @@ function pollPads(dt, out) {
   const list = navigator.getGamepads ? [...navigator.getGamepads()].filter((p) => p && p.connected) : [];
   list.sort((a, b) => a.index - b.index);
   input.pads = list.length;
-  return list.slice(0, 4).map((gp) => {
+  return list.slice(0, 4).map((gp, n) => {
     const mem = padMem[gp.index] || (padMem[gp.index] = { prev: [], navDir: null, navT: 0 });
     const now = gp.buttons.map((b) => !!(b && b.pressed));
     const down = (i) => now[i] && !mem.prev[i];
-    const push = (a) => { out.push({ a }); input.device = 'gamepad'; };
+    const own = [];                                    // acciones de este joystick solo (para la sala)
+    const push = (a) => { out.push({ a, pad: n }); input.device = 'gamepad'; };   // pad: de qué joystick vino
 
     if (now.some((b, i) => b && !mem.prev[i])) push('any');
-    if (down(B.A)) { push('confirm'); push('hit'); }
+    if (down(B.A)) { push('confirm'); push('hit'); own.push('ok'); }
     if (down(B.X)) push('hit');
-    if (down(B.B) || down(B.SELECT)) push('back');
+    if (down(B.B) || down(B.SELECT)) { push('back'); own.push('back'); }
+    if (down(B.START)) own.push('ok');
     if (down(B.LB)) push('tabPrev');
     if (down(B.RB)) push('tabNext');
     if (down(B.START)) { push('start'); push('pause'); }
@@ -141,8 +144,8 @@ function pollPads(dt, out) {
     else if (now[B.DOWN] || ay > 0.55) dir = 'down';
     else if (now[B.LEFT] || ax < -0.55) dir = 'left';
     else if (now[B.RIGHT] || ax > 0.55) dir = 'right';
-    if (dir !== mem.navDir) { mem.navDir = dir; mem.navT = 0.35; if (dir) push(dir); }
-    else if (dir) { mem.navT -= dt; if (mem.navT <= 0) { mem.navT = 0.11; push(dir); } }
+    if (dir !== mem.navDir) { mem.navDir = dir; mem.navT = 0.35; if (dir) { push(dir); own.push(dir); } }
+    else if (dir) { mem.navT -= dt; if (mem.navT <= 0) { mem.navT = 0.11; push(dir); own.push(dir); } }
 
     let x = dead(ax), y = -dead(ay);                   // y positivo = arriba en la pantalla
     if (now[B.LEFT]) x = -1; if (now[B.RIGHT]) x = 1;
@@ -152,9 +155,14 @@ function pollPads(dt, out) {
     mem.prev = now;
     // stick derecho: girar la cámara (en los minijuegos que lo permiten)
     input.camStick.x += dead(gp.axes[2] || 0); input.camStick.y += dead(gp.axes[3] || 0);
-    return { x, y, hit };
+    return { x, y, hit, ev: own };
   });
 }
+
+// acciones de cada juego de teclas (sala): J1 flechas + espacio/enter + esc; J2 WASD + E (listo) + Q (volver)
+const KEV1 = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', Space: 'ok', Enter: 'ok', NumpadEnter: 'ok', ControlLeft: 'ok', ControlRight: 'ok', Escape: 'back', Backspace: 'back' };
+const KEV2 = { KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down', KeyE: 'ok', KeyQ: 'back' };
+const keyEv = (map) => [...pressed].map((c) => map[c]).filter(Boolean);
 
 const any = (codes) => codes.some((c) => held.has(c));
 const tap = (codes) => codes.some((c) => pressed.has(c));
@@ -181,6 +189,8 @@ export function pollInput(dt) {
   c.p2 = merge(k2, pads[1]);
   c.p3 = merge(pads[2]);
   c.p4 = merge(pads[3]);
+  const pe = (k) => (pads[k] ? pads[k].ev : []);
+  input.pev = { p1: keyEv(KEV1).concat(pe(0)), p2: keyEv(KEV2).concat(pe(1)), p3: pe(2), p4: pe(3) };
   input.touch.hit = false;
   pressed.clear();
   input.events = ev;

@@ -14,6 +14,7 @@ import './minigames/empujon.js';
 import './minigames/bombardeo.js';
 import './minigames/petardos.js';
 import fiesta, { S as fiestaState, startFiesta } from './fiesta/board.js';
+import salaStage from './sala/stage.js';
 import { updateVisuals } from './visuals.js';
 import { initHud, drawHud, showToast } from './hud.js';
 import { initDisplay, toHud, toggleFullscreen } from './display.js';
@@ -32,13 +33,14 @@ const renderer = initRenderer(glc);
 
 // --- mundo ---
 initParticles();
-game.players = CHARS.map((ch, i) => ({
-  i, ch, side: SIDES[i], s: 0, v: 0, x: 0, z: 0, vx: 0, vz: 0, score: 0, alive: true, ctrl: 'ai', empty: false, net: null,
+game.players = [0, 1, 2, 3].map((i) => ({
+  i, ch: CHARS[i], side: SIDES[i], s: 0, v: 0, x: 0, z: 0, vx: 0, vz: 0, score: 0, alive: true, ctrl: 'ai', empty: false, net: null,
   swing: 0, cd: 0, hitDone: false, target: 0, thinkT: 0, err: 0, errT: 0, flash: 0, spin: 0, death: null,
   mesh: buildPod(i),
 }));
 MINIGAMES.forEach((m) => m.build());
 fiesta.build();                    // el tablero de la Fiesta (no es un minijuego elegible)
+salaStage.build();                 // el escenario de la sala (elegir personajes)
 initHud(hud);
 initDisplay(stage, screen, glc, hud);
 

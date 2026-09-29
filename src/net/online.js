@@ -7,6 +7,7 @@ import { room, broadcast, broadcastLobby, slotKinds, resetLobbyFlags } from './r
 import { resetMatch, eliminate } from '../game/match.js';
 import { setRecording, outbox, playEvent } from '../game/fx.js';
 import { mg, mgById } from '../minigames/registry.js';
+import { fillChars } from '../chars.js';
 
 const SNAP_RATE = 1 / 20;    // snapshots por segundo que manda el anfitrión
 const DELAY = 100;           // ms: el invitado dibuja un poquito en el pasado para interpolar suave
@@ -23,7 +24,7 @@ export function setFiestaStarter(fn) { fiestaStarter = fn; }
 // Cambia de escena en toda la sala (minijuego o tablero): lo arma acá y les avisa a los invitados
 export function hostLaunch(setup, info) {
   game.online = 'host';
-  room.startInfo = Object.assign({ t: 'start' }, info);
+  room.startInfo = Object.assign({ t: 'start', chars: setup.chars || game.chars }, info);
   broadcast(room.startInfo);
   resetMatch('count', setup);
   game.players.forEach((p) => { p.net = room.guests.get(p.i) || null; p.isBot = info.kinds[p.i] === 'bot'; });
@@ -33,6 +34,7 @@ export function hostLaunch(setup, info) {
 export function hostStart() {
   const kinds = slotKinds();
   const names = room.slots.map((s) => (s.kind === 'empty' ? null : s.name));
+  const chars = fillChars(room.slots.map((s) => (s.kind === 'empty' ? -1 : s.ch)));   // los bots, con los que quedan
   if (room.opts.mode === 'fiesta' && fiestaStarter) {
     room.inGame = true; room.votes = [];
     game.difficulty = room.opts.difficulty;
@@ -40,7 +42,7 @@ export function hostStart() {
     broadcast({ t: 'votes', v: [] });
     broadcastLobby();
     const ctrl = kinds.map((k, i) => (i === 0 ? 'local' : k === 'guest' ? 'remote' : k === 'bot' ? 'ai' : 'none'));
-    fiestaStarter({ mode: 'online', ctrl, names, kinds, me: 0 }, room.opts.turns);
+    fiestaStarter({ mode: 'online', ctrl, names, kinds, me: 0, chars }, room.opts.turns);
     return;
   }
   const m = mgById(room.opts.mg);
@@ -48,13 +50,13 @@ export function hostStart() {
   const setup = {
     mode: 'online', mg: m.id, names,
     ctrl: kinds.map((k, i) => (i === 0 ? 'local' : k === 'guest' ? 'remote' : k === 'bot' ? 'ai' : 'none')),
-    me: 0, points,
+    me: 0, points, chars,
   };
   room.inGame = true; room.votes = [];
   game.online = 'host';
   game.difficulty = room.opts.difficulty;
   setRecording(true);
-  room.startInfo = { t: 'start', mg: m.id, kinds, names, points, difficulty: room.opts.difficulty };
+  room.startInfo = { t: 'start', mg: m.id, kinds, names, points, difficulty: room.opts.difficulty, chars };
   broadcast(room.startInfo);
   broadcast({ t: 'votes', v: [] });
   broadcastLobby();
@@ -106,7 +108,7 @@ export function guestStart(m) {
   const setup = {
     mode: 'online', mg: m.mg || 'bolas', names: m.names || null,
     ctrl: m.kinds.map((k, i) => (k === 'none' ? 'none' : i === room.mySlot ? 'local' : 'net')),   // en un duelo de la Fiesta podés no jugar
-    me: room.mySlot, points: m.points, fiesta: !!m.fiesta, duel: !!m.duel,
+    me: room.mySlot, points: m.points, fiesta: !!m.fiesta, duel: !!m.duel, chars: m.chars || null,
   };
   game.online = 'guest';
   game.difficulty = m.difficulty;

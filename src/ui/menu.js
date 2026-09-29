@@ -25,7 +25,7 @@ export const customRects = [];   // zonas clickeables de pantallas propias
 export const menuOpen = () => stack.length > 0;
 export const topMenu = () => stack[stack.length - 1] || null;
 
-const itemsOf = (e) => (e.def.tabs ? e.def.tabs[e.tab].items : e.def.items).filter((it) => !(it.hidden && it.hidden()));
+const itemsOf = (e) => (e.def.tabs ? e.def.tabs[e.tab].items : e.def.items || []).filter((it) => !(it.hidden && it.hidden()));
 const selectable = (it) => it.kind !== 'info' && it.kind !== 'art';
 const L = (it) => (typeof it.label === 'function' ? it.label() : it.label);   // el texto puede cambiar en vivo
 function firstSel(e) { const v = itemsOf(e); return Math.max(0, v.findIndex(selectable)); }
@@ -67,6 +67,10 @@ const hit = (list, x, y) => list.find((r) => x >= r.x && x <= r.x + r.w && y >= 
 // Devuelve true si el menú consumió la entrada
 export function menuInput() {
   const top = topMenu(); if (!top) return false;
+  // pantallas propias (menú principal, sala): manejan toda su entrada
+  if (top.def.style === 'custom') { top.def.input(top); return true; }
+  // pantallas con algo propio por frame (opciones de la sala: alguien más se puede sumar)
+  if (top.def.tick) { top.def.tick(top); if (topMenu() !== top) return true; }
   const items = itemsOf(top);
   if (top.sel >= items.length) top.sel = firstSel(top);
 
@@ -100,7 +104,10 @@ export function menuInput() {
         const t = hit(tabRects, e.x, e.y);
         if (t) { if (t.i !== top.tab) { top.tab = t.i; top.sel = firstSel(top); SFX.move(); } break; }
         const r = hit(rects, e.x, e.y);
-        if (r) { top.sel = r.i; const cur = itemsOf(top)[r.i]; activate(cur, cur.kind !== 'action' && e.x < r.x + r.w * 0.55 ? -1 : 1); }
+        if (r) {
+          top.sel = r.i; const cur = itemsOf(top)[r.i];
+          if (cur.clickAt) cur.clickAt(e.x, e.y); else activate(cur, cur.kind !== 'action' && e.x < r.x + r.w * 0.55 ? -1 : 1);
+        }
         break;
       }
       default: break;
@@ -209,6 +216,11 @@ function drawPanel(top, hw) {
   let iy = y + titleH + headH + tabsH + 4;
   items.forEach((it, i) => {
     if (it.kind === 'art') { it.draw(x, iy - 3, w, hw); iy += hOf(it); return; }
+    if (it.drawRow) {                         // fila dibujada por su cuenta (grilla de minijuegos)
+      it.drawRow(x, iy - 3, w, hw, i === top.sel);
+      rects.push({ i, x: x + 4, y: iy - 3, w: w - 8, h: hOf(it) });
+      iy += hOf(it); return;
+    }
     const sel = i === top.sel && selectable(it);
     if (sel) {
       rect(x + 4, iy - 3, w - 8, ROW - 1, 'rgba(45,224,200,.16)');
@@ -224,7 +236,7 @@ function drawPanel(top, hw) {
 }
 
 // Tecla o botón dibujado como una tapita
-function keyCap(label, x, y, align) {
+export function keyCap(label, x, y, align) {
   const w = textWidth(label, 8) + 8;
   const bx = align === 'right' ? x - w : align === 'center' ? x - w / 2 : x;
   rect(bx, y - 3, w, 13, '#1d2338'); rect(bx, y + 9, w, 1, '#3a4570');
@@ -233,14 +245,14 @@ function keyCap(label, x, y, align) {
 }
 
 // Barra de botones al pie (cambia según teclado, joystick o mouse)
-function drawFooter(top, hw) {
+function drawFooter(top, hw, custom) {
   rect(0, 221, hw, 19, 'rgba(4,6,14,.85)');
   const pad = input.device === 'gamepad';
-  const parts = [
+  const parts = custom || [
     { key: pad ? 'A' : input.device === 'pointer' ? 'CLIC' : 'ENTER', label: 'ACEPTAR', act: 'ok' },
   ];
-  if (top.def.tabs) parts.push({ key: pad ? 'LB RB' : 'Q E', label: 'SOLAPA', act: 'tabNext' });
-  parts.push({ key: pad ? 'B' : 'ESC', label: 'VOLVER', act: 'back' });
+  if (!custom && top.def.tabs) parts.push({ key: pad ? 'LB RB' : 'Q E', label: 'SOLAPA', act: 'tabNext' });
+  if (!custom) parts.push({ key: pad ? 'B' : 'ESC', label: 'VOLVER', act: 'back' });
   const widths = parts.map((p) => textWidth(p.key, 8) + 8 + 6 + textWidth(p.label, 8));
   const total = widths.reduce((a, b) => a + b, 0) + (parts.length - 1) * 18;
   let x = hw / 2 - total / 2;
@@ -255,6 +267,10 @@ function drawFooter(top, hw) {
 export function drawMenu(hw) {
   const top = topMenu(); if (!top) return;
   rects = []; tabRects = []; footRects = []; customRects.length = 0;
+  if (top.def.style === 'custom') { top.def.draw(hw, top); if (top.def.footer) drawFooter(top, hw, top.def.footer(top)); return; }
   if (top.def.style === 'big') drawBig(top, hw); else drawPanel(top, hw);
   if (!top.def.noFooter) drawFooter(top, hw);   // el menú principal no lleva barra de botones
 }
+
+// clic en la barra de abajo de una pantalla propia: qué botón (act) se tocó
+export const footerHit = (x, y) => { const f = hit(footRects, x, y); return f ? f.act : null; };

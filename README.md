@@ -60,7 +60,7 @@ registrarlo con `register()` e importarlo en `src/main.js`. Los menús, el local
 
 ## Fiesta (modo tablero)
 
-En Solitario, Local y Crear sala hay una fila **MODO**: *Partida libre* (elegís un minijuego y se juega ese) o *Fiesta*.
+Se entra desde la puerta **FIESTA** del menú principal (sola, local u online).
 
 La Fiesta es un tablero estilo party game (`src/fiesta/board.js`):
 
@@ -75,16 +75,32 @@ La Fiesta es un tablero estilo party game (`src/fiesta/board.js`):
 En **Opciones → Juego** se elige qué minijuegos salen en la Fiesta (siempre queda al menos uno).
 En online, la Fiesta corre en la máquina del anfitrión y los invitados eligen y tiran el dado desde la suya; si alguien se va, su lugar pasa a un bot.
 
-## Modos
+## Menú, sala y personajes
 
-- **Solitario:** vos contra 3 bots (dificultad y puntos a elección), en partida libre o Fiesta.
-- **Multijugador → Local:** 2 a 4 jugadores en la misma compu. J1 usa flechas + espacio/ctrl (o joystick 1), J2 usa WASD + E/Q (o joystick 2), J3 y J4 usan los joysticks 3 y 4. Los lugares libres pueden tener bots o quedar con el arco cerrado. Los controles son relativos a la pantalla: los de arriba y abajo se mueven con izquierda/derecha, los de los costados con arriba/abajo.
-- **Multijugador → Crear sala:** te da un código de 4 letras. Hasta 4 jugadores; bots sí/no (y su dificultad), puntos y sala privada o pública. Sin bots, los lugares vacíos quedan con el arco cerrado.
-- **Multijugador → Unirse a sala:** escribís el código (con teclado, o letra por letra con la cruceta).
-- **Multijugador → Salas públicas:** lista de salas abiertas para entrar sin código.
-- **Apodo:** se pide la primera vez que entrás al online y se ve en la sala y arriba de tu nave.
+El menú principal tiene dos puertas grandes: **FIESTA** (el tablero) y **MINIJUEGOS** (elegís uno y se juega ese).
+Abajo, **ONLINE** y **OPCIONES**.
 
-En la sala cada invitado marca **LISTO** y se ve el **ping** de cada uno. Al terminar, la **revancha se vota**: cuando votan todos, arranca sola.
+Las dos puertas llevan a la **sala** (`src/sala/`), que es la misma pantalla para jugar solo, en la misma compu u online:
+
+- Cuatro podios en un escenario; cada jugador **elige su personaje** (izquierda/derecha) y confirma (golpe / Enter).
+  Cada personaje lo usa uno solo, y no cambia nada del juego (es solo estética).
+- **Local:** J1 usa flechas + espacio/enter (o joystick 1). Los demás se suman apretando su botón:
+  J2 con **E** (WASD para elegir, **Q** para salir) o joystick 2, J3 y J4 con **A** en los joysticks 3 y 4. Los podios libres son CPU.
+- Cuando todos confirmaron aparecen las **opciones**: en Minijuegos, una grilla con las fotos de cada uno; CPU (o sin CPU si son 2 o más),
+  puntos/rondas/turnos, **JUGAR ONLINE** (convierte la sala en online e invita amigos) y COMENZAR.
+- Al terminar una partida, **VOLVER A LA SALA** mantiene a los mismos jugadores y personajes.
+
+Los controles en la partida son relativos a la pantalla: en Bola Brava, los de arriba y abajo se mueven con izquierda/derecha y los de los costados con arriba/abajo.
+
+### Online
+
+- **Online → Crear sala de Fiesta / de Minijuegos:** te da un código de 4 letras. Es la misma sala: cada invitado elige su personaje en su compu
+  (confirmarlo es estar listo) y el anfitrión elige minijuego, bots, puntos y sala privada o pública.
+- **Online → Unirse con código:** escribís el código (con teclado, o letra por letra con la cruceta).
+- **Online → Salas públicas:** lista de salas abiertas para entrar sin código.
+- **Apodo:** se pide la primera vez que entrás al online y se ve en la sala y arriba de tu personaje.
+
+En la sala se ve el **ping** de cada uno. Al terminar, la **revancha se vota**: cuando votan todos, arranca sola.
 Si a alguien se le corta la conexión, se le guarda el lugar 12 segundos y el juego intenta **reconectarlo** solo.
 
 Cada jugador ve su propio arco abajo (la cámara se rota según su lugar).
@@ -143,7 +159,7 @@ src/
   render/psx.js      shaders y materiales estilo PS1, modo PS1 on/off
   render/textures.js texturas procedurales
   world/arena.js     piso, torres, arcos, láseres y chevrones
-  world/pods.js      naves y pilotos
+  world/pods.js      naves y pilotos (dressPod viste la nave con el personaje elegido)
   world/balls.js     pelotas
   game/physics.js    movimiento, rebotes, goles y colisiones
   game/ai.js         IA de la CPU
@@ -159,7 +175,11 @@ src/
   flow.js            título, menús, partida, pausa y fin
   minigames/         cada minijuego (registry.js explica la forma; bolas, empujon, bombardeo y petardos)
   fiesta/board.js    modo Fiesta: tablero, dado, casilleros, copa, duelos y minijuegos sorteados
-  multiplayer.js     menús de multijugador: local, crear sala, unirse, salas públicas, apodo, sala de espera, fin online
+  multiplayer.js     menú ONLINE (crear sala, unirse, salas públicas, apodo), pausa y fin online
+  sala/sala.js       la sala: unirse, elegir personaje, opciones y arrancar (solo, local y online)
+  sala/stage.js      escenario 3D de la sala (cuatro podios)
+  chars.js           qué personaje usa cada lugar (se elige en la sala)
+  ui/mainMenu.js     menú principal con las dos puertas
   net/room.js        conexión PeerJS: código, lugares, listo, ping, votos, reconexión y salas públicas
   net/online.js      sincronización: snapshots del anfitrión e interpolación del invitado
   game/fx.js         efectos como eventos (se reproducen igual en todas las máquinas)
@@ -175,6 +195,7 @@ src/
 
 - **Dificultad de la CPU:** `DIFFICULTIES` en `src/config.js` (velocidad, error, reacción, anticipación y uso del golpe fuerte).
 - **Pelotas (velocidad, cantidad):** `BALL` en `src/config.js`.
+- **Nuevo personaje:** sumarlo a `CHARS` en `src/config.js` (nombre, colores y accesorio) y, si tiene un accesorio nuevo, armarlo en `dressPod` (`src/world/pods.js`) y en el retrato de `src/hud.js`. Aparece solo en la sala.
 - **Nueva animación de derrota:** crear un archivo en `src/deaths/` con `{ id, name, dur, start, update }` y sumarlo a `src/deaths/index.js`. El selector se llena solo.
 
 Personajes, nombres y arte son originales.

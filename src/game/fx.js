@@ -100,6 +100,7 @@ export const FX = {
   boom(x, z) { SFX.bomb(); game.shake = Math.max(game.shake, 0.35); burst(x, 0.8, z, { mat: P.ORANGE, n: 10, sp: 5, up: [2, 6], life: [0.25, 0.5] }); burst(x, 0.8, z, { mat: P.SMOKE, n: 5, sp: 2, up: [1, 3], life: [0.5, 0.9], g: -1, grow: 2 }); emit(['Bm', r2(x), r2(z)]); },
   crate(x, z) { burst(x, 0.6, z, { mat: P.DEBRIS, n: 6, sp: 4, up: [2, 6], life: [0.3, 0.6] }); emit(['Cr', r2(x), r2(z)]); },
   powerup(x, z) { SFX.powerup(); burst(x, 0.8, z, { mat: P.YELLOW, n: 8, sp: 3, up: [2, 5], life: [0.2, 0.5] }); emit(['Pu', r2(x), r2(z)]); },
+  machine(x, z) { SFX.clunk(); burst(x, 1.2, z, { mat: P.SMOKE, n: 3, sp: 1, up: [0.5, 1.5], life: [0.4, 0.7], g: -1, grow: 1.5 }); emit(['Mc', r2(x), r2(z)]); },
   kick(x, z) { SFX.kick(); burst(x, 0.3, z, { mat: P.WHITE, n: 4, sp: 3, up: [0.5, 2], life: [0.15, 0.3] }); emit(['Kk', r2(x), r2(z)]); },
   curse(i) { const p = game.players[i]; SFX.curse(); burst(p.x, 1.4, p.z, { mat: P.SMOKE, n: 8, sp: 2, up: [1, 3], life: [0.4, 0.8], g: -1, grow: 1.5 }); emit(['Cu', i]); },
   wall(x, z) { SFX.wall(); game.shake = Math.max(game.shake, 0.15); burst(x, 0.3, z, { mat: P.SMOKE, n: 4, sp: 2.5, up: [0.5, 1.5], life: [0.3, 0.6], g: -1, grow: 1.5 }); emit(['Wl', r2(x), r2(z)]); },
@@ -166,6 +167,7 @@ export function playEvent(ev) {
     case 'Pu': FX.powerup(ev[1], ev[2]); break;
     case 'Bl': FX.blast(ev[1]); break;
     case 'Kk': FX.kick(ev[1], ev[2]); break;
+    case 'Mc': FX.machine(ev[1], ev[2]); break;
     case 'Cu': FX.curse(ev[1]); break;
     case 'Wl': FX.wall(ev[1], ev[2]); break;
     case 'S': FX.snd(ev[1]); break;

@@ -72,6 +72,7 @@ export const SFX = {
   kick() { beep(300, 900, 0.1, 'square', 0.05); noise(0.08, 0.06, 2000); },
   curse() { [392, 370, 349, 330].forEach((f, k) => beep(f, f * 0.98, 0.12, 'sawtooth', 0.045, k * 0.1)); },
   wall() { beep(90, 50, 0.18, 'square', 0.08); noise(0.12, 0.12, 700); },
+  clunk() { beep(120, 70, 0.14, 'square', 0.07); noise(0.1, 0.08, 900, 0.05); beep(420, 420, 0.05, 'square', 0.03, 0.12); },
   place() { beep(200, 140, 0.08, 'square', 0.05); },
   bomb() { noise(0.55, 0.3, 1400); beep(140, 40, 0.45, 'sawtooth', 0.1); },
   powerup() { [660, 880, 1320].forEach((f, k) => beep(f, f, 0.07, 'square', 0.04, k * 0.06)); },

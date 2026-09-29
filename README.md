@@ -36,7 +36,7 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   (más raro), +velocidad, botas (empujando un obstáculo lo saltás), escudo (aguanta una explosión), patada (el petardo
   sale deslizando) y **calavera** (una maldición de 10 s que se contagia tocando a otro: controles invertidos, lento,
   petardos sin parar, sin petardos o **atontado**, que cada vez que apretás una dirección seguramente te manda para otro lado). Hay 4 canchas, cada una con
-  algo propio: patio (arbustos para esconderte), fábrica (cintas que te arrastran a vos y a los petardos), desierto
+  algo propio: patio (arbustos para esconderte), fábrica (una cinta en circuito que te arrastra a vos y a los petardos, con una máquina que va largando cajones como la cinta de valijas del aeropuerto), desierto
   (arenas movedizas) y nieve (hielo: si soltás seguís resbalando). Al minuto empieza la muerte súbita: las paredes
   se cierran en espiral.
 

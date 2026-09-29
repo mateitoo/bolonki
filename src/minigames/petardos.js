@@ -6,7 +6,8 @@
 //   · calavera (una maldición por 10 s que se contagia tocando a otro: controles invertidos, lento,
 //     petardos sin parar, sin petardos o atontado)
 // Hay varias canchas (cambian las paredes fijas y el lugar) y sale una al azar en cada ronda. Cada una tiene algo propio:
-//   patio: arbustos donde esconderte · fábrica: cintas que te arrastran (y a los petardos)
+//   patio: arbustos donde esconderte · fábrica: una cinta que te arrastra (a vos, a los petardos y a los cajones
+//   que va largando una máquina)
 //   · desierto: arenas movedizas que te frenan · nieve: hielo, si soltás seguís resbalando
 // Gana la ronda el último que queda. Al minuto empieza la muerte súbita: las paredes se cierran en espiral.
 import * as THREE from 'three';
@@ -71,6 +72,7 @@ function pickPower() {
 
 // Canchas: el mapa de adentro del borde (13 x 11, el tamaño clásico, sin simetría) y cómo se ve cada una.
 // X = pared fija · . piso · b arbusto · q arena movediza · ~ hielo · > < ^ v cinta transportadora
+// La fábrica tiene una máquina arriba de la cinta que larga cajones cada tanto (como la cinta de las valijas).
 const CANCHAS = [
   { name: 'PATIO', floor: 'turf', wall: 'brick', wallCol: 0xffffff, out: 0x557755, deco: 'arboles', extra: 'ARBUSTOS PARA ESCONDERTE',
     map: [
@@ -86,18 +88,20 @@ const CANCHAS = [
       '...XX.b.X..X.',
       '.........b...'
     ] },
-  { name: 'FÁBRICA', floor: 'tile', wall: 'block', wallCol: 0xffffff, out: 0x5a6070, deco: 'cajas', extra: 'CINTAS QUE TE ARRASTRAN',
+  { name: 'FÁBRICA', floor: 'tile', wall: 'block', wallCol: 0xffffff, out: 0x5a6070, deco: 'cajas', extra: 'CINTA CON CAJONES',
+    machine: [6, 2],        // la máquina que larga cajones (columna y fila del mapa)
+    fill: 0.6,              // menos cajones sueltos: la máquina va trayendo más
     map: [
       '.............',
       '.XX..X..XX.X.',
-      '..>>>>>v...X.',
-      '.X.X.X.v.X...',
-      '...X...v.XX.X',
-      '.X..XX.v.....',
-      '.X.....>>>>v.',
-      '...XX.X.X..v.',
-      '.X...<<<<<<<.',
-      '.X.X...XX.X..',
+      '>>>>>>>>>>>>v',
+      '^X...X.X..X.v',
+      '^..XX.....X.v',
+      '^.X...XX.X..v',
+      '^X..X....X..v',
+      '^..X.XX..XX.v',
+      '^<<<<<<<<<<<<',
+      '.X..XX.X..X..',
       '.............'
     ] },
   { name: 'DESIERTO', floor: 'sand', wall: 'brick', wallCol: 0xe0b878, out: 0xc8a060, deco: 'cactus', extra: 'ARENAS MOVEDIZAS',
@@ -155,10 +159,14 @@ const hidden = new Array(N).fill(-1); // poder escondido en cada cajón (-1 = na
 let bombs = [];                       // { id, k, t, range, owner, age }
 let flames = new Map();               // celda -> tiempo que le queda
 let pups = [];                        // { k, type, t } (t: tiempo hasta aparecer)
+const prevG = new Array(N).fill(EMPTY);  // para animar los cajones que avanzan por la cinta
+const crateAnim = new Map();          // celda -> { from, t } (de qué celda viene) o { spawn, t }
 let nextId = 1;
 // cada cuánto cae una pared: arranca lento y se va apurando
 const sdEvery = () => Math.max(0.22, SD_EVERY - Math.max(0, game.elapsed - SD_AT) * 0.011);
-const S = { cancha: 0, sdIdx: 0, sdT: 0, sdFall: [] };
+const MACH_EVERY = 4, MACH_MAX = 9;                     // la máquina: cada cuánto larga un cajón y cuántos puede haber en la cinta
+const machineK = (ci) => { const m = CANCHAS[ci].machine; return m ? idx(m[0] + 1, m[1] + 1) : -1; };
+const S = { cancha: 0, beltT: 0, machT: 2, sdIdx: 0, sdT: 0, sdFall: [] };
 // orden de la espiral: desde el borde de adentro hacia el centro, en el sentido de las agujas del reloj
 const SPIRAL = [];
 {
@@ -179,7 +187,8 @@ function makeMap(ci) {
     if (isWall(ci, c, r)) { G[k] = WALL; continue; }
     // las esquinas quedan libres (la celda de salida y sus dos vecinas)
     const nearCorner = CORNERS.some(([cc, rr]) => Math.abs(cc - c) + Math.abs(rr - r) <= 1);
-    if (!nearCorner && specialAt(ci, c, r) !== 'b' && Math.random() < CRATE_FILL) {
+    const sp = specialAt(ci, c, r);
+    if (!nearCorner && sp !== 'b' && !CONV[sp] && Math.random() < (CANCHAS[ci].fill || CRATE_FILL)) {
       G[k] = CRATE;
       if (Math.random() < DROP_CHANCE) hidden[k] = pickPower();
     }
@@ -199,6 +208,20 @@ function buildCancha(ci) {
   add(out, mat({ map: TX[C.floor], color: C.out }), 0, -1.4, 0, g);
   const wg = scaleUV(new THREE.BoxGeometry(TS, TS * 0.9, TS), 1, 1), wm = mat({ map: TX[C.wall], color: C.wallCol });
   for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) if (isWall(ci, c, r)) add(wg, wm, cxOf(c), TS * 0.45, czOf(r), g);
+  // la máquina de cajones (un arco arriba de la cinta, con cortinas de goma a la salida)
+  if (C.machine) {
+    const [mc, mr] = C.machine, x = cxOf(mc + 1), z = czOf(mr + 1);
+    const [dc] = CONV[C.map[mr][mc]] || [1, 0];
+    const mg = new THREE.Group(); mg.position.set(x, 0, z); g.add(mg);
+    const bodyM = mat({ map: TX.metal, color: 0xffc02a }), hz = mat({ map: TX.hazard, unlit: true }), rubber = mat({ color: 0x15151a });
+    const darkM = mat({ color: 0x2a2d36 });
+    [-1, 1].forEach((sz) => add(new THREE.BoxGeometry(TS * 1.1, TS * 1.35, 0.3), bodyM, 0, TS * 0.675, sz * TS * 0.58, mg));
+    add(new THREE.BoxGeometry(TS * 1.15, TS * 0.5, TS * 1.46), bodyM, 0, TS * 1.55, 0, mg);
+    add(new THREE.BoxGeometry(TS * 1.17, TS * 0.14, TS * 1.48), hz, 0, TS * 1.28, 0, mg);
+    add(new THREE.BoxGeometry(TS * 0.9, TS * 0.08, TS * 1.0), darkM, 0, TS * 1.81, 0, mg);            // tapa oscura
+    for (let i = 0; i < 5; i++) add(new THREE.BoxGeometry(0.05, TS * 0.8, TS * 0.2), rubber, dc * TS * 0.55, TS * 0.88, (i - 2) * TS * 0.21, mg);
+    W.machineLamp = add(new THREE.BoxGeometry(0.34, 0.34, 0.34), mat({ color: 0xff3a1a, unlit: true }), 0, TS * 1.98, 0, mg);
+  }
   // lo propio del piso: hielo, arena movediza, cintas y arbustos
   const pg = new THREE.PlaneGeometry(TS, TS); pg.rotateX(-Math.PI / 2);
   const bushM = mat({ color: 0x3f8a3a }), bush2M = mat({ color: 0x2f7430 });
@@ -290,7 +313,7 @@ function placeAll() {
   // otra cancha al azar (distinta de la anterior)
   if (game.online !== 'guest') { let c = (Math.random() * CANCHAS.length) | 0; if (c === S.cancha) c = (c + 1) % CANCHAS.length; S.cancha = c; }
   makeMap(S.cancha);
-  bombs = []; flames = new Map(); pups = []; S.sdIdx = 0; S.sdT = 0; S.sdFall = []; S.sdWarned = false;
+  bombs = []; flames = new Map(); pups = []; S.beltT = 1 / CONV_V; S.machT = 1.5; prevG.fill(EMPTY); crateAnim.clear(); S.sdIdx = 0; S.sdT = 0; S.sdFall = []; S.sdWarned = false; S.hasBelt = machineK(S.cancha) >= 0;
   game.players.forEach((p) => {
     resetPodVisual(p);
     p.death = null;
@@ -327,6 +350,39 @@ function placeBomb(p, force) {
   // los que están parados arriba pueden salir caminando
   for (const q of game.players) if (q.alive && cellOf(q) === k) q.pass.push(b.id);
   FX.place();
+}
+
+// Cajones arriba de la cinta: avanzan una celda cada tanto si adelante hay lugar (los de adelante primero)
+function beltCrates(dt) {
+  const mk = machineK(S.cancha);
+  if (mk < 0) return;
+  const busyCell = (k) => G[k] !== EMPTY || bombAt(k) || flames.has(k) || game.players.some((q) => q.alive && !q.empty && cellOf(q) === k);
+  S.beltT -= dt;
+  if (S.beltT <= 0) {
+    S.beltT += 1 / CONV_V;
+    const moved = new Set();
+    for (let pass = 0, any = true; pass < 40 && any; pass++) {
+      any = false;
+      for (let k = 0; k < N; k++) {
+        if (G[k] !== CRATE || moved.has(k)) continue;
+        const cv = CONV[spAt(k)]; if (!cv) continue;
+        const nk = idx((k % GW) + cv[0], ((k / GW) | 0) + cv[1]);
+        if (busyCell(nk)) continue;
+        G[nk] = CRATE; hidden[nk] = hidden[k]; G[k] = EMPTY; hidden[k] = -1;
+        moved.add(nk); any = true;
+      }
+    }
+  }
+  // la máquina larga un cajón (si hay lugar y no hay demasiados dando vueltas)
+  S.machT -= dt;
+  if (S.machT <= 0) {
+    let onBelt = 0; for (let k = 0; k < N; k++) if (G[k] === CRATE && CONV[spAt(k)]) onBelt++;
+    if (onBelt < MACH_MAX && !busyCell(mk)) {
+      G[mk] = CRATE; hidden[mk] = Math.random() < DROP_CHANCE ? pickPower() : -1;
+      FX.machine(cxOf(mk % GW), czOf((mk / GW) | 0));
+      S.machT = MACH_EVERY;
+    } else S.machT = 0.5;
+  }
 }
 
 // Petardos pateados: se deslizan celda por celda hasta que algo los frena (pared, cajón, petardo o alguien)
@@ -497,23 +553,32 @@ function move(p, ix, iz, dt) {
 /* ---------- IA ---------- */
 // Mapa de peligro: en cuántos segundos le llega fuego a cada celda (teniendo en cuenta las cadenas).
 // dónde va a explotar un petardo que se mueve (pateado o arriba de una cinta)
-function predictK(b) {
-  if (!b.mv && !CONV[spAt(b.k)]) return b.k;
-  let k = b.k, dc = b.mv ? b.mv.dc : 0, dr = b.mv ? b.mv.dr : 0, conv = !b.mv || b.mv.conv;
-  const n = Math.floor(b.t * (conv ? CONV_V : KICK_V));
+function predictK(b) { const t = predictTraj(b.k, b.t, b.mv); return t[t.length - 1]; }
+// todas las celdas por las que va a pasar un petardo que se mueve (pateado o arriba de una cinta)
+function predictTraj(k0, t, mv) {
+  const out = [k0];
+  if (!mv && !CONV[spAt(k0)]) return out;
+  let k = k0, dc = mv ? mv.dc : 0, dr = mv ? mv.dr : 0;
+  const conv = !mv || mv.conv, n = Math.floor(t * (conv ? CONV_V : KICK_V));
   for (let i = 0; i < n; i++) {
     if (conv) { const cv = CONV[spAt(k)]; if (!cv) break; [dc, dr] = cv; }
     const c = (k % GW) + dc, r = ((k / GW) | 0) + dr;
-    if (!interior(c, r) || G[idx(c, r)] !== EMPTY) break;
-    k = idx(c, r);
+    if (!interior(c, r)) break;
+    const nk = idx(c, r);
+    // una pared o un cajón quieto lo frenan; un cajón arriba de la cinta se va corriendo
+    if (G[nk] !== EMPTY && !(conv && G[nk] === CRATE && CONV[spAt(nk)])) break;
+    k = nk; out.push(k);
   }
-  return k;
+  return out;
 }
 function dangerMap(extra, react, p) {
   // los petardos propios los ve siempre; los de los demás, un ratito después de que aparecen
-  const list = bombs.filter((b) => b.age >= react || (p && b.owner === p.i)).map((b) => ({ k: predictK(b), t: b.t, range: b.range }));
-  if (extra) list.push(extra);
-  const cells = list.map((b) => blastCells(b.k, b.range, G));
+  const list = bombs.filter((b) => b.age >= react || (p && b.owner === p.i)).map((b) => ({ k: predictK(b), tr: predictTraj(b.k, b.t, b.mv), t: b.t, range: b.range }));
+  if (extra) list.push(Object.assign({ tr: predictTraj(extra.k, extra.t, null) }, extra));
+  // los cajones de la cinta se corren: no cuentan como reparo (el fuego puede pasar cuando se van)
+  const Gd = S.hasBelt ? G.map((v, k) => (v === CRATE && CONV[spAt(k)] ? EMPTY : v)) : G;
+  // si se mueve, no sabemos bien dónde va a explotar: todo su recorrido es peligroso
+  const cells = list.map((b) => { const set = new Set(); for (const k of b.tr) for (const kk of blastCells(k, b.range, Gd)) set.add(kk); return [...set]; });
   for (let it = 0; it < 4; it++) {
     list.forEach((b, i) => { for (const kk of cells[i]) for (const o of list) if (o !== b && o.k === kk && o.t > b.t) o.t = b.t; });
   }
@@ -531,8 +596,15 @@ function dangerMap(extra, react, p) {
 // Camino (por celdas) hasta la celda más cercana que cumpla want(k), pasando solo por celdas seguras a tiempo
 function findPath(p, danger, want, maxSteps, startBomb) {
   const start = cellOf(p), cellT = 1 / p.speed;
-  const prev = new Array(N).fill(-2), dist = new Array(N).fill(-1);
+  const prev = new Array(N).fill(-2), dist = new Array(N).fill(-1), tim = new Array(N).fill(0);
   dist[start] = 0; prev[start] = -1; const q = [start];
+  // cuánto tarda en pasar de k a kk: contra la cinta cuesta el doble, a favor menos; la arena movediza, el doble
+  const stepT = (k, kk, dc, dr) => {
+    let t = cellT; const cv = CONV[spAt(k)], sp = spAt(kk);
+    if (cv) t *= cv[0] === dc && cv[1] === dr ? 0.7 : cv[0] === -dc && cv[1] === -dr ? 2.2 : 1.2;
+    if (sp === 'q') t *= 2;
+    return t;
+  };
   while (q.length) {
     const k = q.shift();
     if (want(k, dist[k])) {
@@ -546,11 +618,11 @@ function findPath(p, danger, want, maxSteps, startBomb) {
       if (dist[kk] >= 0 || G[kk] !== EMPTY) continue;
       const b = bombAt(kk);
       if ((b && !(kk === start)) || (startBomb === kk && kk !== start)) continue;
-      const arrive = (dist[k] + 1) * cellT;
+      const arrive = tim[k] + stepT(k, kk, dc, dr);
       // no pasar por una celda que explota justo mientras la cruzo
       if (danger[kk] < arrive + cellT + 0.25 && danger[kk] > arrive - 0.6 - cellT) continue;
       if (danger[kk] <= 0.05) continue;
-      dist[kk] = dist[k] + 1; prev[kk] = k; q.push(kk);
+      dist[kk] = dist[k] + 1; tim[kk] = arrive; prev[kk] = k; q.push(kk);
     }
     // con botas: saltar un obstáculo pegado (pared, cajón o petardo) si del otro lado hay lugar
     if (p.boots) for (const [dc, dr] of DIRS) {
@@ -558,10 +630,10 @@ function findPath(p, danger, want, maxSteps, startBomb) {
       if (!interior(c + dc, r + dr) || !interior(lc, lr)) continue;
       const l = idx(lc, lr);
       if (dist[l] >= 0 || !(G[o] !== EMPTY || bombAt(o)) || G[l] !== EMPTY || bombAt(l)) continue;
-      const arrive = dist[k] * cellT + VAULT_PUSH + VAULT_T;
+      const arrive = tim[k] + VAULT_PUSH + VAULT_T;
       if (danger[l] < arrive + cellT + 0.25 && danger[l] > arrive - 0.6 - cellT) continue;
       if (danger[l] <= 0.05) continue;
-      dist[l] = dist[k] + 2; prev[l] = k; q.push(l);
+      dist[l] = dist[k] + 2; tim[l] = arrive; prev[l] = k; q.push(l);
     }
   }
   return null;
@@ -574,9 +646,10 @@ function aiThink(p, D) {
   const danger = dangerMap(null, react, p);
   const here = cellOf(p);
   const safe = (k) => danger[k] === Infinity;
-  // 1) en peligro: ir a una celda segura
+  const belt = (k) => !!CONV[spAt(k)];
+  // 1) en peligro: ir a una celda segura (mejor una fuera de la cinta: arriba de la cinta te arrastra)
   if (!safe(here)) {
-    const path = findPath(p, danger, (k) => safe(k), 8);
+    const path = findPath(p, danger, (k) => safe(k) && !belt(k), 8) || findPath(p, danger, (k) => safe(k), 8);
     p.path = path || [];
     return;
   }
@@ -587,9 +660,9 @@ function aiThink(p, D) {
   const hitsRival = rivals.some((q) => lineHits(here, p.range, cellOf(q)));
   const wantBomb = (nearCrate && Math.random() < 0.7) || (hitsRival && Math.random() < 0.3 + D.swing);
   const centered = Math.abs(p.x - cxOf(here % GW)) < TS * 0.3 && Math.abs(p.z - czOf((here / GW) | 0)) < TS * 0.3;
-  if (wantBomb && centered && activeBombs(p) < p.maxBombs && !bombAt(here)) {
+  if (wantBomb && centered && activeBombs(p) < p.maxBombs && !bombAt(here) && !belt(here)) {
     const d2 = dangerMap({ k: here, t: FUSE, range: p.range }, react, p);
-    const esc = findPath(p, d2, (k) => d2[k] === Infinity, 7, here);
+    const esc = findPath(p, d2, (k) => d2[k] === Infinity && !belt(k), 7, here);
     const reckless = D.err > 3 && Math.random() < 0.01;          // en fácil, muy de vez en cuando, se manda igual
     if (esc || reckless) { p.wantBomb = true; p.path = esc || []; return; }
   }
@@ -598,11 +671,11 @@ function aiThink(p, D) {
   const puSet = new Set(pups.filter((u) => u.t <= 0 && u.type !== 6).map((u) => u.k));
   let path = findPath(p, danger, (k, d) => d > 0 && puSet.has(k), 6);
   if (!path) {
-    path = findPath(p, danger, (k, d) => d > 0 && safe(k) && DIRS.some(([dc, dr]) => G[idx((k % GW) + dc, ((k / GW) | 0) + dr)] === CRATE), 10);
+    path = findPath(p, danger, (k, d) => d > 0 && safe(k) && !belt(k) && DIRS.some(([dc, dr]) => G[idx((k % GW) + dc, ((k / GW) | 0) + dr)] === CRATE), 10);
   }
   if (!path || Math.random() < 0.4 + D.lead * 0.4) {
     const targets = new Set(rivals.map((q) => cellOf(q)));
-    const hunt = findPath(p, danger, (k, d) => d > 0 && safe(k) && [...targets].some((t) => lineHits(k, p.range, t)), 12);
+    const hunt = findPath(p, danger, (k, d) => d > 0 && safe(k) && !belt(k) && [...targets].some((t) => lineHits(k, p.range, t)), 12);
     if (hunt) path = hunt;
   }
   p.path = path || [];
@@ -613,18 +686,19 @@ function aiInput(p, dt) {
   if (p.thinkT <= 0) { p.thinkT = rnd(D.think[0], D.think[1]) * 2; aiThink(p, D); }
   // seguir el camino celda por celda
   while (p.path.length && cellOf(p) === p.path[0] && Math.hypot(cxOf(p.path[0] % GW) - p.x, czOf((p.path[0] / GW) | 0) - p.z) < TS * 0.12) p.path.shift();
-  if (!p.path.length) {
-    // quieto en el centro de su celda
+  // quieto en el centro de su celda (arriba de una cinta, caminando en contra para no ser arrastrado)
+  const hold = () => {
     const k = cellOf(p), dx = cxOf(k % GW) - p.x, dz = czOf((k / GW) | 0) - p.z;
     if (Math.abs(dx) > 0.05) return { x: Math.sign(dx), z: 0 };
     if (Math.abs(dz) > 0.05) return { x: 0, z: Math.sign(dz) };
     return { x: 0, z: 0 };
-  }
+  };
+  if (!p.path.length) return hold();
   const t = p.path[0];
   const dx = cxOf(t % GW) - p.x, dz = czOf((t / GW) | 0) - p.z;
   // si la próxima celda se volvió peligrosa justo ahora, esperar
   const danger = dangerMap(null, 0, p);
-  if (danger[t] < 0.6 && danger[cellOf(p)] === Infinity) return { x: 0, z: 0 };
+  if (danger[t] < 0.6 && danger[cellOf(p)] === Infinity) return hold();
   return Math.abs(dx) >= Math.abs(dz) ? { x: Math.sign(dx), z: 0 } : { x: 0, z: Math.sign(dz) };
 }
 
@@ -716,6 +790,7 @@ function step(dt) {
 
   // petardos pateados
   slideBombs(dt);
+  if (!R.over) beltCrates(dt);
 
   // mechas, explosiones, fuego y poderes que aparecen (un petardo que pasa por el fuego explota)
   for (const b of bombs) { b.t -= dt; b.age += dt; if (flames.has(b.k)) b.t = Math.min(b.t, 0.05); }
@@ -791,8 +866,27 @@ const petardos = {
       const w = Math.sin(clock * 30) * 0.06 * b.shake;
       b.g.scale.set(1 + w, 1 - w, 1 + w);
     }
+    // cajones que avanzan por la cinta (o que acaban de salir de la máquina): se deslizan en vez de saltar
+    const mk = machineK(S.cancha);
+    for (let k = 0; k < N; k++) {
+      if (G[k] === CRATE && prevG[k] !== CRATE) {
+        let from = -1;
+        for (const [dc, dr] of DIRS) {
+          const n = idx((k % GW) - dc, ((k / GW) | 0) - dr), cv = n >= 0 && n < N ? CONV[spAt(n)] : null;
+          if (cv && cv[0] === dc && cv[1] === dr && prevG[n] === CRATE && G[n] !== CRATE) { from = n; break; }
+        }
+        if (from >= 0) crateAnim.set(k, { from, t: 0 }); else if (k === mk) crateAnim.set(k, { spawn: true, t: 0 });
+      }
+      prevG[k] = G[k];
+    }
+    for (const [k, a] of crateAnim) { a.t += dt * (a.spawn ? 2.5 : CONV_V); if (a.t >= 1 || G[k] !== CRATE) crateAnim.delete(k); }
+    if (W.machineLamp) W.machineLamp.visible = S.machT > 0.8 || ((clock * 10) | 0) % 2 === 0;
     for (let k = 0; k < N; k++) {
       W.crates[k].visible = G[k] === CRATE;
+      const cm = W.crates[k], a = crateAnim.get(k);
+      cm.position.set(cxOf(k % GW), TS * 0.4, czOf((k / GW) | 0)); cm.scale.setScalar(1);
+      if (a && a.from !== undefined) { const u = a.t; cm.position.x += (cxOf(a.from % GW) - cxOf(k % GW)) * (1 - u); cm.position.z += (czOf((a.from / GW) | 0) - czOf((k / GW) | 0)) * (1 - u); }
+      else if (a && a.spawn) cm.scale.setScalar(0.4 + 0.6 * a.t);
       W.sdWalls[k].visible = G[k] === WALL && !isWall(S.cancha, k % GW, (k / GW) | 0);   // paredes de la muerte súbita
     }
     W.sdFall.forEach((m, n) => {
@@ -946,7 +1040,10 @@ const petardos = {
 };
 
 // para las pruebas (?debug): acceso al mapa
-petardos._dbg = { G, clearCrates() { for (let k = 0; k < N; k++) if (G[k] === CRATE) G[k] = EMPTY; } };
+petardos._dbg = { G, clearCrates() { for (let k = 0; k < N; k++) if (G[k] === CRATE) G[k] = EMPTY; },
+  danger(i) { const p = game.players[i]; return dangerMap(null, 0, p).map((v) => (v === Infinity ? -1 : Math.round(v * 100) / 100)); },
+  bombs() { return bombs.map((b) => ({ k: b.k, t: b.t, owner: b.owner, mv: b.mv, range: b.range, age: b.age })); },
+  crates() { return G.map((v, k) => (v === CRATE ? (CONV[spAt(k)] ? 'B' : 'c') : v === WALL ? '#' : '.')).join(''); } };
 
 register(petardos);
 export default petardos;

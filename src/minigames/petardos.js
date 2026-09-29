@@ -59,7 +59,7 @@ const VAULT_PUSH = 0.12, VAULT_T = 0.42;           // botas: cuánto empujar con
 const INVUL_T = 1.3;         // después de que el escudo aguanta una explosión
 const SPEED0 = 3.3, SPEED_UP = 0.45, SPEED_MAX = 5.6;   // celdas por segundo
 const MAX_BOMBS = 6, MAX_RANGE = 7;
-const SD_AT = 60, SD_EVERY = 0.25, SD_FALL = 0.35;       // muerte súbita: cuándo empieza, cada cuánto cae una pared y cuánto tarda en caer
+const SD_AT = 60, SD_EVERY = 0.55, SD_FALL = 0.7;       // muerte súbita: cuándo empieza, cada cuánto cae una pared y cuánto tarda en caer
 const CHAR_SCALE = 0.7;
 const ROUND_PAUSE = 2.4;
 const EMPTY = 0, WALL = 1, CRATE = 2;
@@ -69,61 +69,65 @@ function pickPower() {
   return 1;
 }
 
-// Canchas: el mapa de adentro del borde (13 x 11, el tamaño clásico) y cómo se ve cada una.
+// Canchas: el mapa de adentro del borde (13 x 11, el tamaño clásico, sin simetría) y cómo se ve cada una.
 // X = pared fija · . piso · b arbusto · q arena movediza · ~ hielo · > < ^ v cinta transportadora
 const CANCHAS = [
   { name: 'PATIO', floor: 'turf', wall: 'brick', wallCol: 0xffffff, out: 0x557755, deco: 'arboles', extra: 'ARBUSTOS PARA ESCONDERTE',
     map: [
-      '......b......',
-      '.X.X.X.X.X.X.',
-      '..b.......b..',
-      '.X.X.X.X.X.X.',
-      '....b...b....',
-      'bX.X.X.X.X.Xb',
-      '....b...b....',
-      '.X.X.X.X.X.X.',
-      '..b.......b..',
-      '.X.X.X.X.X.X.',
-      '......b......'] },
+      '...b.........',
+      '.X.X..XX.X.X.',
+      '.....b...X...',
+      '.XX.X.X...Xb.',
+      '..b..X..b.X..',
+      '.X..XX.X.....',
+      '...b....XX.X.',
+      'bX.X.b.X...b.',
+      '.X....X..XX..',
+      '...XX.b.X..X.',
+      '.........b...'
+    ] },
   { name: 'FÁBRICA', floor: 'tile', wall: 'block', wallCol: 0xffffff, out: 0x5a6070, deco: 'cajas', extra: 'CINTAS QUE TE ARRASTRAN',
     map: [
       '.............',
-      '.XX.XX.XX.XX.',
-      '>>>>>>>>>>>>v',
-      '^X...X.X...Xv',
-      '^X.XX...XX.Xv',
-      '^.>>>>>>>>>.v',
-      '^X.XX...XX.Xv',
-      '^X...X.X...Xv',
-      '^<<<<<<<<<<<<',
-      '.XX.XX.XX.XX.',
-      '.............'] },
+      '.XX..X..XX.X.',
+      '..>>>>>v...X.',
+      '.X.X.X.v.X...',
+      '...X...v.XX.X',
+      '.X..XX.v.....',
+      '.X.....>>>>v.',
+      '...XX.X.X..v.',
+      '.X...<<<<<<<.',
+      '.X.X...XX.X..',
+      '.............'
+    ] },
   { name: 'DESIERTO', floor: 'sand', wall: 'brick', wallCol: 0xe0b878, out: 0xc8a060, deco: 'cactus', extra: 'ARENAS MOVEDIZAS',
     map: [
-      '.............',
-      '.X..X...X..X.',
-      '.qq..X.X..qq.',
-      '.XX.qqqqq.XX.',
-      '....qqXqq....',
-      '.X..X.q.X..X.',
-      '....qqXqq....',
-      '.XX.qqqqq.XX.',
-      '.qq..X.X..qq.',
-      '.X..X...X..X.',
-      '.............'] },
+      '....q........',
+      '.X.qqX..X.X..',
+      '..X..XX...qq.',
+      '.qq.....X.qX.',
+      '.X..X.qq..X..',
+      '...XX.qqX....',
+      '.q.....q..XX.',
+      '.qX.X.X...q..',
+      '..X..qq..X.X.',
+      '.X..Xqq.X....',
+      '.........q...'
+    ] },
   { name: 'NIEVE', floor: 'snow', wall: 'brick', wallCol: 0xdfe8ff, out: 0xdde8f4, deco: 'pinos', extra: 'HIELO QUE RESBALA',
     map: [
       '.............',
-      '.X.X~~~~~X.X.',
-      '..~~~~~~~~~..',
-      '.X..X~X~X..X.',
-      '...X~~~~~X...',
-      '.X..~~X~~..X.',
-      '...X~~~~~X...',
-      '.X..X~X~X..X.',
-      '..~~~~~~~~~..',
-      '.X.X~~~~~X.X.',
-      '.............'] },
+      '.X.X~~~X..X..',
+      '...~~X~~~.X..',
+      '.X.~~~~X..~~.',
+      '..X..X.~~~~X.',
+      '.X~~~.X.X~~..',
+      '..~~X~~~..X..',
+      '.X..~~~X.X.X.',
+      '...X.~~~~~...',
+      '..X.X..~~.XX.',
+      '.............'
+    ] },
 ];
 const cellCh = (ci, c, r) => (c > 0 && r > 0 && c < GW - 1 && r < GH - 1 ? CANCHAS[ci].map[r - 1][c - 1] : 'X');
 // qué hay en el piso de la celda: '.' nada · b arbusto · q arena movediza · ~ hielo · > < ^ v cinta
@@ -152,6 +156,8 @@ let bombs = [];                       // { id, k, t, range, owner, age }
 let flames = new Map();               // celda -> tiempo que le queda
 let pups = [];                        // { k, type, t } (t: tiempo hasta aparecer)
 let nextId = 1;
+// cada cuánto cae una pared: arranca lento y se va apurando
+const sdEvery = () => Math.max(0.22, SD_EVERY - Math.max(0, game.elapsed - SD_AT) * 0.011);
 const S = { cancha: 0, sdIdx: 0, sdT: 0, sdFall: [] };
 // orden de la espiral: desde el borde de adentro hacia el centro, en el sentido de las agujas del reloj
 const SPIRAL = [];
@@ -518,7 +524,7 @@ function dangerMap(extra, react, p) {
   if (game.elapsed > SD_AT - 3) {
     for (const f of S.sdFall) d[f.k] = Math.min(d[f.k], Math.max(0.01, SD_FALL - f.t));
     let t = Math.max(0, S.sdT) + Math.max(0, SD_AT - game.elapsed);
-    for (let j = S.sdIdx; j < SPIRAL.length && t < 3; j++) { if (G[SPIRAL[j]] !== WALL) { d[SPIRAL[j]] = Math.min(d[SPIRAL[j]], t + SD_FALL); t += SD_EVERY; } }
+    for (let j = S.sdIdx; j < SPIRAL.length && t < 3; j++) { if (G[SPIRAL[j]] !== WALL) { d[SPIRAL[j]] = Math.min(d[SPIRAL[j]], t + SD_FALL); t += sdEvery(); } }
   }
   return d;
 }
@@ -691,7 +697,7 @@ function step(dt) {
       const k = SPIRAL[S.sdIdx++];
       if (G[k] === WALL) continue;
       S.sdFall.push({ k, t: 0 });
-      S.sdT += SD_EVERY;
+      S.sdT += sdEvery();
     }
     for (const f of S.sdFall) {
       f.t += dt;

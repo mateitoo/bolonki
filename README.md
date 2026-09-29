@@ -31,7 +31,7 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   dejás mareado (**pisotón**). Antes de caer se ve la sombra de la caja en el piso y la caja bajando desde arriba.
   A los 25 s el piso es lava y sube cada vez más rápido. Cajas especiales: **resorte**
   (verde, te lanza unas tres cajas de alto) y **explosiva** (roja, al caer vuela la caja de arriba de las pilas de al lado).
-- **Petardos** (a pie, estilo Bomberman): mapa de 13 x 11 con paredes fijas y cajones al azar, uno en cada esquina. El golpe pone
+- **Petardos** (a pie, estilo Bomberman): mapas de 13 x 11 sin simetría, con paredes fijas y cajones al azar, uno en cada esquina. El golpe pone
   un petardo que explota en cruz y hace explotar a otros. Poderes en los cajones: +fuego (arranca en 1), +petardo
   (más raro), +velocidad, botas (empujando un obstáculo lo saltás), escudo (aguanta una explosión), patada (el petardo
   sale deslizando) y **calavera** (una maldición de 10 s que se contagia tocando a otro: controles invertidos, lento,

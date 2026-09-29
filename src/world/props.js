@@ -3,7 +3,7 @@
 // Nada de esto choca con nada: es solo decorado. Lo animado se registra con anim() y se mueve
 // solo mientras su escenario está a la vista (updateProps, desde visuals.js).
 import * as THREE from 'three';
-import { mat, add } from '../render/psx.js';
+import { mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
 
@@ -477,6 +477,91 @@ export function iceFloes(p, y, rMin, rMax, n = 8) {
     fs.push({ g, ph: rnd(0, 6), y });
   }
   anim(p, (t) => fs.forEach((f) => { f.g.position.y = f.y + Math.sin(t * 0.9 + f.ph) * 0.18; f.g.rotation.z = Math.sin(t * 0.7 + f.ph) * 0.06; f.g.rotation.y += 0.0015; }));
+}
+// Nave de carga estacionada: casco, alas, cabina iluminada, motores que brillan, patas y luces que titilan
+export function spaceship(p, x, y, z, ry = 0, s = 1) {
+  const g = G(p, x, y, z, ry); g.scale.setScalar(s);
+  const hull = M(0xc8ccd8, { map: TX.metal }), dark = M(0x3a3f4e, { map: TX.metal }), stripe = M(0xff9a1f, { map: TX.hazard, unlit: true });
+  add(box(3.4, 2.2, 9), hull, 0, 2.6, 0, g);
+  add(new THREE.CylinderGeometry(1.1, 1.7, 2.6, 8), hull, 0, 2.6, 5.6, g).rotation.x = Math.PI / 2;             // trompa
+  add(box(2.4, 0.7, 1.6), M(0x6ff6ff, { unlit: true }), 0, 3.5, 5.0, g);                                        // cabina
+  add(box(3.5, 0.3, 9.1), stripe, 0, 1.6, 0, g);
+  [-1, 1].forEach((sx) => {
+    const w = add(box(4.2, 0.3, 3.6), hull, sx * 3.6, 2.3, -1.2, g); w.rotation.z = sx * 0.12;
+    add(box(0.5, 0.5, 1.2), M(sx < 0 ? 0xff3a2a : 0x39ff8a, { unlit: true }), sx * 5.6, 2.55, -1.2, g).userData.nav = true;
+    add(new THREE.CylinderGeometry(0.12, 0.12, 2.1, 5), dark, sx * 1.4, 1.05, 2.6, g);                           // patas
+    add(new THREE.CylinderGeometry(0.12, 0.12, 2.1, 5), dark, sx * 1.4, 1.05, -2.8, g);
+    add(box(0.8, 0.12, 0.8), dark, sx * 1.4, 0.06, 2.6, g); add(box(0.8, 0.12, 0.8), dark, sx * 1.4, 0.06, -2.8, g);
+  });
+  [-0.9, 0.9].forEach((ex) => {
+    add(new THREE.CylinderGeometry(0.75, 0.9, 1.4, 8), dark, ex, 2.6, -5.1, g).rotation.x = Math.PI / 2;
+    const gl = add(new THREE.CylinderGeometry(0.6, 0.6, 0.12, 8), M(0x6fd8ff, { unlit: true }), ex, 2.6, -5.85, g); gl.rotation.x = Math.PI / 2;
+  });
+  add(box(1.6, 0.9, 2.2), dark, 0, 4.1, -2.0, g);                                                               // antena/radar arriba
+  const blink = add(new THREE.SphereGeometry(0.2, 5, 4), M(0xffffff, { unlit: true }), 0, 4.8, -2.0, g);
+  anim(g, (t) => { blink.visible = ((t * 2) | 0) % 2 === 0; });
+  return g;
+}
+// Tanque de combustible esférico sobre patas
+export function fuelTank(p, x, y, z, s = 1, col = 0xe8e8ee) {
+  const g = G(p, x, y, z); g.scale.setScalar(s);
+  add(new THREE.SphereGeometry(1.5, 10, 8), M(col, { map: TX.metal }), 0, 2.6, 0, g);
+  add(new THREE.CylinderGeometry(1.52, 1.52, 0.3, 10), M(0xffffff, { map: TX.hazard, unlit: true }), 0, 2.6, 0, g);
+  for (let k = 0; k < 4; k++) { const a = (k / 4) * Math.PI * 2 + 0.4; add(new THREE.CylinderGeometry(0.1, 0.12, 2.2, 5), M(0x5a6070, { map: TX.metal }), Math.sin(a) * 1.1, 1.1, Math.cos(a) * 1.1, g); }
+  add(new THREE.CylinderGeometry(0.15, 0.15, 1.6, 5), M(0x8a92a6, { map: TX.metal }), 0, 4.4, 0, g);
+  return g;
+}
+// Tira de luces que se prenden en secuencia (x1,z1 → x2,z2)
+export function chaseLights(p, x1, y, z1, x2, z2, n = 12, col = 0x2de0c8, speed = 6) {
+  const on = M(col, { unlit: true }), off = M(new THREE.Color(col).multiplyScalar(0.25).getHex(), { unlit: true }), ls = [];
+  for (let i = 0; i < n; i++) { const f = n === 1 ? 0.5 : i / (n - 1); ls.push(add(box(0.22, 0.12, 0.22), off, x1 + (x2 - x1) * f, y, z1 + (z2 - z1) * f, p)); }
+  anim(p, (t) => { const k = Math.floor(t * speed); ls.forEach((m, i) => { m.material = (i + k) % 4 === 0 ? on : off; }); });
+  return ls;
+}
+
+// Erupción: piedras de lava que salen volando del cráter y caen hasta el pie del volcán (en loop)
+export function eruption(p, x, y, z, fall = 24, n = 8, sp = 9) {
+  const g = G(p, x, y, z), bm = M(0xff8a2a, { unlit: true }), hm = M(0xffe070, { unlit: true }), bs = [];
+  for (let i = 0; i < n; i++) { const m = add(new THREE.DodecahedronGeometry(rnd(0.5, 1.1), 0), i % 3 ? bm : hm, 0, 0, 0, g); m.visible = false; bs.push({ m, wait: i * 0.4, fly: false, vx: 0, vy: 0, vz: 0 }); }
+  anim(g, (t, dt) => {
+    const d = Math.min(dt || 1 / 60, 0.05);
+    bs.forEach((b) => {
+      if (!b.fly) {
+        b.wait -= d; if (b.wait > 0) return;
+        b.fly = true; b.m.visible = true; b.m.position.set(0, 0, 0);
+        b.vx = rnd(-0.5, 0.5) * sp; b.vz = rnd(-0.1, 0.6) * sp; b.vy = rnd(1.2, 1.9) * sp;
+        return;
+      }
+      b.vy -= 16 * d; b.m.position.x += b.vx * d; b.m.position.y += b.vy * d; b.m.position.z += b.vz * d; b.m.rotation.x += d * 3;
+      if (b.m.position.y < -fall) { b.fly = false; b.m.visible = false; b.wait = rnd(0.3, 2.5); }
+    });
+  });
+  return g;
+}
+// Cascada de lava que cae por un acantilado
+export function lavafall(p, x, y, z, ry = 0, h = 16, w = 3) {
+  const g = G(p, x, y, z, ry), rm = M(0x3a2c2e, { map: TX.rock });
+  add(box(w + 5, h + 2, 4), rm, 0, (h + 2) / 2, -2.4, g);                               // el acantilado
+  add(new THREE.ConeGeometry(3.2, 4, 6), rm, -w / 2 - 2.2, h + 3.4, -2.2, g);
+  add(new THREE.ConeGeometry(2.6, 3, 6), rm, w / 2 + 2, h + 2.9, -2.6, g);
+  const fm = mat({ map: TX.magma, unlit: true });
+  add(scaleUV(new THREE.PlaneGeometry(w, h + 1, 1, 4), 1, 4), fm, 0, (h + 1) / 2, -0.35, g);
+  add(new THREE.CylinderGeometry(w * 0.9, w * 1.3, 0.5, 8), M(0xffc050, { unlit: true }), 0, 0.25, 0.4, g);   // donde cae, brilla
+  smoke(g, 0, 0.6, 0.6, 4, 1.6, 0x5a3a30);
+  anim(g, (t) => { fm.uniforms.uOff.value.set(0, (t * 0.6) % 1); });
+  return g;
+}
+// Columnas de basalto hexagonales que salen de la lava (unas más altas que otras)
+export function basalt(p, x, y, z, n = 7, r = 1.1, h0 = 4, h1 = 12) {
+  const g = G(p, x, y, z), rm = M(0x4a3e44, { map: TX.rock }), tm = M(0x6a5a60, { map: TX.rock }), gm = M(0xff7a1a, { unlit: true });
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + rnd(-0.3, 0.3), d = i === 0 ? 0 : rnd(r * 1.6, r * 2.6), h = rnd(h0, h1);
+    const cx = Math.sin(a) * d, cz = Math.cos(a) * d;
+    add(new THREE.CylinderGeometry(r, r, h, 6), rm, cx, h / 2, cz, g).rotation.y = rnd(0, 1);
+    add(new THREE.CylinderGeometry(r * 0.98, r * 0.98, 0.12, 6), i % 2 ? tm : gm, cx, h + 0.06, cz, g);        // algunas con la punta al rojo
+    if (i % 3 === 0) add(new THREE.CylinderGeometry(r * 1.02, r * 1.02, 0.18, 6), gm, cx, rnd(0.8, h * 0.4), cz, g);    // grieta que brilla
+  }
+  return g;
 }
 // Chorro de lava que sale cada tanto
 export function geyser(p, x, y, z, period = 7, off = 0, h = 9) {

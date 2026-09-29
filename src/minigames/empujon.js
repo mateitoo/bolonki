@@ -46,18 +46,16 @@ function buildWorld() {
   const grp = new THREE.Group(); grp.visible = false; scene.add(grp); W.grp = grp;
   const plat = new THREE.Group(); grp.add(plat); W.plat = plat;
   // hielo de arriba
-  add(scaleUV(new THREE.CylinderGeometry(R0, R0, 0.8, 28, 1), 4, 1), mat({ map: TX.ice }), 0, -0.4, 0, plat);
+  // (el costado por un lado y la cara de arriba por otro: arriba va un dibujo entero de la arena, con marcas y cosas congeladas)
+  add(scaleUV(new THREE.CylinderGeometry(R0, R0, 0.8, 28, 1, true), 4, 1), mat({ map: TX.ice }), 0, -0.4, 0, plat);
+  const topG = new THREE.RingGeometry(0.01, R0, 28, 6); topG.rotateX(-Math.PI / 2);
+  add(topG, mat({ map: TX.iceArena }), 0, 0, 0, plat);
   // luces del borde
   W.rimM = mat({ map: TX.lights, unlit: true });
   add(scaleUV(new THREE.CylinderGeometry(R0 + 0.03, R0 + 0.03, 0.28, 28, 1, true), 26, 1), W.rimM, 0, -0.16, 0, plat);
   // roca de abajo (cono invertido)
   const cone = scaleUV(new THREE.ConeGeometry(R0 * 0.98, 6.5, 14, 2, true), 5, 2); cone.rotateX(Math.PI);
   add(cone, mat({ map: TX.rock, color: 0x9a8f9e }), 0, -4.05, 0, plat);
-  // marca del centro
-  const ring = new THREE.RingGeometry(1.4, 1.75, 20); ring.rotateX(-Math.PI / 2);
-  add(ring, mat({ color: 0x5aa8c0, unlit: true }), 0, 0.02, 0, plat);
-  const dot = new THREE.CircleGeometry(0.35, 12); dot.rotateX(-Math.PI / 2);
-  add(dot, mat({ color: 0x5aa8c0, unlit: true }), 0, 0.02, 0, plat);
   // magma del fondo
   W.lavaM = mat({ map: TX.magma, unlit: true, color: 0xffffff });
   const lava = scaleUV(new THREE.PlaneGeometry(220, 220, 16, 16), 34); lava.rotateX(-Math.PI / 2);

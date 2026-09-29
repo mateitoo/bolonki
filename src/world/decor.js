@@ -86,6 +86,15 @@ export function decorEmpujon(grp, plat, R0) {
   P.volcano(grp, -52, Y, -18, 16, 14);
   P.iceFloes(grp, Y + 0.1, 13, 28, 9);
   P.geyser(grp, 16, Y, -15, 7, 0); P.geyser(grp, -17, Y, 10, 8.5, 3.2); P.geyser(grp, 9, Y, 21, 9.5, 6.1);
+  // el volcán del fondo escupe piedras de lava; cascadas de lava bajando por acantilados; columnas de basalto
+  P.eruption(grp, 0, Y + 17, -60, 24, 9, 9);
+  P.eruption(grp, -52, Y + 16, -18, 16, 5, 7);
+  P.lavafall(grp, -21, Y, -27, 0.5, 18, 3.4);
+  P.lavafall(grp, 27, Y, -20, -0.7, 15, 2.6);
+  P.basalt(grp, -16, Y, -3, 7, 1.5, 2, 8);
+  P.basalt(grp, 15, Y, 3, 6, 1.3, 2, 7);
+  P.basalt(grp, 4, Y, -20, 6, 1.4, 3, 10);
+  P.basalt(grp, -7, Y, 17, 5, 1.2, 1.5, 6);
   // carámbanos colgando del borde del hielo (achican con la plataforma)
   const im = P.M(0xcfefff, { map: TX.ice });
   for (let k = 0; k < 26; k++) {
@@ -133,10 +142,27 @@ export function decorBombardeo(grp, HALF) {
     stars: 140, starBand: 0.7, blobs: [[0.2, 0.3, 0.3, 'rgba(120,60,160,.45)'], [0.65, 0.22, 0.25, 'rgba(40,140,170,.4)'], [0.85, 0.45, 0.2, 'rgba(170,70,110,.35)']],
   });
   P.asteroids(grp, 14, 28, 44, -2, 14);
-  P.dish(grp, 13.5, Y, -12.5, -0.6, 1);
+  P.dish(grp, 15.5, Y, -8.5, -0.8, 1);
   P.container(grp, -14.5, Y, 11.5, 0.15, 0xd8463a, 4.2); P.container(grp, -14.2, Y + 1.6, 11.4, 0.05, 0x3a7ac8, 3.6);
   P.container(grp, 15, Y, 1, Math.PI / 2 + 0.1, 0x39a86a, 4);
   P.drone(grp, 0, 6.5, 0, 14.5, 0.35);
+  // luces que corren arriba de la baranda
+  const B = HALF + 0.55, ly = 0.53;
+  P.chaseLights(grp, -B, ly, -B, B, -B, 14); P.chaseLights(grp, B, ly, -B, B, B, 14);
+  P.chaseLights(grp, B, ly, B, -B, B, 14); P.chaseLights(grp, -B, ly, B, -B, -B, 14);
+  // nave de carga estacionada al fondo, con una pista de luces, y tanques de combustible
+  P.spaceship(grp, 9.5, Y, -19.5, 0.45, 1.05);
+  P.chaseLights(grp, 4.5, Y + 0.05, -10.5, 8.2, -15.5, 8, 0xffc02a, 5);
+  P.chaseLights(grp, 6.8, Y + 0.05, -9.4, 10.5, -14.4, 8, 0xffc02a, 5);
+  P.fuelTank(grp, -17, Y, -2.5, 1); P.fuelTank(grp, -18.6, Y, 1.2, 0.8, 0xd8463a);
+  P.pipe(grp, -15.6, Y + 2.6, -2.5, -13.7, Y + 1.2, -2.5, 0.2, 0x8a92a6);
+  // grilla de luz tenue en el piso de afuera
+  const gl = P.M(0x1a3a5a, { unlit: true });
+  for (let v = -30; v <= 30; v += 6) {
+    if (Math.abs(v) < HALF + 3) { [-1, 1].forEach((sd) => { add(new THREE.BoxGeometry(0.08, 0.02, 30 - HALF - 3), gl, v, Y + 0.02, sd * (HALF + 3 + (30 - HALF - 3) / 2), grp); add(new THREE.BoxGeometry(30 - HALF - 3, 0.02, 0.08), gl, sd * (HALF + 3 + (30 - HALF - 3) / 2), Y + 0.02, v, grp); }); continue; }
+    add(new THREE.BoxGeometry(0.08, 0.02, 60), gl, v, Y + 0.02, 0, grp);
+    add(new THREE.BoxGeometry(60, 0.02, 0.08), gl, 0, Y + 0.02, v, grp);
+  }
 }
 
 /* ---------- Petardos: una por cancha ---------- */

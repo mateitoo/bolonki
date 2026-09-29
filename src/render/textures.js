@@ -250,6 +250,50 @@ export const TX = {
   }),
   tunic: tex(32, 32, (x, w, h) => { noisy(x, w, h, '#b9cd82', 0.04); x.fillStyle = 'rgba(60,80,20,.12)'; x.fillRect(0, 30, w, 2); }),
   cloth: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#ffffff', 0.06); }),   // tela neutra: se tiñe con el color del material
+  /* ---------- Empujón: la cara de arriba del hielo (un disco entero: centro en 64,64, radio 64) ---------- */
+  iceArena: tex(128, 128, (x, w, h) => {
+    x.fillStyle = '#a8dcee'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 500; i++) { x.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,.2)' : 'rgba(40,100,140,.12)'; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, rnd(2, 10) | 0, 1); }
+    const C = 64, ring = (r, col, t = 1) => { x.fillStyle = col; for (let a = 0; a < Math.PI * 2; a += 0.6 / r) for (let k = 0; k < t; k++) x.fillRect((C + Math.cos(a) * (r + k)) | 0, (C + Math.sin(a) * (r + k)) | 0, 1, 1); };
+    // cosas congeladas adentro del hielo (sombras oscuras): un pez, un hueso y burbujas
+    x.fillStyle = 'rgba(30,70,110,.35)';
+    for (let i = 0; i < 12; i++) x.fillRect(84 + i, 36 + Math.round(Math.sin(i * 0.5) * 1.5), 1, 6 - Math.abs(i - 5) * 0.5);   // pez
+    x.fillRect(96, 35, 4, 2); x.fillRect(96, 41, 4, 2); x.fillRect(97, 37, 3, 4);
+    x.fillRect(30, 88, 14, 2); x.fillRect(28, 86, 3, 3); x.fillRect(28, 89, 3, 3); x.fillRect(43, 86, 3, 3); x.fillRect(43, 89, 3, 3);   // hueso
+    for (let i = 0; i < 18; i++) { const bx = rnd(20, 108), by = rnd(20, 108); if (Math.hypot(bx - C, by - C) < 56) { x.fillStyle = 'rgba(240,255,255,.55)'; x.fillRect(bx | 0, by | 0, 2, 2); } }
+    // grietas
+    x.fillStyle = 'rgba(40,90,130,.5)';
+    for (let k = 0; k < 7; k++) { const a = rnd(0, 6.3); let px = C + Math.cos(a) * rnd(30, 60), py = C + Math.sin(a) * rnd(30, 60); for (let i = 0; i < 18; i++) { px += rnd(-1.5, 1.5) + Math.cos(a) * 0.4; py += rnd(-1.5, 1.5) + Math.sin(a) * 0.4; x.fillRect(px | 0, py | 0, 1, 1); } }
+    // marcas de la arena: anillos, rayas de brújula y un copo en el centro
+    ring(40, 'rgba(90,200,230,.8)', 2); ring(20, 'rgba(90,200,230,.7)', 1); ring(60, 'rgba(255,255,255,.5)', 2);
+    x.fillStyle = 'rgba(90,200,230,.7)';
+    for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2 + Math.PI / 8; for (let r = 23; r < 38; r++) x.fillRect((C + Math.cos(a) * r) | 0, (C + Math.sin(a) * r) | 0, 2, 2); }
+    x.fillStyle = 'rgba(255,255,255,.85)';
+    for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2; for (let r = 0; r < 12; r++) { x.fillRect((C + Math.cos(a) * r) | 0, (C + Math.sin(a) * r) | 0, 2, 2); if (r === 7) { x.fillRect((C + Math.cos(a + 0.5) * 9) | 0, (C + Math.sin(a + 0.5) * 9) | 0, 2, 2); x.fillRect((C + Math.cos(a - 0.5) * 9) | 0, (C + Math.sin(a - 0.5) * 9) | 0, 2, 2); } } }
+    // escarcha en el borde
+    for (let i = 0; i < 400; i++) { const a = rnd(0, 6.3), r = rnd(54, 64); x.fillStyle = `rgba(255,255,255,${rnd(0.2, 0.7)})`; x.fillRect((C + Math.cos(a) * r) | 0, (C + Math.sin(a) * r) | 0, 2, 1); }
+  }),
+  /* ---------- Bombardeo: baldosas con marcas y la plataforma de aterrizaje del centro ---------- */
+  tileVent: tex(32, 32, (x, w, h) => {
+    noisy(x, w, h, '#8a93a6', 0.22);
+    x.fillStyle = '#5b6376'; x.fillRect(0, 0, w, 2); x.fillRect(0, 0, 2, h); x.fillStyle = '#b4bccc'; x.fillRect(0, h - 2, w, 2); x.fillRect(w - 2, 0, 2, h);
+    x.fillStyle = '#2a2e3a'; x.fillRect(7, 7, 18, 18); x.fillStyle = '#6a7284'; for (let i = 0; i < 5; i++) x.fillRect(8, 9 + i * 3.4, 16, 1);
+    x.fillStyle = '#3e4456'; [[4, 4], [w - 6, 4], [4, h - 6], [w - 6, h - 6]].forEach(([a, b]) => x.fillRect(a, b, 2, 2));
+  }),
+  tileWarn: tex(32, 32, (x, w, h) => {
+    noisy(x, w, h, '#8a93a6', 0.22);
+    x.fillStyle = '#5b6376'; x.fillRect(0, 0, w, 2); x.fillRect(0, 0, 2, h); x.fillStyle = '#b4bccc'; x.fillRect(0, h - 2, w, 2); x.fillRect(w - 2, 0, 2, h);
+    for (let i = 0; i < 12; i++) { x.fillStyle = (i >> 1) % 2 ? '#1c1c22' : '#f2c21a'; x.fillRect(2 + i, 2, 1, 12 - i); x.fillRect(2, 2 + i, 12 - i, 1); }
+    x.fillStyle = '#f2c21a'; x.fillRect(19, 22, 8, 2); x.fillRect(22, 19, 2, 8);           // cruz de ubicación
+  }),
+  pad: tex(64, 64, (x, w, h) => {
+    x.fillStyle = '#3a4052'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 300; i++) { x.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.12)'; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, 1, 1); }
+    x.fillStyle = '#f2c21a';
+    for (let a = 0; a < Math.PI * 2; a += 0.02) { for (let k = 0; k < 3; k++) x.fillRect((32 + Math.cos(a) * (26 + k)) | 0, (32 + Math.sin(a) * (26 + k)) | 0, 1, 1); }
+    x.fillStyle = '#f4f6fa'; x.fillRect(20, 18, 5, 28); x.fillRect(39, 18, 5, 28); x.fillRect(25, 30, 14, 5);   // H
+    x.fillStyle = '#5b6376'; x.fillRect(31, 0, 2, 3); x.fillRect(31, 61, 2, 3); x.fillRect(0, 31, 3, 2); x.fillRect(61, 31, 3, 2);
+  }),
   /* ---------- Petardos: paredes y cajones de cada cancha ---------- */
   // cerco de ligustro podado (patio)
   hedge: tex(32, 32, (x, w, h) => {

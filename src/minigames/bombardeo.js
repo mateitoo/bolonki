@@ -73,9 +73,20 @@ function buildWorld() {
   add(out, mat({ map: TX.outer }), 0, -1.7, 0, grp);
   const tg = scaleUV(new THREE.BoxGeometry(TS - 0.08, 0.5, TS - 0.08), 1, 1);
   const sg = new THREE.PlaneGeometry(CS, CS); sg.rotateX(-Math.PI / 2);
+  // baldosas: la plataforma de aterrizaje en las 4 del medio, alguna rejilla y marcas amarillas en las esquinas
+  const padG = scaleUV(new THREE.BoxGeometry(TS - 0.08, 0.5, TS - 0.08), 0.5, 0.5), mid = GN / 2;
+  const hsh = (k) => { const v = Math.sin(k * 91.7 + 13.1) * 43758.5453; return v - Math.floor(v); };
   for (let k = 0; k < GN * GN; k++) {
-    const dark = ((k % GN) + ((k / GN) | 0)) % 2 === 1;
-    add(tg, mat({ map: TX.tile, color: dark ? 0xc4cad8 : 0xffffff }), cx(k), -0.25, cz(k), grp);
+    const c = k % GN, r = (k / GN) | 0, dark = (c + r) % 2 === 1, tint = dark ? 0xc4cad8 : 0xffffff;
+    if ((c === mid - 1 || c === mid) && (r === mid - 1 || r === mid)) {
+      const m = mat({ map: TX.pad }); m.uniforms.uOff.value.set(c === mid ? 0.5 : 0, r === mid - 1 ? 0.5 : 0);
+      add(padG, m, cx(k), -0.25, cz(k), grp);
+    } else {
+      const corner = (c === 0 || c === GN - 1) && (r === 0 || r === GN - 1);
+      const tex = corner ? TX.tileWarn : hsh(k) < 0.14 ? TX.tileVent : TX.tile;
+      const t = add(tg, mat({ map: tex, color: tint }), cx(k), -0.25, cz(k), grp);
+      if (corner) t.rotation.y = c === 0 ? (r === 0 ? 0 : Math.PI / 2) : (r === 0 ? -Math.PI / 2 : Math.PI);   // la marca mira hacia la esquina
+    }
     const sh = add(sg, mat({ color: 0x000000, unlit: true }), cx(k), 0.02, cz(k), grp); sh.visible = false; W.shadows.push(sh);
   }
   // baranda alrededor (no te podés caer de la grilla)
@@ -509,8 +520,10 @@ const bombardeo = {
     for (const p of game.players) if (p.alive && !p.empty) { fy += p.fy || 0; na++; }
     const want = Math.max((sum / (GN * GN)) * TS * 0.8, B.lava + 1, na ? (fy / na) * 0.85 : 0);
     W.camY += (want - W.camY) * Math.min(1, dt * 1.5);
-    bombardeo.cam.pos.set(CAM_POS.x, CAM_POS.y + W.camY, CAM_POS.z);
-    bombardeo.cam.look.set(CAM_LOOK.x, CAM_LOOK.y + W.camY * 0.9, CAM_LOOK.z);
+    if (!bombardeo.freeCam) {                   // (freeCam: para mirar el decorado en las pruebas)
+      bombardeo.cam.pos.set(CAM_POS.x, CAM_POS.y + W.camY, CAM_POS.z);
+      bombardeo.cam.look.set(CAM_LOOK.x, CAM_LOOK.y + W.camY * 0.9, CAM_LOOK.z);
+    }
     // personajes a pie
     for (const p of game.players) {
       if (p.death || p.empty) { if (p.empty) { p.mesh.root.visible = false; p.mesh.sh.visible = false; } continue; }

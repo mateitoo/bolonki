@@ -82,8 +82,8 @@ function frame(now) {
   } else if (!frozen) {
     acc += dt;
     let n = 0;
-    const m = mg();
-    while (acc >= STEP && n < 16) { m.step(STEP); acc -= STEP; n++; }
+    // mg() en cada paso: un paso puede cambiar de escena (la Fiesta lanza un minijuego)
+    while (acc >= STEP && n < 16) { mg().step(STEP); acc -= STEP; n++; }
     if (n >= 16) acc = 0;
     if (game.online === 'host') hostTick(rdt);
 

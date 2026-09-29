@@ -322,6 +322,7 @@ function handleChoice(dt) {
 
 /* ---------- simulación ---------- */
 function step(dt) {
+  if (game.minigame !== 'fiesta') return;          // ya se lanzó un minijuego en este mismo cuadro
   if (game.state === 'count') game.state = 'play';
   if (game.state !== 'play') return;
   syncLeft();

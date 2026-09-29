@@ -4,6 +4,8 @@
 // no quedarse encerrado en un pozo y que no te caiga ninguna encima.
 // Sin naves: los personajes van caminando y el botón de golpe es SALTAR.
 // A los 15 s el piso se vuelve lava y empieza a subir: hay que estar cada vez más arriba.
+// Cajas especiales: RESORTE (verde; si caés encima te lanza unas tres cajas de alto)
+// y EXPLOSIVA (roja; al caer vuela la caja de arriba de las 4 pilas de al lado).
 // Gana la ronda el último que queda; gana la partida el primero que llega a N rondas.
 import * as THREE from 'three';
 import { register } from './registry.js';
@@ -53,12 +55,14 @@ const NB = (k) => { const c = k % GN, r = (k / GN) | 0, o = []; if (c > 0) o.pus
 /* ---------- estado ---------- */
 const H = new Array(GN * GN).fill(0);     // cajas apiladas en cada baldosa
 const top = (k) => H[k] * TS;             // altura de la superficie de esa baldosa
+const TT = new Array(GN * GN).fill('n');  // qué caja quedó arriba de cada pila: n normal · s resorte
+const SPRING_V = JUMP_V * 1.55;
 let drops = [];                           // cajas en camino: { id, k, t, warn }
 let nextId = 1;
 const B = { waveT: 2.0, n: 0, lava: -1 };          // lava: altura de la lava (-1 = todavía no)
 
 /* ---------- mundo ---------- */
-const W = { grp: null, shadows: [], frames: [], falling: [], stack: [], stackGeo: null, stackMat: null, lampM: null, lava: null, lavaM: null, camY: 0 };
+const W = { grp: null, shadows: [], frames: [], falling: [], stack: [], coils: [], stackGeo: null, stackMat: null, lampM: null, lava: null, lavaM: null, camY: 0 };
 
 function buildWorld() {
   const grp = new THREE.Group(); grp.visible = false; scene.add(grp); W.grp = grp;
@@ -90,7 +94,17 @@ function buildWorld() {
   });
   // cajas: las que caen y las apiladas (mallas reutilizables)
   const bg = new THREE.BoxGeometry(CS, CS, CS), fm = mat({ map: TX.block });
+  W.fallMats = { n: fm, s: mat({ map: TX.block, color: 0x7dff8a }), x: mat({ map: TX.block, color: 0xff6a5a, emissive: 0x401000 }) };
   for (let n = 0; n < 40; n++) { const b = add(bg, fm, 0, -20, 0, grp); b.visible = false; W.falling.push(b); }
+  // resortes: una tapa verde con un espiral, arriba de la pila
+  W.springMat = W.fallMats.s;
+  const coilM = mat({ color: 0xd8dce6 }), padM = mat({ color: 0x39d98a });
+  for (let n = 0; n < 24; n++) {
+    const sg = new THREE.Group(); sg.visible = false; grp.add(sg);
+    for (let i = 0; i < 3; i++) { const t = new THREE.TorusGeometry(0.42, 0.07, 4, 10); t.rotateX(Math.PI / 2); add(t, coilM, 0, 0.12 + i * 0.16, 0, sg); }
+    add(new THREE.BoxGeometry(CS * 0.7, 0.14, CS * 0.7), padM, 0, 0.56, 0, sg);
+    W.coils.push(sg);
+  }
   W.stackGeo = bg; W.stackMat = mat({ map: TX.block, color: 0xd6dae6 });
   for (let n = 0; n < GN * GN * 3; n++) newStackBox();
   // lava (sube desde el piso)
@@ -104,7 +118,7 @@ function newStackBox() { const b = add(W.stackGeo, W.stackMat, 0, -20, 0, W.grp)
 const demo = () => game.state === 'title' || game.state === 'menu';
 
 function placeAll() {
-  H.fill(0); drops = []; B.waveT = 2.0; B.n = 0; B.lava = -1; B.lavaWarned = false;
+  H.fill(0); TT.fill('n'); drops = []; B.waveT = 2.0; B.n = 0; B.lava = -1; B.lavaWarned = false;
   game.players.forEach((p) => {
     resetPodVisual(p);
     p.death = null;
@@ -138,15 +152,22 @@ const PIECES = {
   ese: [[0, 0], [1, 0], [1, 1], [2, 1]],
 };
 const busy = (k) => drops.some((d) => d.k === k);
-function drop(k, warn) {
+function drop(k, warn, kind) {
   if (k < 0 || k >= GN * GN || busy(k)) return false;
-  drops.push({ id: nextId++, k, t: 0, warn });
+  drops.push({ id: nextId++, k, t: 0, warn, kind: kind || 'n' });
   return true;
+}
+// de vez en cuando sale una caja especial (cada vez más seguido)
+function boxKind() {
+  const e = game.elapsed, r = Math.random();
+  if (e > 8 && r < 0.09) return 's';
+  if (e > 14 && r < 0.16) return 'x';
+  return 'n';
 }
 function piece(name, c0, r0, rot, warn) {
   for (const [a, b] of PIECES[name]) {
     const c = c0 + (rot ? b : a), r = r0 + (rot ? a : b);
-    if (c >= 0 && c < GN && r >= 0 && r < GN) drop(r * GN + c, warn);
+    if (c >= 0 && c < GN && r >= 0 && r < GN) drop(r * GN + c, warn, boxKind());
   }
 }
 function wave() {
@@ -217,9 +238,11 @@ function move(p, wx, wz, jump, dt) {
   // vertical
   const ground = top(tileOf(p.x, p.z));
   let stomped = -1;
+  const springHere = TT[tileOf(p.x, p.z)] === 's' && ground > 0;
   if (p.vy <= 0 && p.fy <= ground + 0.02 && p.fy >= ground - STEP) {
     if (!p.onGround && p.vy < -8) SFX.land();
     p.fy = ground; p.vy = 0; p.onGround = true;
+    if (springHere) { p.vy = SPRING_V; p.onGround = false; p.coyote = 0; p.fy = ground + 0.03; p.sprN = (p.sprN || 0) + 1; FX.spring(p.i); }
   } else {
     const prev = p.fy;
     p.vy -= GRAV * dt; p.fy += p.vy * dt; p.onGround = false;
@@ -269,7 +292,7 @@ function aiInput(p, dt) {
       const k = q.shift();
       if (dist[k] >= 4) continue;
       for (const n of NB(k)) {
-        if (dist[n] >= 0 || H[n] - H[k] > 1) continue;
+        if (dist[n] >= 0 || H[n] - H[k] > (TT[k] === 's' && H[k] > 0 ? 3 : 1)) continue;
         dist[n] = dist[k] + 1; first[n] = k === here ? n : first[k]; q.push(n);
       }
     }
@@ -338,6 +361,7 @@ function step(dt) {
         const s = n.st;
         Object.assign(p, { x: s.x, z: s.z, fy: s.fy, vy: s.vy, onGround: !!s.og, vx: s.vx, vz: s.vz, ang: s.a });
         if ((s.jN || 0) > (p.lastJN || 0)) { p.lastJN = s.jN; SFX.jump(); }
+        if ((s.pN || 0) > (p.lastPN || 0)) { p.lastPN = s.pN; FX.spring(p.i); }
         if ((s.sN || 0) > (p.lastSN || 0)) { p.lastSN = s.sN; if (game.players[s.sI] && game.players[s.sI].alive) FX.stun(s.sI); }
         if (p.stunT > 0) p.stunT -= dt;
         continue;
@@ -357,7 +381,7 @@ function step(dt) {
     if (o.t < o.warn) continue;
     o.done = true;
     const k = o.k, oldTop = top(k), newTop = oldTop + TS;
-    H[k] += 1;
+    H[k] += 1; TT[k] = o.kind === 's' ? 's' : 'n';
     FX.slam(cx(k), cz(k), oldTop);
     for (const p of alive) {
       if (!p.alive || R.over) continue;
@@ -369,6 +393,14 @@ function step(dt) {
         if (p.i === game.me && game.mode === 'solo') game.timeScale = 1.5;
       }
     }
+  }
+  // las explosivas: después de aplastar lo que tenían abajo, vuelan (ella y la caja de arriba de las 4 pilas vecinas)
+  for (const o of drops) {
+    if (!o.done || o.kind !== 'x') continue;
+    const k = o.k;
+    H[k] = Math.max(0, H[k] - 1); TT[k] = 'n';
+    for (const n of NB(k)) if (H[n] > 0 && !drops.some((d) => d.k === n && !d.done)) { H[n]--; TT[n] = 'n'; }
+    FX.tnt(cx(k), top(k), cz(k));
   }
   drops = drops.filter((o) => !o.done);
   // la lava quema a los que tocan
@@ -435,6 +467,14 @@ const bombardeo = {
       b.visible = true; b.position.set(cx(k), h * TS + CS / 2, cz(k));
     }
     for (; n < W.stack.length; n++) W.stack[n].visible = false;
+    let cn = 0;
+    for (let k = 0; k < GN * GN && cn < W.coils.length; k++) {
+      if (TT[k] !== 's' || H[k] <= 0) continue;
+      const c = W.coils[cn++]; c.visible = true;
+      const bounce = game.players.some((p) => p.alive && tileOf(p.x, p.z) === k && p.vy > 5 && (p.fy || 0) - top(k) < 1.2);
+      c.position.set(cx(k), top(k), cz(k)); c.scale.set(1, bounce ? 1.5 : 1, 1);
+    }
+    for (; cn < W.coils.length; cn++) W.coils[cn].visible = false;
     W.lava.visible = B.lava > 0; W.lava.position.y = Math.max(0.01, B.lava);
     W.lavaM.uniforms.uOff.value.set((clock * 0.03) % 1, (clock * 0.02) % 1);
     // avisos y cajas cayendo
@@ -444,13 +484,14 @@ const bombardeo = {
     for (const o of drops) {
       const k = o.k, y0 = top(k), f = clamp(o.t / o.warn, 0, 1), left = o.warn - o.t;
       const on = ((clock * (4 + f * 14)) | 0) % 2 === 0;
-      const fm = W.frames[k]; fm.visible = true; fm.position.y = y0 + 0.04; fm.material.uniforms.uColor.value.set(on ? 0xffe14a : 0xff3a2a);
+      const FC = { n: [0xffe14a, 0xff3a2a], s: [0x9dff9a, 0x1fa84a], x: [0xffffff, 0xff2a1a] }[o.kind || 'n'];
+      const fm = W.frames[k]; fm.visible = true; fm.position.y = y0 + 0.04; fm.material.uniforms.uColor.value.set(on ? FC[0] : FC[1]);
       const sh = W.shadows[k]; sh.visible = f > 0.12; sh.position.y = y0 + 0.03;
       const s = 0.2 + f * 0.62; sh.scale.set(s, 1, s);
       const g = 0.07 + 0.26 * (1 - f); sh.material.uniforms.uColor.value.setRGB(g, g * 0.92, g * 0.85);
       if (left < FALL_T && m < W.falling.length) {
         const u = 1 - left / FALL_T;
-        const b = W.falling[m++]; b.visible = true; b.position.set(cx(k), y0 + CS / 2 + DROP_H * (1 - u * u), cz(k));
+        const b = W.falling[m++]; b.visible = true; b.material = W.fallMats[o.kind || 'n']; b.position.set(cx(k), y0 + CS / 2 + DROP_H * (1 - u * u), cz(k));
       }
     }
     for (; m < W.falling.length; m++) W.falling[m].visible = false;
@@ -527,14 +568,15 @@ const bombardeo = {
     return {
       ro: [R.n, R.over ? 1 : 0, R.winner, Math.round(R.t * 10) / 10],
       p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.fy || 0), r2(p.ang || 0), p.alive ? 1 : 0, p.onGround ? 1 : 0, p.score, r2(p.vx || 0), r2(p.vz || 0), p.stunT > 0 ? 1 : 0]),
-      h: H.join(','), lv: r2(B.lava), el: r1(game.elapsed),
-      d: drops.map((o) => [o.id, o.k, r2(o.t), r2(o.warn)]),
+      h: H.join(','), tt: TT.join(''), lv: r2(B.lava), el: r1(game.elapsed),
+      d: drops.map((o) => [o.id, o.k, r2(o.t), r2(o.warn), o.kind]),
     };
   },
   applySnap(A, Bs, f) {
     const ro = A.ro;
     game.round = { n: ro[0], over: !!ro[1], winner: ro[2], t: ro[3] };
     const hs = A.h.split(',');
+    for (let k = 0; k < GN * GN; k++) TT[k] = (A.tt && A.tt[k]) || 'n';
     for (let k = 0; k < GN * GN; k++) H[k] = +hs[k] || 0;
     B.lava = A.lv + ((Bs.lv || A.lv) - A.lv) * f;
     const newRound = ro[0] !== guestRound; guestRound = ro[0];
@@ -551,9 +593,9 @@ const bombardeo = {
       p.x = pa[0] + (pb[0] - pa[0]) * f; p.z = pa[1] + (pb[1] - pa[1]) * f; p.fy = pa[2] + (pb[2] - pa[2]) * f;
       p.ang = lerpAng(pa[3], pb[3], f);
     });
-    drops = A.d.map(([id, k, t, warn]) => {
+    drops = A.d.map(([id, k, t, warn, kind]) => {
       const b = Bs.d.find((q) => q[0] === id);
-      return { id, k, t: b ? t + (b[2] - t) * f : t, warn };
+      return { id, k, t: b ? t + (b[2] - t) * f : t, warn, kind: kind || 'n' };
     });
   },
   // El invitado simula su propio personaje acá mismo (responde al instante) y le manda al anfitrión cómo quedó
@@ -570,7 +612,7 @@ const bombardeo = {
     if (sendT > 0) return;
     sendT = 1 / 30;
     const st = me && me.alive ? { x: r2(me.x), z: r2(me.z), fy: r2(me.fy || 0), vy: r2(me.vy || 0), og: me.onGround ? 1 : 0,
-      vx: r2(me.vx || 0), vz: r2(me.vz || 0), a: r2(me.ang || 0), jN: me.jN || 0, sN: me.sN || 0, sI: me.sI || 0 } : null;
+      vx: r2(me.vx || 0), vz: r2(me.vz || 0), a: r2(me.ang || 0), jN: me.jN || 0, sN: me.sN || 0, sI: me.sI || 0, pN: me.sprN || 0 } : null;
     sendInput({ x: Math.round(wx * 100) / 100, y: Math.round(-wz * 100) / 100, h: hits, st });
   },
   guestHitFx(me) { me.wantJump = true; },

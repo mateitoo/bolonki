@@ -28,12 +28,25 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   A los 14 segundos la plataforma empieza a achicarse.
 - **Bombardeo** (a pie): caen cajas de metal sobre una grilla y quedan apiladas; hay que ir saltando de pila en pila
   (el golpe es **saltar**) sin quedar abajo de una caja ni encerrado en un pozo. Cayendo sobre la cabeza de otro lo
-  dejás mareado (**pisotón**). A los 15 s el piso es lava y sube cada vez más rápido.
+  dejás mareado (**pisotón**). A los 15 s el piso es lava y sube cada vez más rápido. Cajas especiales: **resorte**
+  (verde, te lanza unas tres cajas de alto) y **explosiva** (roja, al caer vuela la caja de arriba de las pilas de al lado).
 - **Petardos** (a pie, estilo Bomberman): mapa con paredes fijas y cajones al azar, uno en cada esquina. El golpe pone
   un petardo que explota en cruz y hace explotar a otros. Poderes en los cajones: +fuego (arranca en 1), +petardo
   (más raro), +velocidad, botas (empujando un obstáculo lo saltás), escudo (aguanta una explosión), patada (el petardo
-  sale deslizando) y **calavera** (una maldición de 10 s que se contagia tocando a otro). Hay 4 canchas (patio,
-  fábrica, desierto y nieve) y a los 35 s empieza la muerte súbita: las paredes se cierran en espiral.
+  sale deslizando) y **calavera** (una maldición de 10 s que se contagia tocando a otro). Hay 4 canchas, cada una con
+  algo propio: patio (arbustos para esconderte), fábrica (cintas que te arrastran a vos y a los petardos), desierto
+  (arenas movedizas) y nieve (hielo: si soltás seguís resbalando). A los 35 s empieza la muerte súbita: las paredes
+  se cierran en espiral.
+
+## Música
+
+Cada minijuego, el menú y el tablero tienen su tema chiptune (composiciones originales, `src/songs.js`), tocado en vivo
+por un secuenciador con WebAudio (`src/music.js`): melodía y arpegio en onda de pulso, bajo triangular y batería de ruido.
+Se agacha en pausa y se acelera cuando la cosa se pone fea (lava, muerte súbita, plataforma chica, mano a mano).
+El volumen está en Opciones → Audio.
+
+Para sumar un tema: agregarlo a `SONGS` (un acorde y un compás de melodía por compás, 16 pasos cada uno) y ponerle
+`music: '<nombre>'` al minijuego, o usar su mismo id.
 
 En Bombardeo, Petardos y Empujón la cámara se gira **arrastrando el mouse** (o con el stick derecho); los controles
 siguen a la cámara y la tecla C la vuelve a centrar.
@@ -153,6 +166,7 @@ src/
   ui/menu.js         motor de menús: lista grande, ventana y solapas; barra de botones al pie
   ui/draw.js         dibujo pixel del HUD y menús
   audio.js           sonidos sintetizados
+  music.js, songs.js música: secuenciador y temas
 ```
 
 ## Cómo ajustar cosas comunes

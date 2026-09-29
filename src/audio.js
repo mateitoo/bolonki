@@ -75,6 +75,7 @@ export const SFX = {
   place() { beep(200, 140, 0.08, 'square', 0.05); },
   bomb() { noise(0.55, 0.3, 1400); beep(140, 40, 0.45, 'sawtooth', 0.1); },
   powerup() { [660, 880, 1320].forEach((f, k) => beep(f, f, 0.07, 'square', 0.04, k * 0.06)); },
+  boing() { beep(180, 900, 0.22, 'triangle', 0.08); beep(360, 1400, 0.16, 'square', 0.025, 0.02); },
   jump() { beep(260, 720, 0.12, 'square', 0.035); },
   land() { const n = performance.now(); if (n - lastSlam < 40) return; beep(140, 90, 0.05, 'square', 0.03); },
   crush() { beep(300, 60, 0.35, 'sawtooth', 0.09); noise(0.2, 0.15, 2500, 0.02); beep(1400, 1900, 0.08, 'square', 0.03, 0.3); },

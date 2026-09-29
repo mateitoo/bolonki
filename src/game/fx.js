@@ -81,6 +81,14 @@ export const FX = {
     emit(['L', r2(x), r2(z), r2(y)]);
   },
   jump(i) { SFX.jump(); emit(['J', i]); },
+  spring(i) { const p = game.players[i]; SFX.boing(); burst(p.x, (p.fy || 0) + 0.2, p.z, { mat: P.YELLOW, n: 5, sp: 2.5, up: [1, 3], life: [0.2, 0.4] }); emit(['Sp', i]); },
+  tnt(x, y, z) {
+    SFX.bomb(); game.shake = Math.max(game.shake, 0.5);
+    burst(x, y + 0.5, z, { mat: P.ORANGE, n: 16, sp: 7, up: [2, 7], life: [0.3, 0.6], size: 1.3 });
+    burst(x, y + 0.5, z, { mat: P.SMOKE, n: 8, sp: 3, up: [1, 3], life: [0.6, 1], g: -1, grow: 2.5 });
+    burst(x, y + 0.5, z, { mat: P.DEBRIS, n: 8, sp: 6, up: [3, 8], life: [0.4, 0.8] });
+    emit(['Tn', r2(x), r2(y), r2(z)]);
+  },
   // pisotón: el de abajo queda mareado un segundo
   stun(i) {
     const p = game.players[i]; p.stunT = 1.0;
@@ -148,6 +156,8 @@ export function playEvent(ev) {
     case 'L': FX.slam(ev[1], ev[2], ev[3] || 0); break;
     case 'C': FX.crush(ev[1]); break;
     case 'J': FX.jump(ev[1]); break;
+    case 'Sp': FX.spring(ev[1]); break;
+    case 'Tn': FX.tnt(ev[1], ev[2], ev[3]); break;
     case 'St': FX.stun(ev[1]); break;
     case 'B': FX.burn(ev[1], ev[2]); break;
     case 'Pl': FX.place(); break;

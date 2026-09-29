@@ -10,6 +10,7 @@ export const DEFAULTS = {
   integer: 'auto',       // escalado entero: 'auto' (solo si entra justo) | true | false
   scanlines: true,
   sfx: 8,                // volumen de efectos 0..10
+  music: 6,              // volumen de la música 0..10
   difficulty: 'intermedio',
   points: 15,
   deathId: 'random',

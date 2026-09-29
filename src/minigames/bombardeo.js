@@ -406,6 +406,7 @@ const bombardeo = {
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: CAM_POS.clone(), look: CAM_LOOK.clone(), rotate: false, orbit: true },
   humanOut: false,
+  tense: () => B.lava > 0,                      // música más rápida con la lava
   tagY: 2.6, tagFeet: true, markMe: true,     // nombre arriba de la cabeza (a la altura de la pila donde está parado)
   thumbSteps: 1500,
   thumbCam: { pos: new THREE.Vector3(0, 19, 13), look: new THREE.Vector3(0, 0, -0.6) },

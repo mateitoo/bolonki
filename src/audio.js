@@ -17,6 +17,8 @@ export function ensureAudio() {
   if (ac && ac.state === 'suspended') ac.resume();
 }
 export function setSound(on) { soundOn = on; }
+// para la música (music.js): el contexto de audio y el ruido blanco compartido
+export const getAudio = () => ({ ac, noiseBuf });
 export function setVolume(v) { volume = v; if (master) master.gain.value = v; }
 
 function beep(f1, f2, dur, type, vol, delay) {

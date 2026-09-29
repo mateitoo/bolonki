@@ -265,6 +265,7 @@ const empujon = {
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: new THREE.Vector3(0, 24, 21), look: new THREE.Vector3(0, 0, -1.2), rotate: false, orbit: true },
   humanOut: false,
+  tense: () => game.elapsed > SHRINK_AT,        // música más rápida cuando se achica la plataforma
   thumbSteps: 90,
   thumbCam: { pos: new THREE.Vector3(0, 17, 16), look: new THREE.Vector3(0, -1, -0.5) },
 

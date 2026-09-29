@@ -114,7 +114,7 @@ export const OPTIONS = {
     ] },
     { label: 'AUDIO', items: [
       { kind: 'slider', label: 'EFECTOS', max: 10, get: () => settings.sfx, set: set('sfx', (v) => setVolume(v / 10)) },
-      { kind: 'info', label: 'MÚSICA', value: 'PRÓXIMAMENTE' },
+      { kind: 'slider', label: 'MÚSICA', max: 10, get: () => settings.music, set: set('music') },
     ] },
     { label: 'CONTROLES', items: [
       { kind: 'info', label: 'MOVER', value: 'FLECHAS / WASD / STICK' },

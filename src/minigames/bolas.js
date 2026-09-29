@@ -23,6 +23,7 @@ const bolas = {
   points: { label: 'PUNTOS', values: [5, 10, 15], key: 'points', demo: 15 },
   cam: { pos: new THREE.Vector3(0, 24, 26), look: new THREE.Vector3(0, 0, -1.6), rotate: true },
   humanOut: true,
+  tense: () => game.players.filter((p) => p.alive && !p.empty).length <= 2,   // mano a mano: música más rápida
   thumbSteps: 460,
 
   build() { buildArena(); buildBalls(); },

@@ -667,6 +667,7 @@ const petardos = {
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: new THREE.Vector3(0, 27, 13.2), look: new THREE.Vector3(0, 0, 0.35), rotate: false, orbit: true },
   humanOut: false,
+  tense: () => game.elapsed >= SD_AT,           // música más rápida en la muerte súbita
   tagY: 2.2, markMe: true,
   thumbSteps: 1300,
   thumbCam: { pos: new THREE.Vector3(0, 17, 9), look: new THREE.Vector3(0, 0, -0.3) },

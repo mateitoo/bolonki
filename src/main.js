@@ -6,6 +6,7 @@ import './render/textures.js';
 import { buildPod } from './world/pods.js';
 import { initParticles } from './fx/particles.js';
 import { ensureAudio } from './audio.js';
+import { updateMusic, checkSongs, renderSong, musicState } from './music.js';
 import { resetMatch, deathsRunning, eliminate, nextDemo, demoSetup } from './game/match.js';
 import { MINIGAMES, mg, mgById } from './minigames/registry.js';
 import './minigames/bolas.js';
@@ -108,6 +109,7 @@ function frame(now) {
   }
 
   updateVisuals(frozen ? 0 : dt, frozen ? 0 : rdt);
+  updateMusic();
   renderer.render(scene, camera);
   drawHud();
 
@@ -120,4 +122,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // ?debug en la URL deja el estado a mano en la consola (para pruebas)
-try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { game, room, browse, settings, eliminate, resetMatch, demoSetup, fiesta: fiestaState, startFiesta, mgById }; } catch (e) { /* nada */ }
+try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { game, room, browse, settings, eliminate, resetMatch, demoSetup, fiesta: fiestaState, startFiesta, mgById, checkSongs, renderSong, musicState }; } catch (e) { /* nada */ }

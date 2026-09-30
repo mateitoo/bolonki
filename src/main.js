@@ -27,6 +27,7 @@ import { input, initInput, pollInput, bindTouch, bindStick, pushEvent } from './
 import { syncNativeText } from './ui/textEntry.js';
 import { initFlow, updateFlow, onMatchEnd, inDemo } from './flow.js';
 import { initUpdateCheck } from './net/update.js';
+import { capsule, initCapsule } from './capsule.js';
 import { hostTick, guestFrame, netStats } from './net/online.js';
 import { makeThumbs } from './render/thumbs.js';
 import { makePortraits } from './render/portraits.js';
@@ -75,6 +76,12 @@ initUpdateCheck();
 makeThumbs();
 makePortraits();
 resetMatch('title');
+// imágenes para Steam: la escena del minijuego pedido, jugando sola
+if (capsule) {
+  initCapsule();
+  const s = demoSetup(capsule.mg); s.forceMap = capsule.map;
+  resetMatch('count', s); game.countT = 0.05; game.intro = false;
+}
 
 // --- loop: física a 120 Hz fijos, render a la tasa de la pantalla ---
 const STEP = 1 / 120;

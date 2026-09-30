@@ -15,7 +15,7 @@ import { game } from '../state.js';
 import { scene, mat, add, scaleUV, camera } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorBombardeo } from '../world/decor.js';
-import { decorPuerto, decorNevada } from '../world/decorBomb.js';
+import { decorPuerto, decorNevada, decorSelva } from '../world/decorBomb.js';
 import { input, actKey } from '../input.js';
 import { FX } from '../game/fx.js';
 import { burst, P } from '../fx/particles.js';
@@ -64,6 +64,8 @@ const MAPS = [
     tiles: 'dock', rail: TX.rope, box: [TX.crate, 0xffffff], rise: [TX.water, 0x5aa0d0, false], riseName: 'LA MAREA', warn: '¡SUBE LA MAREA! ¡SUBÍ!', dead: '¡AL AGUA!', style: 'water' },
   { name: 'NEVADA', decor: decorNevada, fog: { col: 0xc8d4e8, near: 45, far: 115 }, base: [TX.iceBlock, 0xb8c8e0], outer: [TX.outer, 0xffffff, false],
     tiles: 'snow', rail: TX.snowFence, box: [TX.iceBlock, 0xe8f4ff], rise: [TX.snow, 0xdce8ff, false], riseName: 'LA NIEVE', warn: '¡AVALANCHA! ¡SUBÍ!', dead: '¡TAPADO DE NIEVE!', style: 'snow' },
+  { name: 'SELVA', decor: decorSelva, fog: { col: 0x3a5a3a, near: 45, far: 115 }, base: [TX.stone, 0x8a9a78], outer: [TX.outer, 0xffffff, false],
+    tiles: 'temple', rail: TX.rope, box: [TX.crate, 0xd8e0b8], rise: [TX.water, 0x5a8a4a, false], riseName: 'EL PANTANO', warn: '¡SUBE EL PANTANO! ¡SUBÍ!', dead: '¡AL PANTANO!', style: 'water' },
 ];
 const MAP = { i: 0 };
 
@@ -157,6 +159,7 @@ function applyMap(i) {
       const map = q.kind === 'pad' ? TX.pad : q.kind === 'warn' ? TX.tileWarn : q.kind === 'vent' ? TX.tileVent : TX.tile;
       set(q.m, map, q.dark ? 0xc4cad8 : 0xffffff); q.m.uniforms.uOff.value.set(q.off ? q.off[0] : 0, q.off ? q.off[1] : 0);
     } else if (m.tiles === 'dock') { set(q.m, TX.dock, q.dark ? 0xd8c8b0 : 0xffffff); q.m.uniforms.uOff.value.set(0, 0); }
+    else if (m.tiles === 'temple') { set(q.m, TX.sandstone, q.dark ? 0xb8c4a0 : 0xe0e4c8); q.m.uniforms.uOff.value.set(0, 0); }
     else { set(q.m, TX.packedSnow, q.dark ? 0xd8e4f4 : 0xffffff); q.m.uniforms.uOff.value.set(0, 0); }
   });
   W.fallMats.n.uniforms.uMap.value = m.box[0]; W.fallMats.s.uniforms.uMap.value = m.box[0]; W.fallMats.x.uniforms.uMap.value = m.box[0];

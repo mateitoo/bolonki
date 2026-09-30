@@ -4,13 +4,14 @@ import { DIFFICULTIES } from './config.js';
 import { charOf } from './chars.js';
 import { game } from './state.js';
 import { view } from './display.js';
-import { ui, txt, rect, tri, COL, PX, textWidth } from './ui/draw.js';
+import { ui, txt, rect, tri, COL, PX, textWidth, drawLogo, fitTxt } from './ui/draw.js';
 import { drawMenu, menuOpen, topMenu, FOOT_Y } from './ui/menu.js';
 import { input, actKey, isTouch } from './input.js';
 import { camera } from './render/psx.js';
 import { room } from './net/room.js';
 import * as THREE from 'three';
 import { settings } from './settings.js';
+import { capsule } from './capsule.js';
 import { mg } from './minigames/registry.js';
 import { beginThumbs, flushThumbs, hiTxt, hiImage } from './render/thumbStore.js';
 import { portraits, drawPortrait } from './render/portraits.js';
@@ -141,11 +142,12 @@ function drawNameTags(hw, st) {
 
 function drawTitle(hw) {
   const blink = ((game.clock * 2.2) | 0) % 2 === 0;
-  rect(0, 78, hw, 104, COL.dark);
-  rect(0, 78, hw, 1, '#1d6e68'); rect(0, 181, hw, 1, '#1d6e68');
-  txt('BOLONKI', hw / 2, 94, 32, COL.gold, 'center', COL.goldShadow);
-  if (blink) txt(input.device === 'gamepad' ? 'PULSA CUALQUIER BOTÓN' : 'PULSA CUALQUIER TECLA', hw / 2, 144, 8, COL.white, 'center');
-  txt('PARTY GAME DE ARENA · 4 JUGADORES', hw / 2, 162, 8, COL.teal, 'center');
+  rect(0, 70, hw, 116, COL.dark);
+  rect(0, 70, hw, 1, '#1d6e68'); rect(0, 185, hw, 1, '#1d6e68');
+  drawLogo(hw / 2, 84 + Math.round(Math.sin(game.clock * 2) * 1.5), 40);
+  if (blink) txt(input.device === 'gamepad' ? 'APRETÁ CUALQUIER BOTÓN' : isTouch() ? 'TOCÁ LA PANTALLA' : 'APRETÁ CUALQUIER TECLA', hw / 2, 146, 8, COL.white, 'center');
+  fitTxt('PARTY GAME · DE 1 A 4 JUGADORES · LOCAL Y ONLINE', hw / 2, 164, hw - 16, COL.teal, 'center', hiTxt);
+  if (typeof __APP_VERSION__ !== 'undefined') hiTxt(`V${__APP_VERSION__}`, hw - 4, 232, 5, COL.dim, 'right');
 }
 
 // Al entrar a un minijuego: las instrucciones en un recuadro, con la cuenta para empezar
@@ -186,6 +188,7 @@ export function drawHud() {
   const hw = view.hw, st = game.state;
   ui.clock = game.clock;
   hx.clearRect(0, 0, hw, 240);
+  if (capsule) { drawCapsule(hw); flushThumbs(); return; }
 
   const demo = st === 'title' || st === 'menu';
   if (!demo) drawScores(hw, st);
@@ -263,3 +266,16 @@ export function drawHud() {
   flushThumbs();                                  // las fotos de los minijuegos, nítidas, en su capa
 }
 let fpsT = 0, fpsN = 0, fpsV = 0;
+
+// imágenes de la tienda (?capsule=...): solo el logo (y una franja oscura detrás para que se lea)
+function drawCapsule(hw) {
+  if (capsule.mode === 'hero') return;
+  const size = capsule.size, y = Math.round(240 * capsule.y - size / 2);
+  if (capsule.mode === 'art') {
+    for (let k = 0; k < 24; k++) rect(0, y - 26 + k * 0 + k, hw, 1, `rgba(4,6,14,${(0.55 * k) / 24})`);
+    rect(0, y - 2, hw, size + 12, 'rgba(4,6,14,.55)');
+    for (let k = 0; k < 24; k++) rect(0, y + size + 10 + k, hw, 1, `rgba(4,6,14,${0.55 - (0.55 * k) / 24})`);
+  }
+  drawLogo(hw / 2, y, size, { shine: false, text: capsule.text });
+  if (capsule.tag) txt(capsule.tag, hw / 2, y + size + 10, 8, COL.teal, 'center');
+}

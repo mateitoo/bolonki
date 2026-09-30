@@ -5,6 +5,7 @@
 // En panorámico la cámara mantiene el mismo campo vertical y se ve más a los costados (Hor+).
 import { renderer, camera, U } from './render/psx.js';
 import { settings } from './settings.js';
+import { capsule } from './capsule.js';
 
 export const BASE_H = 240;
 export const view = { hw: 320, iw: 320, ih: 240, aspect: 4 / 3, boxW: 0, boxH: 0, left: 0, top: 0 };
@@ -22,7 +23,7 @@ export function initDisplay(stage, screen, gl, hud) {
 export function applyDisplay() {
   if (!els || !renderer) return;
   const winW = Math.max(1, els.stage.clientWidth), winH = Math.max(1, els.stage.clientHeight);
-  const aspect = settings.aspect === '4:3' ? 4 / 3 : Math.min(Math.max(winW / winH, 4 / 3), 21 / 9);
+  const aspect = capsule ? winW / winH : settings.aspect === '4:3' ? 4 / 3 : Math.min(Math.max(winW / winH, 4 / 3), 21 / 9);
   const hw = Math.round((BASE_H * aspect) / 2) * 2;
 
   // tamaño en pantalla
@@ -60,7 +61,7 @@ export function applyDisplay() {
   const s = els.screen.style;
   s.width = boxW + 'px'; s.height = boxH + 'px';
   els.gl.style.imageRendering = retro ? 'pixelated' : 'auto';
-  els.screen.classList.toggle('scanlines', !!settings.scanlines);
+  els.screen.classList.toggle('scanlines', !!settings.scanlines && !capsule);
 
   Object.assign(view, { hw, iw, ih, aspect, boxW, boxH, intScale: useInt && k >= 1 ? k : 0 });
 }
@@ -72,10 +73,13 @@ export function toHud(clientX, clientY) {
 }
 
 /* ---------- pantalla completa ---------- */
-export const isFullscreen = () => !!document.fullscreenElement;
+// en la versión de escritorio (Steam) la pantalla completa es la de la ventana, no la del navegador
+const desk = () => (typeof window !== 'undefined' && window.bolonkiDesktop && window.bolonkiDesktop.setFullscreen ? window.bolonkiDesktop : null);
+export const isFullscreen = () => (desk() ? desk().isFullscreen() : !!document.fullscreenElement);
 
 export function enterFullscreen() {
   if (isFullscreen()) return;
+  if (desk()) { desk().setFullscreen(true); return; }
   const el = document.documentElement;
   try {
     const p = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : null;
@@ -86,6 +90,7 @@ export function enterFullscreen() {
 }
 export function exitFullscreen() {
   if (!isFullscreen()) return;
+  if (desk()) { desk().setFullscreen(false); return; }
   try { const p = document.exitFullscreen(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* nada */ }
 }
 export function toggleFullscreen() { if (isFullscreen()) exitFullscreen(); else enterFullscreen(); }

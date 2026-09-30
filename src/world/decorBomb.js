@@ -112,3 +112,63 @@ export function decorNevada(g, HALF) {
   // nieve que cae
   P.drift(g, 120, -26, 26, 18, Y, -24, 24, 0xffffff, 0.12, 1.4);
 }
+
+/* ===================== SELVA: ruinas de un templo en la selva; sube el pantano ===================== */
+function pyramid(p, x, z, s = 1, ry = 0) {                   // templo escalonado con una puertita y antorchas
+  const g = grp(p, x, Y, z, ry); g.scale.setScalar(s);
+  const sm = P.M(0x9aa080, { map: TX.sandstone }), dk = P.M(0x6a7458, { map: TX.sandstone });
+  for (let k = 0; k < 5; k++) { const w = 12 - k * 2.2; add(box(w, 1.6, w), k % 2 ? dk : sm, 0, 0.8 + k * 1.6, 0, g); }
+  add(box(2.6, 2.4, 2.6), sm, 0, 9.2, 0, g);
+  add(box(1.2, 1.6, 0.1), P.M(0x14180e), 0, 9, 1.32, g);
+  add(box(1.6, 8, 0.4), dk, 0, 4, 5.4, g).rotation.x = -0.64;                    // escalera
+  [[-1.1, 1.4], [1.1, 1.4]].forEach(([a, b]) => P.torch(g, a, 10.4, b, 1.2));
+  // enredaderas colgando
+  for (let k = 0; k < 8; k++) add(box(0.12, rnd(1.5, 4), 0.12), P.M(0x2a6a2a, { map: TX.leaf }), rnd(-5, 5), rnd(2, 6), rnd(-5, 5), g);
+}
+function idol(p, x, z, ry) {                                  // cabeza de piedra gigante, medio tapada de musgo
+  const g = grp(p, x, Y, z, ry), sm = P.M(0x8a9078, { map: TX.stone }), moss = P.M(0x4a8a3a, { map: TX.leaf });
+  add(box(2.6, 3.4, 2.2), sm, 0, 1.7, 0, g);
+  add(box(2.7, 0.25, 2.3), moss, 0, 3.5, 0, g);
+  [-0.6, 0.6].forEach((a) => add(box(0.5, 0.35, 0.1), P.M(0x1a1e14), a, 2.4, 1.12, g));
+  add(box(0.5, 0.9, 0.35), sm, 0, 1.8, 1.2, g);
+  add(box(1.4, 0.25, 0.1), P.M(0x1a1e14), 0, 1.0, 1.12, g);
+}
+function waterfall(p, x, z, ry, h = 12) {                     // cascada que baja por las rocas al pantano
+  const g = grp(p, x, Y, z, ry), rm = P.M(0x5a6a58, { map: TX.rock });
+  add(box(9, h + 2, 4), rm, 0, (h + 2) / 2, -2.4, g);
+  const wm = mat({ map: TX.water, color: 0xbfe8ff });
+  add(scaleUV(new THREE.PlaneGeometry(3.2, h + 1, 1, 4), 1, 4), wm, 0, (h + 1) / 2, -0.35, g);
+  add(new THREE.CylinderGeometry(2.4, 3.2, 0.4, 8), P.M(0xffffff, { unlit: true }), 0, 0.2, 0.4, g);
+  P.anim(g, (t) => { wm.uniforms.uOff.value.set(0, (t * 0.9) % 1); });
+  for (let k = 0; k < 6; k++) P.tree(g, rnd(-4, 4), h + 1.5, rnd(-4, -1), rnd(0.8, 1.2), [0x2a7a2a, 0x3a8a2a][k % 2]);
+}
+function mushroom(p, x, z, s, col) {
+  const g = grp(p, x, Y, z); g.scale.setScalar(s);
+  add(new THREE.CylinderGeometry(0.18, 0.24, 0.8, 6), P.M(0xf4ecd8), 0, 0.4, 0, g);
+  add(new THREE.SphereGeometry(0.6, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), P.M(col), 0, 0.75, 0, g);
+}
+export function decorSelva(g, HALF) {
+  P.sky(g, [[0, '#0a2a1a'], [0.35, '#2a6a4a'], [0.46, '#9ad8a0'], [0.5, '#e8f8c8'], [0.55, '#3a6a2a'], [1, '#0a1a0a']], { r: 120 });
+  // piso de la selva: pasto y tierra, con el pantano alrededor más abajo
+  const fl = scaleUV(new THREE.PlaneGeometry(160, 160, 16, 16), 30); fl.rotateX(-Math.PI / 2);
+  add(fl, P.M(0x5a8a3a, { map: TX.grass }), 0, Y - 0.02, 0, g);
+  const E = HALF + 6;
+  add(box(2 * E, 1, 2 * E), P.M(0x8a9070, { map: TX.stone }), 0, Y - 0.5, 0, g);          // la base del templo donde está la grilla
+  // árboles grandes, palmeras y arbustos alrededor (lejos de la grilla)
+  const pts = [];
+  for (let k = 0; k < 70; k++) { const a = rnd(0, Math.PI * 2), d = rnd(HALF + 10, 38); pts.push([Math.sin(a) * d, Math.cos(a) * d, rnd(1.4, 2.4)]); }
+  pts.forEach(([x, z, s], k) => (k % 4 === 0 ? P.palm(g, x, Y, z, s) : P.tree(g, x, Y, z, s, [0x2a7a2a, 0x3a8a2a, 0x1a6a3a][k % 3])));
+  for (let k = 0; k < 24; k++) { const a = rnd(0, Math.PI * 2), d = rnd(HALF + 7, HALF + 12); P.bush(g, Math.sin(a) * d, Y, Math.cos(a) * d, rnd(0.8, 1.4), [0x2a7a2a, 0x4a9a3a][k % 2]); }
+  // templo al fondo, cabezas de piedra, cascada y hongos
+  pyramid(g, 0, -E - 12, 1.3);
+  pyramid(g, -E - 14, -8, 0.8, 0.9);
+  idol(g, -E - 5, 8, Math.PI / 2 - 0.3); idol(g, E + 5, -8, -Math.PI / 2 + 0.3); idol(g, 10, -E - 5, 0.2);
+  waterfall(g, E + 9, 6, -Math.PI / 2 - 0.3, 14);
+  [[-12, 12, 1.2, 0xe83a3a], [-11, 13.2, 0.8, 0xffd23a], [12, 12.5, 1, 0xe83a3a], [13, -12, 0.9, 0xb04ae8], [-12.5, -12, 1.1, 0xe83a3a]].forEach(([x, z, s, c]) => mushroom(g, x, z, s, c));
+  [[-E + 1, -E + 1], [E - 1, -E + 1], [-E + 1, E - 1], [E - 1, E - 1]].forEach(([x, z]) => P.torch(g, x, Y, z, 2.2));
+  // loros volando, luciérnagas y hojas que caen
+  P.flyers(g, 0, 10, -8, 22, 5, 0xe83a3a, 0.6);
+  P.flyers(g, 4, 12, 4, 18, 3, 0x2a9aff, 0.5);
+  P.drift(g, 60, -26, 26, Y, 8, -26, 26, 0xd8ff6a, 0.1, 0.5);
+  P.drift(g, 40, -26, 26, 16, Y, -26, 26, 0x6ab03a, 0.16, 0.7, false);
+}

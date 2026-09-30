@@ -11,7 +11,7 @@ import { game } from '../state.js';
 import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorFutbol } from '../world/decor.js';
-import { decorPotrero, decorHielo } from '../world/decorFutbol.js';
+import { decorPotrero, decorHielo, decorPlayaFutbol } from '../world/decorFutbol.js';
 import { burst, P } from '../fx/particles.js';
 import { input } from '../input.js';
 import { FX } from '../game/fx.js';
@@ -56,6 +56,8 @@ const MAPS = [
     noLines: true, noNet: true, ballMap: TX.oldBall, ballFx: 'flat' },
   { name: 'LAGO HELADO', decor: (g) => decorHielo(g, HX, HZ), fog: { col: 0x0a1428, near: 50, far: 125 }, extra: 'HIELO · LA PELOTA ARRANCA CONGELADA (3 GOLPES LA ROMPEN)',
     pitch: [TX.icePitch, 0xa8d0f0], lines: 0x3a9aff, wall: TX.boards, cap: 0x2a5aff, post: 0xe8303a, net: 0xf4f6fa, phys: { acc: 0.62, fric: 0.28, bfric: 0.5 }, gw: 1.75, br: 0.4, bmax: 15, ballFx: 'ice' },
+  { name: 'PLAYA', decor: (g) => decorPlayaFutbol(g, HX, HZ), fog: { col: 0xbfe0f8, near: 55, far: 135 }, extra: 'ARENA: LA PELOTA FRENA MÁS Y NADIE PATINA',
+    pitch: [TX.sand, 0xfff0d0], lines: 0x2a6aff, wall: TX.beachRim, cap: 0xffffff, post: 0xffd23a, net: 0xffffff, phys: { acc: 0.9, fric: 1.2, bfric: 1.8 }, ballMap: TX.beachBall },
 ];
 const mapGw = () => MAPS[S.map].gw || GW0;              // medio ancho del arco en este mapa
 const inMud = (x, z) => MAPS[S.map].mud && MUD.some(([mx, mz]) => Math.hypot(x - mx, z - mz) < MUD_R);

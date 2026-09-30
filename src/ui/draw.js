@@ -126,3 +126,33 @@ export function fitTxt(s, x, y, maxW, col, align, hiTxt) {
   hiTxt(t, lx + 0.5, y + dy + 0.5, size, 'rgba(0,0,0,.75)');
   hiTxt(t, lx, y + dy, size, col);
 }
+
+// Logo BOLONKI: letras más gruesas (cada trazo se engorda), un canto 3D abajo, contorno oscuro y brillo arriba.
+// size: tamaño de la fuente (32 = el de siempre). Devuelve el ancho dibujado.
+export function drawLogo(cx, y, size = 32, opts = {}) {
+  const c = ui.ctx, s = opts.text || 'BOLONKI';
+  c.font = `${size}px ${PX}`;
+  const u = Math.max(1, Math.round(size / 16));              // "píxel" del logo
+  const w = c.measureText(s).width + u * 2;
+  const lx = Math.round(cx - w / 2), ly = Math.round(y);
+  const g = (col) => crispText(s, size, col);
+  const T = g(COL.gold).T;
+  const at = (cv, dx, dy) => c.drawImage(cv, lx - 1 + dx, ly - T + dy);
+  const depth = opts.depth !== undefined ? opts.depth : u * 3;
+  // contorno oscuro (alrededor de todo, incluido el canto)
+  const ol = g(opts.outline || '#1a0600');
+  for (let dy = -u; dy <= depth + u; dy += 1) for (let dx = -u; dx <= u * 2; dx += 1) if (Math.abs(dx) === u || dx === u * 2 || dy === -u || dy === depth + u) at(ol, dx, dy);
+  // canto 3D (más oscuro abajo)
+  const e1 = g(opts.edge || '#b3470a'), e2 = g(opts.edge2 || '#7a2a04');
+  for (let d = depth; d >= 1; d--) { at(d > depth / 2 ? e2 : e1, 0, d); at(d > depth / 2 ? e2 : e1, u, d); }
+  // cara: engordada 1 "píxel" a la derecha
+  const face = g(opts.color || COL.gold);
+  at(face, 0, 0); at(face, u, 0);
+  // brillo: la mitad de arriba más clara
+  c.save(); c.beginPath(); c.rect(lx - 2, ly - 2, w + 4, Math.round(size * 0.42) + 2); c.clip();
+  const hi = g(opts.light || '#ffd25a'); at(hi, 0, 0); at(hi, u, 0);
+  c.restore();
+  // chispa en la esquina
+  if (opts.shine !== false) { const t = (ui.clock || 0) % 4; if (t < 0.6) { const sx = lx + (t / 0.6) * w; c.save(); c.beginPath(); c.rect(lx, ly, w, size); c.clip(); c.globalAlpha = 0.5; c.fillStyle = '#fff'; c.fillRect(Math.round(sx), ly, u * 2, size); c.restore(); } }
+  return w;
+}

@@ -15,7 +15,7 @@ import { localHit } from './game/controls.js';
 import { mg, MINIGAMES } from './minigames/registry.js';
 import { DEATH_ANIMS } from './deaths/index.js';
 import { openMenu, closeMenu, replaceMenus, closeAllMenus, menuOpen, menuInput, topMenu } from './ui/menu.js';
-import { COL, ui } from './ui/draw.js';
+import { COL, ui, txt, rect } from './ui/draw.js';
 import { yesNo } from './ui/values.js';
 import { doorsMenu } from './ui/mainMenu.js';
 import { ONLINE, ONLINE_PAUSE, onlineEndMenu, initMultiplayer, editName } from './multiplayer.js';
@@ -23,18 +23,48 @@ import { guestHit } from './net/online.js';
 import { startFiesta, fiestaMinigameDone, fiestaRankArt } from './fiesta/board.js';
 import { openSala, setSalaHooks, salaKind } from './sala/sala.js';
 import { showToast } from './hud.js';
+import { ACHIEVEMENTS, hasAch, achCount, checkMatchEnd, setAchNotify } from './achievements.js';
 
 const set = (key, after) => (v) => { settings[key] = v; saveSettings(); if (after) after(v); };
 
 /* ---------- pantallas ---------- */
+// dibujito para LOGROS: fichas doradas (los que tenés) y apagadas
+function logrosArt(x, y, w, h) {
+  rect(x, y, w, h, '#0b1020');
+  const cols = 5, rows = Math.ceil(ACHIEVEMENTS.length / cols), s = Math.min(Math.floor((w - 20) / cols) - 4, Math.floor((h - 16) / rows) - 4);
+  const x0 = x + Math.round((w - cols * (s + 4)) / 2), y0 = y + Math.round((h - rows * (s + 4)) / 2);
+  ACHIEVEMENTS.forEach((a, k) => {
+    const bx = x0 + (k % cols) * (s + 4), by = y0 + Math.floor(k / cols) * (s + 4), on = hasAch(a.id);
+    rect(bx, by, s, s, on ? '#6a3a00' : '#161c34'); rect(bx + 2, by + 2, s - 4, s - 4, on ? COL.gold : '#20284a');
+    if (on) { rect(bx + s / 2 - 1, by + 4, 2, s - 10, '#fff2b0'); rect(bx + 4, by + s / 2 - 1, s - 8, 2, '#fff2b0'); }
+  });
+}
+// dibujito para OPCIONES en el menú principal: las solapas como fichas y unas barritas
+function optionsArt(x, y, w, h) {
+  rect(x, y, w, h, '#0b1020');
+  const tabs = ['VIDEO', 'SONIDO', 'CONTROL', 'JUEGO', 'FIESTA'];
+  tabs.forEach((t, k) => {
+    const on = k === (Math.floor((ui.clock || 0) / 1.2) % tabs.length);
+    const ty = y + 8 + k * Math.floor((h - 12) / tabs.length), bw = w - 20;
+    rect(x + 10, ty, bw, 12, on ? 'rgba(45,224,200,.25)' : 'rgba(45,224,200,.06)');
+    txt(t, x + 16, ty + 2, 8, on ? COL.white : COL.dim);
+    for (let b = 0; b < 8; b++) rect(x + 10 + bw - 64 + b * 7, ty + 3, 5, 6, b < 3 + ((k * 3) % 5) ? (on ? COL.gold : COL.teal) : '#2a3150');
+  });
+}
 export const MAIN = doorsMenu({
   doors: [
-    { label: 'FIESTA', sub: 'TABLERO, DADOS Y COPAS', thumb: () => 'fiesta', action: () => openSala('fiesta') },
-    { label: 'MINIJUEGOS', sub: 'ELEGÍ UNO Y A JUGAR', thumb: () => { const n = MINIGAMES.length, k = Math.floor((ui.clock || 0) / 2.2) || 0; return MINIGAMES[((k % n) + n) % n].id; }, action: () => openSala('libre') },
+    { label: 'FIESTA', sub: 'TABLERO, DADOS Y COPAS', thumb: () => 'fiesta', action: () => openSala('fiesta'),
+      desc: ['TABLERO, DADOS Y COPAS', 'TIRÁ EL DADO, JUGÁ MINIJUEGOS', 'Y JUNTÁ MÁS COPAS QUE LOS DEMÁS'] },
+    { label: 'MINIJUEGOS', sub: 'ELEGÍ UNO Y A JUGAR', thumb: () => { const n = MINIGAMES.length, k = Math.floor((ui.clock || 0) / 2.2) || 0; return MINIGAMES[((k % n) + n) % n].id; }, action: () => openSala('libre'),
+      desc: () => [`${MINIGAMES.length} MINIJUEGOS · ELEGÍ UNO Y A JUGAR`, 'DE 1 A 4 JUGADORES EN LA MISMA COMPU', 'LOS LUGARES LIBRES LOS JUEGA LA CPU'] },
   ],
   row: [
-    { label: 'ONLINE', action: () => openMenu(ONLINE) },
-    { label: 'OPCIONES', action: () => openMenu(OPTIONS) },
+    { label: 'ONLINE', action: () => openMenu(ONLINE), thumb: () => { const n = MINIGAMES.length, k = Math.floor((ui.clock || 0) / 1.6) || 0; return MINIGAMES[((k % n) + n) % n].id; },
+      desc: ['JUGÁ CON AMIGOS POR INTERNET', 'CREÁ UNA SALA Y PASALES EL CÓDIGO', 'O ENTRÁ A UNA SALA PÚBLICA'] },
+    { label: 'LOGROS', action: () => openMenu(LOGROS), art: logrosArt,
+      desc: () => [`${achCount()} DE ${ACHIEVEMENTS.length} LOGRADOS`, 'GANÁ EN CADA MINIJUEGO, EN LA FIESTA', 'Y CONTRA LA CPU EN EXTREMO'] },
+    { label: 'OPCIONES', action: () => openMenu(OPTIONS), art: optionsArt,
+      desc: ['VIDEO, SONIDO Y CONTROLES', 'AYUDA PARA APUNTAR, VIBRACIÓN', 'Y QUÉ MINIJUEGOS SALEN EN LA FIESTA'] },
   ],
   corner: { label: 'SALIR', action: () => quit() },
   sound: { on: () => !settings.muted, toggle: () => { settings.muted = !settings.muted; saveSettings(); setMuted(settings.muted); } },
@@ -120,6 +150,16 @@ export const OPTIONS = {
   ],
 };
 
+// Logros: la lista, con los que ya tenés en dorado
+export const LOGROS = {
+  id: 'logros', title: 'LOGROS', width: 340,
+  get items() {
+    return [{ kind: 'info', center: true, label: () => `${achCount()} DE ${ACHIEVEMENTS.length}`, labelColor: () => COL.teal }]
+      .concat(ACHIEVEMENTS.map((a) => ({ kind: 'action', left: true, label: a.name, value: a.desc, labelColor: () => (hasAch(a.id) ? COL.gold : COL.dim),
+        valueColor: () => (hasAch(a.id) ? COL.text : '#4a5270'), action: () => {} })));
+  },
+};
+
 // confirmación para volver las opciones a como vienen
 const RESET = {
   id: 'reset', title: '¿RESTABLECER?', width: 250,
@@ -203,8 +243,11 @@ function showcaseDeath() {
 function maybeFullscreen() { if (settings.fullscreen && wantFullscreen && !isFullscreen()) { enterFullscreen(); wantFullscreen = false; } }
 
 /* ---------- por frame ---------- */
+let endSeen = false;
 export function updateFlow() {
   const online = game.online !== 'off';
+  // logros: una vez por partida terminada
+  if (game.state === 'end') { if (!endSeen) { endSeen = true; checkMatchEnd(); } } else if (game.state === 'play' || game.state === 'count') endSeen = false;
   if (has('blur') && !online && (game.state === 'play' || game.state === 'count')) pause();
 
   // "ver derrota": el menú se esconde mientras dura la animación
@@ -275,6 +318,7 @@ function mgToggleItems() {
   }));
 }
 export function initFlow() {
+  setAchNotify((a) => { SFX.win ? SFX.win() : SFX.confirm(); showToast(`LOGRO: ${a.name}`); });
   applySfxVolume(); setMuted(settings.muted); setBackgroundSound(settings.bgSound); game.difficulty = settings.difficulty;
   setSalaHooks({ startLocal: startFromSala, toMain: () => goMainMenu() });
   initMultiplayer();

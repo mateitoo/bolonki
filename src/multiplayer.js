@@ -32,7 +32,13 @@ const NAME = textEntry({
 });
 export function editName() { NAME.reset(settings.name || ''); openMenu(NAME); }
 // Si todavía no tiene apodo, se lo pide antes de entrar al online
-function withName(fn) { if (settings.name) fn(); else { afterName = fn; editName(); } }
+function withName(fn) {
+  // en Steam, el apodo arranca con tu nombre de Steam (lo podés cambiar en Opciones)
+  if (!settings.name && typeof window !== 'undefined' && window.bolonkiDesktop && window.bolonkiDesktop.steamName) {
+    const n = cleanName(window.bolonkiDesktop.steamName() || ''); if (n && n !== 'JUGADOR') { settings.name = n; saveSettings(); }
+  }
+  if (settings.name) fn(); else { afterName = fn; editName(); }
+}
 
 /* ---------- código de sala ---------- */
 const JOIN = textEntry({

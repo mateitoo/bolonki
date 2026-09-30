@@ -2,7 +2,8 @@
 // LAGO HELADO (pista de hielo en un lago del bosque, de noche con aurora). La cancha mide lo mismo en todos
 // (HX × HZ); los cambios de juego (charcos de barro, hielo que patina) están en minigames/futbol.js.
 import * as THREE from 'three';
-import { add, scaleUV } from '../render/psx.js';
+import { add, scaleUV, mat } from '../render/psx.js';
+import { umbrella, lifeguardChair, sandcastle, parador, surfboards, beachKit, kite, boat, seagulls } from './decorBolas.js';
 import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
 import * as P from './props.js';
@@ -103,4 +104,41 @@ export function decorHielo(g, HX, HZ) {
   [[-HX - 1, -HZ - 1.8], [HX + 1, -HZ - 1.8], [-HX - 1, HZ + 1.8], [HX + 1, HZ + 1.8]].forEach(([x, z]) => P.lantern(g, x, -0.3, z, 3.6, 0xffd27a));
   // nieve que cae
   P.drift(g, 90, -26, 26, 16, -0.3, -20, 20, 0xffffff, 0.12, 1.3);
+}
+
+/* ===================== PLAYA: fútbol playa al mediodía, con el mar de un lado y la rambla del otro ===================== */
+export function decorPlayaFutbol(g, HX, HZ) {
+  P.sky(g, [[0, '#1a6ad8'], [0.35, '#4aa8ff'], [0.47, '#bfe8ff'], [0.5, '#fff4d8'], [0.55, '#e8c890'], [1, '#8a6a40']], { r: 120 });
+  const sun = add(new THREE.CircleGeometry(7, 16), new THREE.MeshBasicMaterial({ color: 0xfff2a0, fog: false }), 30, 40, -96, g); sun.renderOrder = -9;
+  // los adornos de la playa se arman como en Bola Brava (su arena está 1.9 más abajo): se suben en un grupo
+  const b = new THREE.Group(); b.position.y = 1.9; g.add(b);
+  // arena alrededor de la cancha y el mar atrás (del lado de arriba de la pantalla)
+  const fl = scaleUV(new THREE.PlaneGeometry(120, 70, 20, 12), 24, 14); fl.rotateX(-Math.PI / 2);
+  add(fl, P.M(0xf0d8a0, { map: TX.sand }), 0, -0.31, 8, g);
+  const wg = scaleUV(new THREE.PlaneGeometry(260, 140, 20, 12), 40, 22); wg.rotateX(-Math.PI / 2);
+  const sea = add(wg, mat({ map: TX.water, color: 0x3aa0d8 }), 0, -0.75, -HZ - 78, g);
+  P.anim(g, (t) => { sea.material.uniforms.uOff.value.set((t * 0.02) % 1, (t * 0.035) % 1); });
+  const foam = add(new THREE.BoxGeometry(130, 0.05, 1.2), P.M(0xffffff, { unlit: true }), 0, -0.68, -HZ - 8.4, g);
+  P.anim(foam, (t) => { foam.position.z = -HZ - 8.4 + Math.sin(t * 0.9) * 0.9; foam.scale.z = 1 + Math.sin(t * 1.3) * 0.4; });
+  // cancha de fútbol playa: cuerdas en el borde con banderines y palos en las esquinas
+  [[-HX - 0.4, -HZ - 0.4], [HX + 0.4, -HZ - 0.4], [-HX - 0.4, HZ + 0.4], [HX + 0.4, HZ + 0.4]].forEach(([x, z], k) => P.flag(g, x, -0.3, z, 1.8, k % 2 ? 0xffe14a : 0xff5a4a));
+  // sombrillas, reposeras, guardavidas, castillos, parador y tablas de surf
+  [[-HX - 5, -HZ - 3, 0xff5a4a], [HX + 5, -HZ - 3.5, 0x3a7aff], [-HX - 6, HZ + 4, 0xffe14a], [HX + 6, HZ + 3.5, 0x39d98a], [-4, HZ + 6, 0xff5fa2], [5, HZ + 6.5, 0xff9a1f], [-10, -HZ - 5, 0x3a7aff], [11, -HZ - 5.5, 0xff5a4a]]
+    .forEach(([x, z, c]) => umbrella(b, x, z, c));
+  lifeguardChair(b, 0, -HZ - 5.5); lifeguardChair(b, -HX - 8, 0);
+  sandcastle(b, HX + 4, -2, 1.1); sandcastle(b, -HX - 4, 5, 0.9);
+  parador(b, HX + 9, 6); surfboards(b, -HX - 9, -6); surfboards(b, HX + 8, -8);
+  beachKit(b, -6, -HZ - 3); beachKit(b, 8, HZ + 4); beachKit(b, -HX - 3, HZ + 2.5);
+  kite(b, -14, 14, -HZ - 18); kite(b, 16, 12, -HZ - 22);
+  boat(b, -26, -HZ - 30, 0.6); boat(b, 22, -HZ - 40, -0.4);
+  seagulls(b, 0, 10, -4, 20, 5);
+  // palmeras y la rambla con faroles del lado de abajo
+  [[-HX - 10, -HZ - 3], [HX + 12, -HZ - 2], [-HX - 12, HZ + 5], [HX + 11, HZ + 6], [-20, HZ + 10], [18, HZ + 11], [0, HZ + 12]].forEach(([x, z], k) => P.palm(g, x, -0.3, z, 1.4 + (k % 3) * 0.2));
+  const walk = scaleUV(new THREE.PlaneGeometry(120, 5), 30, 1); walk.rotateX(-Math.PI / 2);
+  add(walk, P.M(0xd8d0c0, { map: TX.stone }), 0, -0.28, HZ + 15, g);
+  [-24, -12, 0, 12, 24].forEach((x) => P.lamp(g, x, -0.3, HZ + 13, 4, 0xfff0c0));
+  // hinchada en la rambla: gente mirando, y banderas
+  P.bunting(g, -HX - 2, 3, HZ + 3, HX + 2, 3, HZ + 3, 18);
+  P.scatter(g, 0, -0.29, 0, 40, 26, 90, 0xfff4e6, 0.14, [HX + 1, HZ + 1]);     // caracoles
+  P.balloons(g, HX + 3, 0, HZ + 3, 2, 4);
 }

@@ -305,3 +305,14 @@ src/
 - **Nueva animación de derrota:** crear un archivo en `src/deaths/` con `{ id, name, dur, start, update }` y sumarlo a `src/deaths/index.js`. El selector se llena solo.
 
 Personajes, nombres y arte son originales.
+
+## Versión de escritorio (Steam)
+
+La carpeta `desktop/` arma el juego como programa de escritorio con Electron. Trae pantalla completa, el botón SALIR que cierra el juego, y logros, overlay y nombre de Steam con steamworks.js. Los pasos para publicarlo, la lista de logros y las imágenes de la tienda (`steam/assets/`, sacadas del juego con `?capsule=...`) están en [`steam/STEAM.md`](steam/STEAM.md).
+
+```bash
+npm run build          # el juego
+cd desktop && npm install
+npm start              # probarlo como programa
+npm run build:win      # carpeta lista para subir a Steam (desktop/release)
+```

@@ -15,7 +15,7 @@
 import { hiTxt } from '../render/thumbStore.js';
 import { input, isTouch } from '../input.js';
 import { SFX } from '../audio.js';
-import { ui, txt, rect, panel, tri, textWidth, COL } from './draw.js';
+import { ui, txt, rect, panel, tri, textWidth, COL, drawLogo } from './draw.js';
 
 const stack = [];
 let rects = [];      // zonas clickeables de ítems
@@ -146,7 +146,7 @@ function drawValue(it, sel, vx, iy) {
 function drawBig(top, hw) {
   const items = itemsOf(top);
   const bob = Math.sin(ui.clock * 2) * 2;
-  txt('BOLONKI', hw / 2, 34 + bob, 32, COL.gold, 'center', COL.goldShadow);
+  drawLogo(hw / 2, 34 + bob, 32);
   rect(hw / 2 - 70, 72, 140, 1, '#1d6e68');
 
   const main = items.map((it, i) => ({ it, i })).filter((o) => !o.it.corner);

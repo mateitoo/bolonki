@@ -20,7 +20,7 @@ import { drawWalker } from '../world/walker.js';
 import { camMove } from '../game/controls.js';
 import { sendInput } from '../net/room.js';
 import { txt, rect, COL } from '../ui/draw.js';
-import { decorHexagonos, decorDulces, decorNeon } from '../world/decorHex.js';
+import { decorHexagonos, decorDulces, decorNeon, decorVolcan } from '../world/decorHex.js';
 
 /* ---------- medidas ---------- */
 const N = 8, HS = 1.0, TR = 0.95, SQ3 = Math.sqrt(3);          // anillos de baldosas, separación y radio de cada una
@@ -31,6 +31,7 @@ const MAPS = [
   { name: 'CIELO', decor: decorHexagonos, fog: { col: 0xbfe0ff, near: 42, far: 100 }, top: 'hexTop', side: 'hexSide', cols: FLOOR_COL, bottom: 'SLIME', fall: P.YELLOW },
   { name: 'DULCES', decor: decorDulces, fog: { col: 0xffd8f0, near: 42, far: 100 }, top: 'frosting', side: 'wafer', cols: [0xffb0d8, 0xb0e8ff, 0xfff0a0, 0xc8ffb0], bottom: 'CHOCOLATE', fall: P.DEBRIS },
   { name: 'NEÓN', decor: decorNeon, fog: { col: 0x14062a, near: 45, far: 110 }, top: 'neonTop', side: 'neonSide', cols: [0xff3aa8, 0x3af0ff, 0xffe03a, 0x9a5aff], bottom: 'VACÍO', fall: P.CYAN, glow: true },
+  { name: 'VOLCÁN', decor: decorVolcan, fog: { col: 0x2a0806, near: 45, far: 110 }, top: 'hexTop', side: 'hexSide', cols: [0xff9a4a, 0xd8c8b8, 0xffd23a, 0xb89aff], bottom: 'MAGMA', fall: P.YELLOW, lava: true },
 ];
 const PR = 0.45, CHAR_SCALE = 0.98;
 const ACC = 55, MAXV = 5.4, FRICTION = 14, GRAV = 24;

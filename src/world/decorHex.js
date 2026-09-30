@@ -131,3 +131,39 @@ export function decorNeon(g, slimeY) {
   P.drift(g, 40, -30, 30, slimeY, 10, -30, 30, 0xff3aa8, 0.12, 1.4);               // chispitas que suben
   return grid;
 }
+
+/* ===================== VOLCÁN: pisos de roca sobre un mar de magma, con volcanes que escupen fuego ===================== */
+function floatRock(p, x, y, z, s, glow) {
+  const g = grp(p, x, y, z); g.scale.setScalar(s);
+  const rm = P.M(0x3a2e32, { map: TX.rock });
+  add(new THREE.DodecahedronGeometry(2.2, 0), rm, 0, 0, 0, g).scale.set(1.3, 0.7, 1.1);
+  add(new THREE.ConeGeometry(1.6, 3.4, 6), rm, 0, -2.2, 0, g).rotation.x = Math.PI;          // punta de abajo
+  if (glow) add(new THREE.CylinderGeometry(1.9, 1.9, 0.14, 7), P.M(0xff7a1a, { unlit: true }), 0, 0.2, 0, g);   // grieta que brilla
+  const ph = rnd(0, 6);
+  P.anim(g, (t) => { g.position.y = y + Math.sin(t * 0.45 + ph) * 0.7; g.rotation.y = t * 0.06 + ph; });
+  return g;
+}
+export function decorVolcan(g, slimeY) {
+  P.sky(g, [[0, '#0a0204'], [0.3, '#2a0808'], [0.46, '#6a1a0a'], [0.5, '#ff6a1a'], [0.54, '#5a1208'], [1, '#1a0404']], { stars: 30, starBand: 0.3, r: 120, y: -10 });
+  // el magma de abajo, que corre despacio (la animación del piso la maneja el minijuego)
+  const sg = scaleUV(new THREE.PlaneGeometry(240, 240, 20, 20), 26); sg.rotateX(-Math.PI / 2);
+  const magma = mat({ map: TX.magma, unlit: true });
+  add(sg, magma, 0, slimeY, 0, g);
+  P.lavaBubbles(g, slimeY + 0.2, 8, 40, 26);
+  // volcanes a lo lejos (uno grande que escupe bolas de fuego)
+  P.volcano(g, -6, slimeY, -78, 70, 36);
+  P.eruption(g, -6, slimeY + 70.5, -78, 90, 10, 12);
+  P.volcano(g, 58, slimeY, -58, 46, 24); P.volcano(g, -64, slimeY, -40, 40, 22);
+  // columnas de basalto que salen del magma y cascadas de lava desde rocas flotantes
+  [[-24, slimeY, -14], [25, slimeY, -10], [-26, slimeY, 14], [22, slimeY, 18], [2, slimeY, -30]].forEach(([x, y, z], k) => P.basalt(g, x * 1.25, y, z * 1.25, 7, 1.3, 5 + k, 13 + k * 2));        // bajitas: no tapan los pisos
+  P.lavafall(g, 40, slimeY, -40, -0.6, 22, 4); P.lavafall(g, -42, slimeY, -34, 0.7, 20, 3.5);
+  // rocas flotando alrededor de los pisos
+  [[-19, -3, -12, 1.2, true], [20, -6, -11, 1.0, false], [-22, -12, 10, 1.3, true], [21, -10, 13, 1.1, true], [0, -8, -25, 1.4, false], [-9, -18, 21, 0.9, true], [12, -20, -19, 1.0, false]]
+    .forEach(([x, y, z, s, gl]) => floatRock(g, x, y, z, s, gl));
+  // brasas que suben y ceniza que cae
+  P.drift(g, 70, -30, 30, slimeY, 12, -30, 30, 0xff8a2a, 0.16, 1.6);
+  P.drift(g, 50, -34, 34, 16, slimeY, -34, 34, 0x5a5058, 0.12, 0.6, false);
+  // humo en el horizonte
+  P.smoke(g, 20, slimeY + 6, -60, 6, 5, 0x3a2a2a); P.smoke(g, -40, slimeY + 6, -50, 5, 4, 0x3a2a2a);
+  return magma;
+}

@@ -245,14 +245,14 @@ export function decorCirco(g) {
 /* =====================================================================
    PLAYA: al atardecer, con el mar alrededor
    ===================================================================== */
-function umbrella(p, x, z, a = 0xff5a4a, b = 0xffffff) {
+export function umbrella(p, x, z, a = 0xff5a4a, b = 0xffffff) {
   const g = grp(p, x, Y, z, rnd(0, 6));
   add(new THREE.CylinderGeometry(0.06, 0.06, 2.6, 5), P.M(0xe8e8e8), 0, 1.3, 0, g).rotation.z = 0.12;
   const n = 8;
   for (let k = 0; k < n; k++) add(new THREE.ConeGeometry(1.7, 0.6, n, 1, true, (k / n) * Math.PI * 2, (Math.PI * 2) / n), P.M(k % 2 ? a : b, { side: THREE.DoubleSide }), 0.15, 2.55, 0, g);
   const tw = add(box(1.0, 0.04, 1.9), P.M([0x3a7aff, 0xffe14a, 0x39d98a, 0xff5fa2][(Math.random() * 4) | 0]), 1.2, 0.03, 0.4, g); tw.rotation.y = 0.3;
 }
-function lifeguardChair(p, x, z) {
+export function lifeguardChair(p, x, z) {
   const g = grp(p, x, Y, z, ry0(x, z));
   const wm = P.M(0xf4f4ee, { map: TX.wood });
   [[-0.8, -0.6], [0.8, -0.6], [-0.8, 0.6], [0.8, 0.6]].forEach(([a, b]) => add(box(0.18, 3, 0.18), wm, a, 1.5, b, g));
@@ -263,7 +263,7 @@ function lifeguardChair(p, x, z) {
   add(new THREE.CylinderGeometry(0.05, 0.05, 1.2, 4), wm, 0, 4.0, 0, g);
   P.flag(g, 0.9, 3, 0.7, 2.2, 0xffe14a);
 }
-function sandcastle(p, x, z, s = 1) {
+export function sandcastle(p, x, z, s = 1) {
   const g = grp(p, x, Y, z, rnd(0, 6)); g.scale.setScalar(s);
   const sm = P.M(0xe8c888, { map: TX.sand });
   add(box(2.2, 0.8, 2.2), sm, 0, 0.4, 0, g);
@@ -271,7 +271,7 @@ function sandcastle(p, x, z, s = 1) {
   add(new THREE.CylinderGeometry(0.6, 0.7, 1.6, 6), sm, 0, 1.4, 0, g);
   P.flag(g, 0, 2.2, 0, 0.8, 0xff5a4a);
 }
-function boat(p, x, z, ry) {
+export function boat(p, x, z, ry) {
   const g = grp(p, x, -2.45, z, ry);
   add(box(1.6, 0.6, 4.2), P.M(0xffffff, { map: TX.wood }), 0, 0.2, 0, g);
   add(box(1.7, 0.2, 4.3), P.M(0x3a7aff), 0, -0.05, 0, g);
@@ -312,7 +312,7 @@ export function seagulls(p, cx, cy, cz, r, n = 4) {
     q.wings.forEach((w) => { w.inner.rotation.z = w.sd * f; w.outer.rotation.z = w.sd * (flapping ? -f * 0.7 : -0.28); });
   }));
 }
-function parador(p, x, z) {                                    // bar de playa con techo de paja
+export function parador(p, x, z) {                                    // bar de playa con techo de paja
   const g = grp(p, x, Y, z, ry0(x, z));
   const wm = P.M(0xb8905a, { map: TX.wood }), straw = P.M(0xd8b060, { map: TX.leaf });
   [[-2.2, -1.4], [2.2, -1.4], [-2.2, 1.4], [2.2, 1.4]].forEach(([a, b]) => add(box(0.22, 3, 0.22), wm, a, 1.5, b, g));
@@ -324,13 +324,13 @@ function parador(p, x, z) {                                    // bar de playa c
   [-1.4, 0, 1.4].forEach((sx) => { add(new THREE.CylinderGeometry(0.25, 0.25, 0.08, 8), P.M(0xffe14a), sx, 0.8, 2.0, g); add(new THREE.CylinderGeometry(0.05, 0.05, 0.8, 4), wm, sx, 0.4, 2.0, g); });
   for (let k = 0; k < 5; k++) add(new THREE.CylinderGeometry(0.08, 0.08, 0.3, 5), P.M([0x39d98a, 0xff9a1f, 0xffffff, 0xff5a4a, 0x3a7aff][k]), -1.4 + k * 0.7, 1.35, 1.0, g);
 }
-function surfboards(p, x, z) {
+export function surfboards(p, x, z) {
   const g = grp(p, x, Y, z, rnd(0, 6));
   [[0xff5a4a, -0.6], [0x39d98a, 0], [0xffe14a, 0.6]].forEach(([c, dx], k) => {
     const b = add(new THREE.SphereGeometry(0.5, 8, 5), P.M(c), dx, 1.1, 0, g); b.scale.set(0.8, 2.4, 0.12); b.rotation.z = (k - 1) * 0.12;
   });
 }
-function beachKit(p, x, z) {                                   // heladerita, balde y pala, reposera
+export function beachKit(p, x, z) {                                   // heladerita, balde y pala, reposera
   const g = grp(p, x, Y, z, rnd(0, 6));
   add(box(0.9, 0.6, 0.6), P.M(0x3a7aff), 0, 0.3, 0, g); add(box(0.95, 0.12, 0.65), P.M(0xffffff), 0, 0.66, 0, g);
   add(new THREE.CylinderGeometry(0.28, 0.2, 0.45, 8), P.M(0xff5a4a), 1.1, 0.22, 0.3, g);
@@ -347,7 +347,7 @@ function volleyNet(p, x, z) {
   for (let k = 0; k < 14; k++) add(box(0.03, 0.75, 0.03), P.M(0x2a2a2a), -3.3 + k * 0.5, 1.95, 0, g);
   add(box(7, 0.1, 0.05), P.M(0xffffff), 0, 2.35, 0, g);
 }
-function kite(p, x, y, z) {                                    // barrilete volando, con la cola moviéndose
+export function kite(p, x, y, z) {                                    // barrilete volando, con la cola moviéndose
   const g = grp(p, x, y, z);
   const d = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 1, 0), new THREE.Vector3(0.7, 0, 0), new THREE.Vector3(0, -1.2, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1.2, 0), new THREE.Vector3(-0.7, 0, 0)]);
   d.computeVertexNormals();

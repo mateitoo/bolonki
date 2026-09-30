@@ -1,0 +1,33 @@
+{
+  "name": "bolonki-desktop",
+  "private": true,
+  "version": "0.35.0",
+  "description": "Bolonki: versión de escritorio (Steam)",
+  "main": "main.cjs",
+  "scripts": {
+    "prepare-app": "node tools/copy-app.cjs",
+    "start": "npm run prepare-app && electron .",
+    "build:win": "npm run prepare-app && electron-builder --win dir",
+    "build:linux": "npm run prepare-app && electron-builder --linux dir",
+    "build:mac": "npm run prepare-app && electron-builder --mac dir",
+    "store-assets": "node tools/store-assets.mjs"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^25.1.8",
+    "puppeteer": "^23.10.0"
+  },
+  "optionalDependencies": {
+    "steamworks.js": "^0.4.0"
+  },
+  "build": {
+    "appId": "com.bolonki.game",
+    "productName": "Bolonki",
+    "directories": { "output": "release" },
+    "files": ["main.cjs", "preload.cjs", "app/**", "package.json"],
+    "asarUnpack": ["node_modules/steamworks.js/**"],
+    "win": { "target": "dir", "icon": "../steam/assets/client_icon.png" },
+    "linux": { "target": "dir", "icon": "../steam/assets/client_icon.png", "category": "Game" },
+    "mac": { "target": "dir", "category": "public.app-category.games" }
+  }
+}

@@ -6,9 +6,9 @@ const KEY = 'bolonki:settings';
 export const DEFAULTS = {
   fullscreen: true,      // pedir pantalla completa al empezar
   aspect: 'wide',        // 'wide' (se adapta a la pantalla) | '4:3'
-  quality: '480',        // '240' (auténtico) | '480' | 'sharp' (HD, resolución completa)
+  quality: 'sharp',      // '240' (auténtico) | '480' | 'sharp' (HD, resolución completa; la de fábrica)
   integer: 'auto',       // escalado entero: 'auto' (solo si entra justo) | true | false
-  scanlines: true,
+  scanlines: false,
   sfx: 8,                // volumen de efectos 0..10
   muted: false,          // botón de sonido del menú principal
   music: 6,              // volumen de la música 0..10
@@ -62,6 +62,8 @@ export const settings = Object.assign({}, DEFAULTS, load());
 if (!settings.v) { settings.integer = 'auto'; settings.v = 5; }
 // v0.6: 480p pasa a ser la calidad por defecto
 if (settings.v < 6) { if (settings.quality === '240') settings.quality = '480'; settings.v = 6; }
+// v0.35.3: el juego arranca en HD y sin líneas de TV (una sola vez; después cada uno elige en Opciones)
+if (settings.v < 7) { settings.quality = 'sharp'; settings.scanlines = false; settings.v = 7; try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) { /* sin storage */ } }
 if (!DIFF_ORDER.includes(settings.difficulty)) settings.difficulty = DEFAULTS.difficulty;
 if (!Array.isArray(settings.mgOff)) settings.mgOff = [];
 if (settings.mode !== 'fiesta') settings.mode = 'libre';

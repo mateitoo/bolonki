@@ -27,7 +27,7 @@ const SHOTS = [['bolas', 2], ['futbol', 3], ['hexagonos', 3], ['bombardeo', 3], 
 const browser = await puppeteer.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage();
 await page.goto(BASE, { waitUntil: 'load' });
-await page.evaluate(() => localStorage.setItem('bolonki:settings', JSON.stringify({ fullscreen: false, quality: '480', scanlines: false, v: 6 })));
+await page.evaluate(() => localStorage.setItem('bolonki:settings', JSON.stringify({ fullscreen: false, quality: '480', scanlines: false, v: 7 })));
 for (const [file, w, h, q, scale, fmt] of ASSETS) {
   await page.setViewport({ width: w, height: h, deviceScaleFactor: scale });
   await page.goto(`${BASE}?${q}`, { waitUntil: 'load' });

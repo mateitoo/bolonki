@@ -1,3 +1,4 @@
+import '@fontsource/press-start-2p/latin.css';          // la fuente pixel va incluida (no depende de Google Fonts)
 // Punto de entrada: arma la escena, conecta pantalla/entrada/menús y corre el loop.
 import { closeAllMenus } from './ui/menu.js';
 import { game } from './state.js';

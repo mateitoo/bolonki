@@ -498,5 +498,56 @@ export const TX = {
     noisy(x, w, h, '#f4f6fa', 0.08); x.fillStyle = '#2a5aff'; x.fillRect(0, 11, w, 3); x.fillStyle = '#e8303a'; x.fillRect(0, 14, w, 2);
     x.fillStyle = 'rgba(0,0,0,.08)'; for (let i = 0; i < w; i += 8) x.fillRect(i, 0, 1, 11);
   }),
+
+  /* ---------- personajes nuevos: caras (el frente de la esfera cae en x ≈ 32 de 128) ---------- */
+  skullFace: tex(128, 64, (x, w, h) => {          // HUESO: calavera con cuencas hondas, nariz y dientes
+    noisy(x, w, h, '#ece6d4', 0.05);
+    x.fillStyle = 'rgba(120,100,70,.2)'; x.fillRect(64, 0, 64, h);
+    x.fillStyle = 'rgba(150,130,100,.35)'; x.fillRect(40, 10, 1, 8); x.fillRect(41, 17, 3, 1);          // rajadura
+    [[24, 29], [40, 29]].forEach(([ex, ey]) => { x.fillStyle = '#1a1410'; x.beginPath(); x.ellipse(ex, ey, 6, 5.5, 0, 0, 7); x.fill(); });
+    x.fillStyle = '#1a1410'; x.beginPath(); x.moveTo(32, 34); x.lineTo(29.5, 39); x.lineTo(34.5, 39); x.closePath(); x.fill();
+    x.fillStyle = '#d8d0b8'; x.fillRect(22, 43, 20, 6);
+    x.fillStyle = '#3a3026'; for (let k = 0; k <= 5; k++) x.fillRect(22 + k * 4, 43, 1, 6); x.fillRect(22, 46, 20, 1);
+  }),
+  frogFace: tex(128, 64, (x, w, h) => {           // RANULFO: sonrisa ancha de oreja a oreja, cachetes y pecas
+    noisy(x, w, h, '#62c83a', 0.06);
+    x.fillStyle = 'rgba(30,90,20,.35)'; x.fillRect(64, 0, 64, h);
+    for (let i = 0; i < 14; i++) { x.fillStyle = 'rgba(40,110,30,.6)'; x.beginPath(); x.arc(64 + Math.random() * 64, Math.random() * h, rnd(1.5, 3), 0, 7); x.fill(); }
+    x.fillStyle = '#d8f07a'; x.fillRect(0, 44, 64, 20);                          // panza/papada clarita
+    x.strokeStyle = '#1e4a14'; x.lineWidth = 2; x.beginPath(); x.moveTo(12, 36); x.quadraticCurveTo(32, 48, 52, 36); x.stroke();
+    x.fillStyle = '#ff7a8a'; x.fillRect(29, 43, 6, 2);                             // lengüita
+    x.fillStyle = 'rgba(255,120,120,.35)'; x.fillRect(14, 32, 5, 3); x.fillRect(45, 32, 5, 3);
+    x.fillStyle = '#1e4a14'; x.fillRect(29, 30, 1, 1); x.fillRect(34, 30, 1, 1);   // agujeritos de la nariz
+  }),
+  sadFace: tex(128, 64, (x, w, h) => {            // TRISTÁN: cara blanca de payaso, cejas caídas, lágrima azul
+    noisy(x, w, h, '#f4f2ee', 0.03);
+    x.fillStyle = 'rgba(160,170,200,.25)'; x.fillRect(64, 0, 64, h);
+    x.fillStyle = '#2a2a3a';
+    [[24, 30], [40, 30]].forEach(([ex, ey]) => { x.fillRect(ex - 2, ey - 1, 4, 3); });
+    x.fillStyle = '#1a1a2a'; x.fillRect(19, 24, 7, 1); x.fillRect(18, 25, 2, 1); x.fillRect(38, 24, 7, 1); x.fillRect(44, 25, 2, 1);   // cejas para abajo por afuera
+    x.fillStyle = '#3a7aff'; x.beginPath(); x.moveTo(24, 34); x.quadraticCurveTo(21.5, 38, 24, 39.5); x.quadraticCurveTo(26.5, 38, 24, 34); x.fill();
+    x.fillStyle = '#c8303a'; x.beginPath(); x.moveTo(25, 45); x.quadraticCurveTo(32, 39, 39, 45); x.lineTo(39, 46.5); x.quadraticCurveTo(32, 42, 25, 46.5); x.fill();
+  }),
+  luchaMask: tex(128, 64, (x, w, h) => {          // TORNADO: máscara de luchador con llamas y ojos blancos
+    x.fillStyle = '#b030d0'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#ffd24a';
+    for (const cx of [32, 96]) { x.beginPath(); x.moveTo(cx, 6); x.lineTo(cx + 5, 18); x.lineTo(cx + 2, 16); x.lineTo(cx, 24); x.lineTo(cx - 2, 16); x.lineTo(cx - 5, 18); x.closePath(); x.fill(); }
+    x.fillStyle = '#ffffff';
+    [[23, 30], [41, 30]].forEach(([ex, ey]) => { x.beginPath(); x.moveTo(ex - 7, ey - 3); x.lineTo(ex + 6, ey - 1); x.lineTo(ex + 5, ey + 4); x.lineTo(ex - 6, ey + 3); x.closePath(); x.fill(); });
+    x.fillStyle = '#e8b890'; [[23, 30.5], [41, 30.5]].forEach(([ex, ey]) => x.fillRect(ex - 4, ey - 1, 8, 3));   // piel por los agujeros
+    x.fillStyle = '#111'; x.fillRect(21, 29, 3, 3); x.fillRect(40, 29, 3, 3);
+    x.fillStyle = '#ffffff'; x.beginPath(); x.ellipse(32, 44, 7, 4, 0, 0, 7); x.fill();
+    x.fillStyle = '#e8b890'; x.beginPath(); x.ellipse(32, 44, 5, 2.6, 0, 0, 7); x.fill();
+    x.fillStyle = '#9a2a2a'; x.fillRect(28, 44, 8, 1);
+    x.strokeStyle = '#ffd24a'; x.lineWidth = 1; x.beginPath(); x.moveTo(64, 0); x.lineTo(64, h); x.stroke();   // costura de atrás
+  }),
+  raincoat: tex(32, 32, (x, w, h) => { noisy(x, w, h, '#ffd23a', 0.05); x.fillStyle = 'rgba(160,110,0,.35)'; x.fillRect(15, 0, 2, h); x.fillStyle = '#ffffff'; [6, 14, 22].forEach((yy) => x.fillRect(12, yy, 2, 2)); }),
+  sadShirt: tex(32, 32, (x, w, h) => { for (let yy = 0; yy < h; yy += 6) { x.fillStyle = '#e8e8f0'; x.fillRect(0, yy, w, 3); x.fillStyle = '#3a4a8a'; x.fillRect(0, yy + 3, w, 3); } }),
+  patched: tex(32, 32, (x, w, h) => {             // saco viejo con remiendos
+    noisy(x, w, h, '#6a5a78', 0.08);
+    x.fillStyle = '#b89a5a'; x.fillRect(4, 18, 8, 7); x.fillStyle = '#8a3a3a'; x.fillRect(20, 6, 6, 6);
+    x.fillStyle = 'rgba(0,0,0,.4)'; [[4, 18, 8, 7], [20, 6, 6, 6]].forEach(([a, b, c, d]) => { x.fillRect(a, b, c, 1); x.fillRect(a, b + d - 1, c, 1); });
+  }),
+  tights: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#2a2a3a', 0.08); x.fillStyle = '#ffd24a'; x.fillRect(0, 0, 3, h); x.fillRect(13, 0, 3, h); }),
 };
 setWhiteTexture(TX.white);

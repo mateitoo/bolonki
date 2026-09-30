@@ -11,7 +11,8 @@ import { camera } from './render/psx.js';
 import { room } from './net/room.js';
 import * as THREE from 'three';
 import { mg } from './minigames/registry.js';
-import { beginThumbs, flushThumbs, hiTxt } from './render/thumbStore.js';
+import { beginThumbs, flushThumbs, hiTxt, hiImage } from './render/thumbStore.js';
+import { portraits, drawPortrait } from './render/portraits.js';
 
 let hx = null;
 const toast = { text: '', t: 0 };
@@ -34,7 +35,12 @@ function face(i, x, y) {
   rect(x + 1, y + 1, 22, 22, p.flash > 0 && ((game.clock * 16) | 0) % 2 ? '#fff' : ch.col);
   rect(x + 2, y + 2, 20, 20, ch.dark);
   const col = p.alive ? ch.col : '#555b6e';
-  if (ch.model) { personFace(ch.model, x, y, p.alive); crossOut(p, x, y); return; }
+  if (ch.model === 'clown' || ch.model === 'gnome') { personFace(ch.model, x, y, p.alive); crossOut(p, x, y); return; }
+  if (ch.model) {                         // los personajes nuevos: su retrato 3D (nítido si está vivo; oscuro y tachado si no)
+    const ci = p.mesh && p.mesh.ci >= 0 ? p.mesh.ci : i;
+    if (p.alive && portraits[ci]) hiImage(portraits[ci], x + 2, y + 2, 20, 20); else drawPortrait(ci, x + 2, y + 2, 20, 20, true);
+    crossOut(p, x, y); return;
+  }
   if (ch.acc === 'ears') { rect(x + 6, y + 2, 3, 7, col); rect(x + 15, y + 2, 3, 7, col); }
   if (ch.acc === 'horns') { rect(x + 4, y + 4, 3, 4, '#f0e6c8'); rect(x + 17, y + 4, 3, 4, '#f0e6c8'); }
   if (ch.acc === 'antenna') { rect(x + 6, y + 3, 2, 2, '#fff27a'); rect(x + 16, y + 3, 2, 2, '#fff27a'); }

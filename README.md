@@ -139,6 +139,12 @@ En online, la Fiesta corre en la máquina del anfitrión y los invitados eligen 
 
 ## Menú, sala y personajes
 
+**Personajes (10):** KIRO, MOSH, BRUNA y TANK (bichos redondos), COCO y PINO, y cuatro con más detalle
+(`world/people.js`, caras en `render/textures.js`): **HUESO** (esqueleto con galera, moño y ojos que brillan),
+**RANULFO** (rana con piloto y gorro de lluvia amarillos y botas rojas), **TRISTÁN** (payaso triste de circo con
+gorguera, saco remendado, lágrima y zapatones) y **TORNADO** (luchador de feria con máscara, capa y cinturón de
+campeón). Los retratos del marcador de estos cuatro son su retrato 3D (nítido).
+
 El menú principal tiene dos puertas grandes: **FIESTA** (el tablero) y **MINIJUEGOS** (elegís uno y se juega ese).
 Abajo, **ONLINE** y **OPCIONES**.
 

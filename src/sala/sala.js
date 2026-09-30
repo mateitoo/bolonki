@@ -13,9 +13,9 @@ import { settings, saveSettings } from '../settings.js';
 import { input } from '../input.js';
 import { SFX } from '../audio.js';
 import { openMenu, replaceMenus, closeMenu, closeAllMenus, topMenu, footerHit, selectedItem } from '../ui/menu.js';
-import { txt, rect, tri, textWidth, COL, ui } from '../ui/draw.js';
+import { txt, rect, tri, textWidth, COL, ui, fitTxt } from '../ui/draw.js';
 import { mgValues, pointsChoice, botValues, diffValues, mgArt, mapChoice, mapOf } from '../ui/values.js';
-import { drawThumb } from '../render/thumbStore.js';
+import { drawThumb, hiTxt } from '../render/thumbStore.js';
 import { camera } from '../render/psx.js';
 import { drawPortrait } from '../render/portraits.js';
 import { MINIGAMES, mgById } from '../minigames/registry.js';
@@ -340,11 +340,12 @@ const SALA = {
       // J1 + nombre
       const cw2 = chip(human ? `J${k + 1}` : f.occ === 'cpu' ? 'CPU' : `J${k + 1}`, tx, cy + 5, human ? k : -1);
       const who = whoLabel(f, k);
-      if (human && who && who !== `J${k + 1}`) txt(who, tx + cw2 + 3, cy + 6, 8, COL.text);
+      const edge = x + cw - 4;                                              // borde derecho de la tarjeta
+      if (human && who && who !== `J${k + 1}`) fitTxt(who, tx + cw2 + 3, cy + 6, edge - (tx + cw2 + 3), COL.text, 'left', hiTxt);
       if (net() === 'host' && human && !f.mine && !f.away && f.ping) txt(`${f.ping}`, x + cw - 4, cy + 6, 8, pingColor(f.ping), 'right');
       // personaje
       const ly = wide ? cy + 19 : cy + 27, lx = wide ? tx : x + 5;
-      if (chr) txt(chr.name, lx, ly, 8, human ? chr.col : COL.dim);
+      if (chr) fitTxt(chr.name, lx, ly, edge - lx, human ? chr.col : COL.dim, 'left', hiTxt);
       // estado
       let st = '', sc = COL.dim;
       if (human) {
@@ -353,7 +354,7 @@ const SALA = {
         else { st = wide ? 'ELIGIENDO…' : 'ELIGE…'; sc = COL.teal; }
       } else if (net() === 'off' && k > 0) { st = joinHint(k); sc = input.pads > k || k === 1 ? COL.text : COL.dim; }
       else if (f.occ === 'cpu') st = DIFFICULTIES[net() === 'off' ? settings.difficulty : room.opts.difficulty].label.slice(0, wide ? 10 : 8);
-      if (st) txt(st, lx, wide ? cy + 32 : cy + 37, 8, sc);
+      if (st) fitTxt(st, lx, wide ? cy + 32 : cy + 37, edge - lx, sc, 'left', hiTxt);
       cardRects.push({ k, x, y: cy, w: cw, h: ch });
     });
   },
@@ -575,7 +576,7 @@ const PRESENT = {
     rect(0, 0, hw, 40, 'rgba(4,6,14,.82)'); rect(0, 40, hw, 1, '#1d6e68');
     txt(info.sub, 12, 6, 8, COL.teal);
     txt(info.title, 12, 18, 16, COL.gold, 'left', COL.goldShadow);
-    if (hw >= 380) txt(info.desc, hw - 12, 18, 8, COL.text, 'right');
+    if (hw >= 380) { const x0 = 12 + textWidth(info.title, 16) + 10; fitTxt(info.desc, hw - 12, 22, hw - 12 - x0, COL.text, 'right', hiTxt); }
     // abajo de cada podio: quién es, con qué personaje y cómo juega
     const mySlot = net() === 'guest' ? room.mySlot : net() === 'host' ? 0 : -1;
     info.seats.forEach((f, k) => {

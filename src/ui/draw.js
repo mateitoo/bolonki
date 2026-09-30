@@ -109,3 +109,19 @@ export function tri(x, y, dir, col) {
   }
 }
 export function textWidth(s, size) { ui.ctx.font = `${size}px ${PX}`; return ui.ctx.measureText(s).width; }
+
+// Texto que tiene que entrar en un ancho: si no entra con la letra normal, se escribe más chico (en la capa nítida)
+// y, si igual no entra, se corta. hiTxt se pasa desde afuera para no mezclar imports (la capa nítida está en render/)
+export function fitTxt(s, x, y, maxW, col, align, hiTxt) {
+  s = String(s);
+  const w = textWidth(s, 8);
+  if (w <= maxW || !hiTxt) { txt(s, x, y, 8, col, align); return; }
+  const size = Math.max(5, (8 * maxW) / w);
+  let t = s;
+  while (t.length > 2 && (textWidth(t, 8) * size) / 8 > maxW) t = t.slice(0, -1);
+  if (t !== s) t = t.slice(0, -1) + '.';
+  const tw = (textWidth(t, 8) * size) / 8, lx = align === 'center' ? x - tw / 2 : align === 'right' ? x - tw : x;
+  const dy = (8 - size) / 2;
+  hiTxt(t, lx + 0.5, y + dy + 0.5, size, 'rgba(0,0,0,.75)');
+  hiTxt(t, lx, y + dy, size, col);
+}

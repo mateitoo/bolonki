@@ -1,16 +1,29 @@
 // Pantalla para escribir texto corto estilo arcade: código de sala, apodo…
 // Teclado: se escribe directo. Joystick: ←→ elige la casilla, ↑↓ cambia la letra. Enter / A acepta.
 import { ui, txt, rect, tri, textWidth, COL } from './draw.js';
-import { customRects } from './menu.js';
+import { customRects, topMenu } from './menu.js';
+import { view } from '../display.js';
+
 import { SFX } from '../audio.js';
+import { isTouch } from '../input.js';
+let shown = null;
 
 export function textEntry(o) {
   const st = { letters: [], pos: 0 };
   const val = () => st.letters.join('').trim();
   const def = {
     id: o.id, title: o.title, width: Math.max(250, o.len * 28 + 40), bodyH: 70, items: [], typing: true,
-    reset(initial) { st.letters = Array.from({ length: o.len }, (_, i) => (initial && initial[i] ? initial[i] : '')); st.pos = Math.min(o.len - 1, (initial || '').length); },
+    reset(initial) { st.letters = Array.from({ length: o.len }, (_, i) => (initial && initial[i] ? initial[i] : '')); st.pos = Math.min(o.len - 1, (initial || '').length); st.fresh = true; },
     value: val,
+    // lo que escriben con el teclado del celular (el campo de texto real): reemplaza todo el texto
+    setText(t) {
+      const clean = [...t.toUpperCase()].filter((c) => o.alphabet.includes(c)).slice(0, o.len);
+      st.letters = Array.from({ length: o.len }, (_, i) => clean[i] || '');
+      st.pos = Math.min(o.len - 1, clean.length); SFX.move();
+      return clean.join('');
+    },
+    submit: () => submit(),
+    box: null, st,
     onEvent(e) {
       const cycle = (d) => {
         const cur = st.letters[st.pos] || '';
@@ -42,7 +55,8 @@ export function textEntry(o) {
       }
     },
     body(x, y, w, hw) {
-      txt(o.hint, hw / 2, y + 2, 8, COL.dim, 'center');
+      const touch = isTouch();
+      txt(touch ? 'TOCÁ LAS CASILLAS PARA ESCRIBIR' : o.hint, hw / 2, y + 2, 8, COL.dim, 'center');
       const bw = o.len > 4 ? 20 : 26, gap = o.len > 4 ? 4 : 8, total = o.len * bw + (o.len - 1) * gap, bx = hw / 2 - total / 2, by = y + 16;
       for (let i = 0; i < o.len; i++) {
         const cx = bx + i * (bw + gap), on = i === st.pos;
@@ -52,10 +66,17 @@ export function textEntry(o) {
         txt(st.letters[i] || '', cx + bw / 2, by + 6, 16, COL.white, 'center');
         customRects.push({ i, x: cx, y: by, w: bw, h: 28 });
       }
-      const s = (o.status && o.status()) || { text: 'ENTER PARA ACEPTAR', color: COL.dim };
-      txt(s.text, hw / 2, y + 54, 8, s.color, 'center');
+      def.box = { x: bx, y: by, w: total, h: 28 };
+      const s = (o.status && o.status()) || { text: touch ? 'ACEPTAR' : 'ENTER PARA ACEPTAR', color: touch ? '#1a0c00' : COL.dim };
       const mw = textWidth(s.text, 8);
-      customRects.push({ i: 'ok', x: hw / 2 - mw / 2, y: y + 50, w: mw, h: 14 });
+      if (touch && !(o.status && o.status())) {                  // en el celular, un botón para aceptar
+        rect(hw / 2 - mw / 2 - 10, y + 48, mw + 20, 16, COL.gold);
+        txt(s.text, hw / 2, y + 52, 8, s.color, 'center', 'rgba(0,0,0,0)');
+        customRects.push({ i: 'ok', x: hw / 2 - mw / 2 - 10, y: y + 48, w: mw + 20, h: 16 });
+      } else {
+        txt(s.text, hw / 2, y + 54, 8, s.color, 'center');
+        customRects.push({ i: 'ok', x: hw / 2 - mw / 2, y: y + 50, w: mw, h: 14 });
+      }
     },
     onBack: o.onCancel,
   };
@@ -65,4 +86,21 @@ export function textEntry(o) {
     o.onSubmit(v);
   }
   return def;
+}
+
+// Celular: un <input> de verdad encima de las casillas, así al tocarlas se abre el teclado del teléfono.
+// Se llama en cada cuadro: lo muestra y lo ubica si hay una pantalla para escribir abierta; si no, lo esconde.
+export function syncNativeText() {
+  const el = document.getElementById('txtin'); if (!el) return;
+  const top = topMenu(), def = top && top.def;
+  const on = !!(def && def.typing && def.setText && def.box && isTouch());
+  if (!on) { if (shown) { shown = null; el.style.display = 'none'; el.blur(); } return; }
+  if (!el.dataset.bound) {
+    el.dataset.bound = '1';
+    el.addEventListener('input', () => { const d = shown; if (d) el.value = d.setText(el.value); });
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' && shown) { e.preventDefault(); el.blur(); shown.submit(); } });
+  }
+  if (shown !== def || def.st.fresh) { shown = def; def.st.fresh = false; el.value = def.value(); el.maxLength = def.st.letters.length; }
+  const hud = document.getElementById('hud').getBoundingClientRect(), k = hud.width / view.hw, b = def.box;
+  Object.assign(el.style, { display: 'block', left: `${hud.left + (b.x - 4) * k}px`, top: `${hud.top + (b.y - 4) * (hud.height / 240)}px`, width: `${(b.w + 8) * k}px`, height: `${(b.h + 8) * (hud.height / 240)}px` });
 }

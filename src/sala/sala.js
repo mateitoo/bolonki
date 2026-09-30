@@ -10,7 +10,7 @@
 import { CHARS, DIFFICULTIES } from '../config.js';
 import { game } from '../state.js';
 import { settings, saveSettings } from '../settings.js';
-import { input } from '../input.js';
+import { input, isTouch } from '../input.js';
 import { SFX } from '../audio.js';
 import { openMenu, replaceMenus, closeMenu, closeAllMenus, topMenu, footerHit, selectedItem } from '../ui/menu.js';
 import { txt, rect, tri, textWidth, COL, ui, fitTxt } from '../ui/draw.js';
@@ -283,7 +283,8 @@ const SALA = {
       const act = footerHit(e.x, e.y);
       if (act) { seatAction(myK(), act); continue; }
       const t = tileRects.find((q) => e.x >= q.x && e.x <= q.x + q.w && e.y >= q.y && e.y <= q.y + q.h);
-      if (t) pickChar(myK(), t.c);
+      // tocar/clickear el personaje que ya tenés marcado = elegirlo
+      if (t) { const s0 = S.seats[myK()]; if (t.c === s0.ch && !s0.locked) seatAction(myK(), 'ok'); else pickChar(myK(), t.c); }
     }
   },
   draw(hw) {
@@ -387,10 +388,16 @@ const SALA = {
     });
   },
   footer() {
-    const pad = input.device === 'gamepad', mouse = input.device === 'pointer', mine = S.seats[myK()];
+    const pad = input.device === 'gamepad', mouse = input.device === 'pointer', mine = S.seats[myK()], touch = isTouch();
     const parts = [];
+    if (touch) {                                          // celular: tocás un personaje y lo volvés a tocar para elegirlo
+      if (!mine.locked) parts.push({ key: 'TOCÁ 2 VECES', label: 'ELEGIR', act: null });
+      if (!mine.locked) parts.push({ key: 'ACÁ', label: 'ELEGIR', act: 'ok' });
+      parts.push({ key: '◀', label: mine.locked ? 'CAMBIAR' : 'VOLVER', act: 'back' });
+      return parts;
+    }
     if (!mine.locked) parts.push({ key: pad ? 'STICK' : mouse ? 'CLIC' : 'FLECHAS', label: 'MOVER', act: null });
-    if (!mine.locked) parts.push({ key: pad ? 'A' : 'ESPACIO', label: 'ELEGIR', act: 'ok' });
+    if (!mine.locked) parts.push({ key: pad ? 'A' : mouse ? 'CLIC 2 VECES' : 'ESPACIO', label: 'ELEGIR', act: 'ok' });
     parts.push({ key: pad ? 'B' : 'ESC', label: mine.locked ? 'CAMBIAR' : 'VOLVER', act: 'back' });
     return parts;
   },

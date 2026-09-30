@@ -23,7 +23,8 @@ import salaStage from './sala/stage.js';
 import { updateVisuals } from './visuals.js';
 import { initHud, drawHud, showToast } from './hud.js';
 import { initDisplay, toHud, toggleFullscreen } from './display.js';
-import { input, initInput, pollInput, bindTouch, pushEvent } from './input.js';
+import { input, initInput, pollInput, bindTouch, bindStick, pushEvent } from './input.js';
+import { syncNativeText } from './ui/textEntry.js';
 import { initFlow, updateFlow, onMatchEnd, inDemo } from './flow.js';
 import { hostTick, guestFrame } from './net/online.js';
 import { makeThumbs } from './render/thumbs.js';
@@ -57,9 +58,10 @@ initInput(stage, {
   onFullscreenKey: () => { toggleFullscreen(); },
   onPadConnect: (on) => showToast(on ? 'JOYSTICK CONECTADO' : 'JOYSTICK DESCONECTADO'),
 });
-bindTouch('tl', () => (input.touch.l = true), () => (input.touch.l = false));
-bindTouch('tr', () => (input.touch.r = true), () => (input.touch.r = false));
-bindTouch('th', () => (input.touch.hit = true));
+bindStick('stick', 'knob');
+const TOUCH_LABEL = { bolas: 'GOLPE', empujon: 'EMBESTIR', bombardeo: 'SALTAR', petardos: 'PETARDO', futbol: 'EMBESTIR', colina: 'EMPUJAR', hexagonos: 'AGARRAR', fiesta: 'DADO' };
+let touchMg = null;
+bindTouch('th', () => { input.touch.hit = true; if (game.minigame === 'fiesta') pushEvent('confirm'); });
 bindTouch('tp', () => pushEvent('pause'));
 document.addEventListener('fullscreenchange', () => {
   // si el jugador sale de pantalla completa con ESC, lo recordamos
@@ -122,6 +124,9 @@ function frame(now) {
   renderer.render(scene, camera);
   drawHud();
 
+  syncNativeText();                              // celular: el campo de texto real para el apodo / código
+  // el botón táctil dice qué hace en este minijuego
+  if (game.minigame !== touchMg) { touchMg = game.minigame; const th = document.getElementById('th'); if (th) th.textContent = TOUCH_LABEL[touchMg] || 'GOLPE'; }
   // botones táctiles solo durante la partida
   const ts2 = game.state === 'play' || game.state === 'count' ? 'playing' : 'menu';
   if (ts2 !== touchState) { touchState = ts2; document.body.dataset.mode = ts2; }

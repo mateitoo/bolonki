@@ -9,6 +9,8 @@
 import { clamp } from './config.js';
 
 const zero = () => ({ x: 0, y: 0, hit: false });
+// ¿es un celular / tablet? (dedo y sin mouse)
+export const isTouch = () => (typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches);
 export const input = {
   events: [],
   ctl: { all: zero(), p1: zero(), p2: zero(), p3: zero(), p4: zero() },
@@ -17,7 +19,7 @@ export const input = {
   pointer: { x: -1, y: -1, moved: false },
   drag: { on: false, id: null, lx: 0, ly: 0, dx: 0, dy: 0 },   // arrastre (mouse o dedo) para girar la cámara
   camStick: { x: 0, y: 0 },           // stick derecho del joystick (girar la cámara)
-  touch: { l: false, r: false, hit: false },
+  touch: { l: false, r: false, hit: false, x: 0, y: 0 },   // x, y: joystick virtual (-1..1)
   pads: 0,                            // joysticks conectados
   holdHit: false,                     // alguien mantiene apretado el botón de golpe / aceptar (acelerar en la Fiesta)
 };
@@ -51,6 +53,7 @@ export function initInput(stage, h) {
   hooks = Object.assign(hooks, h);
 
   window.addEventListener('keydown', (e) => {
+    if (e.target && e.target.id === 'txtin') return;           // lo escrito en el campo del celular se maneja en textEntry.js
     // F = pantalla completa (salvo mientras se escribe un código o apodo: ahí es una letra más)
     if (e.code === 'KeyF' && !e.repeat && !e.ctrlKey && !input.typing) { hooks.onFullscreenKey(); hooks.onGesture(); return; }
     held.add(e.code);
@@ -74,7 +77,7 @@ export function initInput(stage, h) {
     hooks.onGesture();
   });
   window.addEventListener('keyup', (e) => held.delete(e.code));
-  window.addEventListener('blur', () => { held.clear(); input.touch.l = input.touch.r = false; queue.push({ a: 'blur' }); });
+  window.addEventListener('blur', () => { held.clear(); input.touch.l = input.touch.r = false; input.touch.x = input.touch.y = 0; queue.push({ a: 'blur' }); });
 
   stage.addEventListener('pointermove', (e) => {
     const d = input.drag;
@@ -112,6 +115,33 @@ export function bindTouch(id, onDown, onUp) {
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
 }
 export function pushEvent(a) { queue.push({ a }); }
+
+// Joystick virtual del celular: la perilla sigue al dedo (hasta el borde) y da una dirección en x / y
+export function bindStick(id, knobId) {
+  const el = document.getElementById(id), knob = document.getElementById(knobId); if (!el) return;
+  let pid = null, last = null;
+  const set = (e) => {
+    const r = el.getBoundingClientRect(), R = r.width / 2;
+    let dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R);
+    const l = Math.hypot(dx, dy), max = R * 0.62;
+    if (l > max) { dx *= max / l; dy *= max / l; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    const k = 1 / max, dz = 0.18;
+    let x = dx * k, y = -dy * k; const m = Math.hypot(x, y);
+    if (m < dz) { x = 0; y = 0; } else { const f = Math.min(1, (m - dz) / (1 - dz)) / m; x *= f; y *= f; }
+    input.touch.x = x; input.touch.y = y;
+    // en los menús, el joystick también navega (un paso por cada vez que se inclina)
+    const dir = Math.abs(x) > Math.abs(y) ? (x > 0.5 ? 'right' : x < -0.5 ? 'left' : null) : (y > 0.5 ? 'up' : y < -0.5 ? 'down' : null);
+    if (dir && dir !== last) queue.push({ a: dir }); last = dir;
+  };
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); pid = e.pointerId; el.setPointerCapture(pid); el.classList.add('on');
+    input.device = 'pointer'; set(e); hooks.onGesture();
+  });
+  el.addEventListener('pointermove', (e) => { if (e.pointerId === pid) set(e); });
+  const up = (e) => { if (e.pointerId !== pid) return; pid = null; last = null; el.classList.remove('on'); knob.style.transform = ''; input.touch.x = 0; input.touch.y = 0; };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
+}
 
 /* ---------- joysticks (mapeo estándar: Xbox / PlayStation / Steam Deck) ---------- */
 const B = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, SELECT: 8, START: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
@@ -182,7 +212,7 @@ export function pollInput(dt) {
   input.camStick.x = 0; input.camStick.y = 0;
   const pads = pollPads(dt, ev);
   const k1 = keySet(K1), k2 = keySet(K2);
-  const touch = { x: (input.touch.r ? 1 : 0) - (input.touch.l ? 1 : 0), y: 0, hit: input.touch.hit };
+  const touch = { x: clamp((input.touch.r ? 1 : 0) - (input.touch.l ? 1 : 0) + input.touch.x, -1, 1), y: input.touch.y, hit: input.touch.hit };
   const extra = { x: 0, y: 0, hit: tap(EXTRA_HIT) };
   const c = input.ctl;
   c.all = merge(k1, k2, extra, touch, ...pads);

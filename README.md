@@ -16,7 +16,7 @@ Abre en la pantalla de título; al pulsar Enter/Start pasa a pantalla completa (
 | Cambiar solapa (Opciones) | Q / E | LB / RB |
 | Pantalla completa | F | |
 
-También se puede usar el mouse en los menús, y en el celular aparecen botones táctiles.
+También se puede usar el mouse en los menús. En el celular (horizontal) hay un joystick a la izquierda y un botón de acción a la derecha; el apodo y el código de sala se escriben tocando las casillas, y los personajes se eligen tocándolos dos veces.
 
 ## Minijuegos
 

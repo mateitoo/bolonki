@@ -16,13 +16,13 @@
     </div>
 
     <div class="touch" aria-hidden="true">
-      <div class="dir">
-        <button id="tl" aria-label="Izquierda">◀</button>
-        <button id="tr" aria-label="Derecha">▶</button>
-      </div>
+      <div class="stick" id="stick" aria-label="Mover"><div class="knob" id="knob"></div></div>
       <button id="tp" class="pause" aria-label="Pausa">❚❚</button>
       <button id="th" class="hit" aria-label="Golpe">GOLPE</button>
     </div>
+    <!-- para escribir el apodo / el código desde el celular (abre el teclado del teléfono) -->
+    <input id="txtin" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done" inputmode="text">
+    <div class="rotate" aria-hidden="true"><div>↻</div><p>GIRÁ EL CELULAR<br>PARA JUGAR</p></div>
   </main>
   <script type="module" src="./src/main.js"></script>
 </body>

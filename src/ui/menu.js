@@ -13,7 +13,7 @@
 // Cualquier ítem puede tener hidden() para ocultarse según el momento.
 // No hay filas "VOLVER": se vuelve con B / ESC o tocando VOLVER en la barra de abajo.
 import { hiTxt } from '../render/thumbStore.js';
-import { input } from '../input.js';
+import { input, isTouch } from '../input.js';
 import { SFX } from '../audio.js';
 import { ui, txt, rect, panel, tri, textWidth, COL } from './draw.js';
 
@@ -175,7 +175,8 @@ function drawBig(top, hw) {
 }
 
 // Ventana: lista simple o con solapas
-export const FOOT_Y = 231;             // barra de abajo (teclas): arranca acá y llega hasta el fondo (240)
+// en el celular la barra es más alta (se toca con el dedo)
+export const FOOT_Y = isTouch() ? 221 : 231;             // barra de abajo (teclas): arranca acá y llega hasta el fondo (240)
 function drawPanel(top, hw) {
   const def = top.def;
   const tabs = def.tabs;
@@ -261,16 +262,16 @@ export function keyCap(label, x, y, align) {
 }
 
 // Barra de botones al pie (cambia según teclado, joystick o mouse)
-const FS = 5;                          // tamaño de la letra de la barra de teclas (nítida, en la capa de alta resolución)
+const FS = isTouch() ? 7 : 5;                          // tamaño de la letra de la barra de teclas (nítida, en la capa de alta resolución)
 const fw = (s) => (textWidth(s, 8) * FS) / 8;
 function drawFooter(top, hw, custom) {
   rect(0, FOOT_Y, hw, 240 - FOOT_Y, 'rgba(4,6,14,.85)');
   const pad = input.device === 'gamepad';
   const parts = custom || [
-    { key: pad ? 'A' : input.device === 'pointer' ? 'CLIC' : 'ENTER', label: (top.def.okLabel && top.def.okLabel(top)) || 'ACEPTAR', act: 'ok' },
+    { key: pad ? 'A' : isTouch() ? 'TOCÁ' : input.device === 'pointer' ? 'CLIC' : 'ENTER', label: (top.def.okLabel && top.def.okLabel(top)) || 'ACEPTAR', act: 'ok' },
   ];
   if (!custom && top.def.tabs) parts.push({ key: pad ? 'LB RB' : 'Q E', label: 'SOLAPA', act: 'tabNext' });
-  if (!custom) parts.push({ key: pad ? 'B' : 'ESC', label: 'VOLVER', act: 'back' });
+  if (!custom) parts.push({ key: pad ? 'B' : isTouch() ? '◀' : 'ESC', label: 'VOLVER', act: 'back' });
   const widths = parts.map((p) => fw(p.key) + 4 + 4 + fw(p.label));
   const total = widths.reduce((a, b) => a + b, 0) + (parts.length - 1) * 12;
   let x = hw / 2 - total / 2;

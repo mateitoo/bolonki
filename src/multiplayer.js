@@ -15,6 +15,7 @@ import { textEntry } from './ui/textEntry.js';
 import { SFX } from './audio.js';
 import { showToast } from './hud.js';
 import { MAIN, OPTIONS, winnerTitle } from './flow.js';
+import { FS_ACTION } from './ui/fsAction.js';
 import { mgById } from './minigames/registry.js';
 import { fiestaRankArt } from './fiesta/board.js';
 import { openSalaOnline, hostSala, setSalaHooks } from './sala/sala.js';
@@ -102,6 +103,7 @@ export const ONLINE_PAUSE = {
     { kind: 'info', label: 'LA PARTIDA SIGUE' },
     { kind: 'action', label: 'CONTINUAR', action: () => closeAllMenus() },
     { kind: 'action', label: 'OPCIONES', action: () => openMenu(OPTIONS) },
+    FS_ACTION,
     { kind: 'action', label: 'SALIR DE LA SALA', danger: true, action: () => exitRoom() },
   ],
   onBack: () => closeAllMenus(),

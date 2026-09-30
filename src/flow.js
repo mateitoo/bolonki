@@ -7,7 +7,7 @@ import { game } from './state.js';
 import { settings, saveSettings, IS_DESKTOP, DEFAULTS, RESETTABLE } from './settings.js';
 import { DIFFICULTIES, DIFF_ORDER } from './config.js';
 import { input, has, freezeControls, isTouch } from './input.js';
-import { applyDisplay, enterFullscreen, exitFullscreen, isFullscreen } from './display.js';
+import { applyDisplay, enterFullscreen, exitFullscreen, isFullscreen, canFullscreen, fullscreenPending } from './display.js';
 import { SFX, setVolume, setMuted, setBackgroundSound } from './audio.js';
 const applySfxVolume = () => setVolume((settings.sfx / 10) * ((settings.master === undefined ? 10 : settings.master) / 10));
 import { resetMatch, eliminate, deathsRunning, soloSetup, demoSetup, pointsFor, placement } from './game/match.js';
@@ -23,6 +23,7 @@ import { guestHit } from './net/online.js';
 import { startFiesta, fiestaMinigameDone, fiestaRankArt } from './fiesta/board.js';
 import { openSala, setSalaHooks, salaKind } from './sala/sala.js';
 import { showToast } from './hud.js';
+import { FS_ACTION } from './ui/fsAction.js';
 import { ACHIEVEMENTS, hasAch, achCount, checkMatchEnd, setAchNotify } from './achievements.js';
 
 const set = (key, after) => (v) => { settings[key] = v; saveSettings(); if (after) after(v); };
@@ -91,8 +92,9 @@ export const OPTIONS = {
   id: 'options', title: 'OPCIONES', width: 300, tabGap: 3, tabPad: 8,
   tabs: [
     { label: 'VIDEO', items: [
-      { kind: 'choice', label: 'PANTALLA COMPLETA', values: yesNo, get: () => settings.fullscreen,
+      { kind: 'choice', label: 'PANTALLA COMPLETA', values: yesNo, hidden: () => !canFullscreen(), get: () => isFullscreen() || fullscreenPending(),
         set: set('fullscreen', (v) => (v ? enterFullscreen() : exitFullscreen())) },
+      { kind: 'info', label: 'PANTALLA COMPLETA', value: 'AGREGALO AL INICIO', hidden: () => canFullscreen() },
       { kind: 'choice', label: 'ASPECTO', values: [{ v: 'wide', label: 'PANORÁMICO' }, { v: '4:3', label: '4:3' }],
         get: () => settings.aspect, set: set('aspect', applyDisplay) },
       { kind: 'choice', label: 'CALIDAD', values: [{ v: '240', label: '240P' }, { v: '480', label: '480P' }, { v: 'sharp', label: 'HD' }],
@@ -181,6 +183,7 @@ const PAUSE = {
     { kind: 'action', label: 'CONTINUAR', action: () => resume() },
     { kind: 'action', label: 'REINICIAR', hidden: () => inFiesta(), action: () => startMatch(game.setup) },
     { kind: 'action', label: 'OPCIONES', action: () => openMenu(OPTIONS) },
+    FS_ACTION,
     { kind: 'action', label: 'SALIR AL MENÚ', danger: true, action: () => goMainMenu() },
   ],
   onBack: () => resume(),

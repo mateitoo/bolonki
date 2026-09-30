@@ -16,6 +16,7 @@ export function initDisplay(stage, screen, gl, hud) {
   els = { stage, screen, gl, hud };
   window.addEventListener('resize', applyDisplay);
   document.addEventListener('fullscreenchange', applyDisplay);
+  document.addEventListener('webkitfullscreenchange', applyDisplay);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', applyDisplay);
   applyDisplay();
 }
@@ -75,22 +76,33 @@ export function toHud(clientX, clientY) {
 /* ---------- pantalla completa ---------- */
 // en la versión de escritorio (Steam) la pantalla completa es la de la ventana, no la del navegador
 const desk = () => (typeof window !== 'undefined' && window.bolonkiDesktop && window.bolonkiDesktop.setFullscreen ? window.bolonkiDesktop : null);
-export const isFullscreen = () => (desk() ? desk().isFullscreen() : !!document.fullscreenElement);
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+export const isFullscreen = () => (desk() ? desk().isFullscreen() : !!fsEl());
+// ¿este navegador deja poner la página en pantalla completa? (el iPhone no: ahí hay que agregarla al inicio)
+export const canFullscreen = () => !!(desk() || document.fullscreenEnabled || document.webkitFullscreenEnabled);
+// Los navegadores solo dejan entrar a pantalla completa justo cuando tocás o apretás algo. Si se pidió desde
+// un menú y el navegador dijo que no, queda pendiente y se hace con la próxima tecla o toque.
+let pendingFs = false;
+export const fullscreenPending = () => pendingFs;
+export function fullscreenGesture() { if (pendingFs) { pendingFs = false; enterFullscreen(); } }
 
 export function enterFullscreen() {
   if (isFullscreen()) return;
   if (desk()) { desk().setFullscreen(true); return; }
   const el = document.documentElement;
+  const req = el.requestFullscreen ? () => el.requestFullscreen({ navigationUI: 'hide' }) : el.webkitRequestFullscreen ? () => el.webkitRequestFullscreen() : null;
+  if (!req) return;
   try {
-    const p = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : null;
+    const p = req();
     // en Chrome/Edge el juego "atrapa" el teclado: Esc pausa (se mantiene apretado para salir)
     // y atajos como Ctrl+W no cierran la pestaña en medio de la partida
-    if (p && p.then) p.then(() => { try { if (navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock().catch(() => {}); } catch (e) { /* nada */ } }).catch(() => {});
-  } catch (e) { /* el navegador no lo permite acá */ }
+    if (p && p.then) p.then(() => { pendingFs = false; try { if (navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock().catch(() => {}); } catch (e) { /* nada */ } }).catch(() => { pendingFs = true; });
+  } catch (e) { pendingFs = true; }
 }
 export function exitFullscreen() {
+  pendingFs = false;
   if (!isFullscreen()) return;
   if (desk()) { desk().setFullscreen(false); return; }
-  try { const p = document.exitFullscreen(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* nada */ }
+  try { const p = document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* nada */ }
 }
-export function toggleFullscreen() { if (isFullscreen()) exitFullscreen(); else enterFullscreen(); }
+export function toggleFullscreen() { if (isFullscreen() || pendingFs) exitFullscreen(); else enterFullscreen(); }

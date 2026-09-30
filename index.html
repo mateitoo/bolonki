@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bolonki</title>
   <link rel="stylesheet" href="./src/style.css">
+  <!-- instalable: en el celular, "agregar a la pantalla de inicio" lo abre en pantalla completa -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
+  <link rel="apple-touch-icon" href="./icon-256.png">
   <!-- three-cdn -->
 </head>
 <body data-mode="menu">
@@ -22,6 +29,10 @@
     </div>
     <!-- para escribir el apodo / el código desde el celular (abre el teclado del teléfono) -->
     <input id="txtin" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done" inputmode="text">
+    <!-- botón de pantalla completa (arriba a la derecha, en el título y el menú principal) -->
+    <button id="fsbtn" class="fsbtn" aria-label="Pantalla completa" title="Pantalla completa (F)">
+      <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path class="in" d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2"/><path class="out" d="M6 1v5H1M15 6h-5V1M10 15v-5h5M1 10h5v5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </button>
     <div class="rotate" aria-hidden="true"><div>↻</div><p>GIRÁ EL CELULAR<br>PARA JUGAR</p></div>
   </main>
   <script type="module" src="./src/main.js"></script>

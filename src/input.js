@@ -90,7 +90,7 @@ export function initInput(stage, h) {
     input.device = 'pointer';
   });
   stage.addEventListener('pointerdown', (e) => {
-    if (e.target.closest && e.target.closest('.touch')) return;   // los botones táctiles se manejan aparte
+    if (e.target.closest && (e.target.closest('.touch') || e.target.closest('.fsbtn'))) return;   // los botones táctiles se manejan aparte
     Object.assign(input.drag, { on: true, id: e.pointerId, lx: e.clientX, ly: e.clientY });
     const p = hooks.toHud(e.clientX, e.clientY);
     queue.push({ a: 'click', x: p.x, y: p.y });

@@ -1,6 +1,6 @@
 import '@fontsource/press-start-2p/latin.css';          // la fuente pixel va incluida (no depende de Google Fonts)
 // Punto de entrada: arma la escena, conecta pantalla/entrada/menús y corre el loop.
-import { closeAllMenus } from './ui/menu.js';
+import { closeAllMenus, menuOpen, topMenu } from './ui/menu.js';
 import { game } from './state.js';
 import { CHARS, SIDES } from './config.js';
 import { scene, camera, initRenderer } from './render/psx.js';
@@ -22,7 +22,7 @@ import fiesta, { S as fiestaState, startFiesta } from './fiesta/board.js';
 import salaStage from './sala/stage.js';
 import { updateVisuals } from './visuals.js';
 import { initHud, drawHud, showToast } from './hud.js';
-import { initDisplay, toHud, toggleFullscreen } from './display.js';
+import { initDisplay, toHud, toggleFullscreen, fullscreenGesture, isFullscreen, canFullscreen } from './display.js';
 import { input, initInput, pollInput, bindTouch, bindStick, pushEvent } from './input.js';
 import { syncNativeText } from './ui/textEntry.js';
 import { initFlow, updateFlow, onMatchEnd, inDemo } from './flow.js';
@@ -56,7 +56,7 @@ initDisplay(stage, screen, glc, hud);
 // --- entrada ---
 initInput(stage, {
   toHud,
-  onGesture: ensureAudio,
+  onGesture: () => { ensureAudio(); fullscreenGesture(); },
   onFullscreenKey: () => { toggleFullscreen(); },
   onPadConnect: (on) => showToast(on ? 'JOYSTICK CONECTADO' : 'JOYSTICK DESCONECTADO'),
 });
@@ -71,6 +71,14 @@ document.addEventListener('fullscreenchange', () => {
   else if (document.fullscreenElement && !settings.fullscreen) { settings.fullscreen = true; saveSettings(); }
 });
 
+{
+  const b = document.getElementById('fsbtn');
+  if (b) b.addEventListener('click', (e) => {
+    e.stopPropagation(); ensureAudio();
+    if (!canFullscreen()) { showToast('IPHONE: COMPARTIR Y AGREGAR A INICIO'); return; }
+    toggleFullscreen(); settings.fullscreen = !isFullscreen(); saveSettings(); b.blur();
+  });
+}
 initFlow();
 initUpdateCheck();
 makeThumbs();
@@ -86,7 +94,7 @@ if (capsule) {
 // --- loop: física a 120 Hz fijos, render a la tasa de la pantalla ---
 const STEP = 1 / 120;
 let last = performance.now(), acc = 0;
-let touchState = '';
+let touchState = '', fsState = '', fsFull = null;
 
 function frame(now) {
   const rdt = Math.min(0.05, (now - last) / 1000); last = now;
@@ -137,6 +145,10 @@ function frame(now) {
   // el botón táctil dice qué hace en este minijuego
   if (game.minigame !== touchMg) { touchMg = game.minigame; const th = document.getElementById('th'); if (th) th.textContent = TOUCH_LABEL[touchMg] || 'GOLPE'; }
   // botones táctiles solo durante la partida
+  // botón de pantalla completa: en el título y en el menú principal
+  const fsOn = !capsule && (game.state === 'title' || (menuOpen() && topMenu().def.id === 'main')) ? 'on' : 'off';
+  if (fsOn !== fsState) { fsState = fsOn; document.body.dataset.fsbtn = fsOn; }
+  const full = isFullscreen(); if (full !== fsFull) { fsFull = full; document.body.classList.toggle('fs', full); }
   const ts2 = game.state === 'play' || game.state === 'count' ? 'playing' : 'menu';
   if (ts2 !== touchState) { touchState = ts2; document.body.dataset.mode = ts2; }
 

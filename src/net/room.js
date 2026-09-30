@@ -14,7 +14,7 @@ import { settings } from '../settings.js';
 import { mgById } from '../minigames/registry.js';
 import { CHARS } from '../config.js';
 
-export const NET_VERSION = 14;         // v3: modo Fiesta · v4: personajes en la sala · v5: 6 personajes · v6: tienda en la Fiesta · v7: Futbolonki y Rey de la colina · v8: mapas de Empujón · v9: presentación antes de jugar · v10: Hexágonos y mapas de Bola Brava · v11: 10 personajes · v12: 14 personajes
+export const NET_VERSION = 15;         // v3: modo Fiesta · v4: personajes en la sala · v5: 6 personajes · v6: tienda en la Fiesta · v7: Futbolonki y Rey de la colina · v8: mapas de Empujón · v9: presentación antes de jugar · v10: Hexágonos y mapas de Bola Brava · v11: 10 personajes · v12: 14 personajes · v15: canal rápido y fotos con hora
 export const MAX_PLAYERS = 4;
 export const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const JOIN_ORDER = [2, 1, 3];          // el primer invitado va enfrente del anfitrión
@@ -41,7 +41,7 @@ export const room = {
 
 // El juego registra acá qué hacer con cada cosa que pasa en la red
 const handlers = {
-  onChange() {}, onStart() {}, onSnap() {}, onToLobby() {}, onClosed() {}, onPresent() {},
+  onChange() {}, onStart() {}, onSnap() {}, onEvents() {}, onToLobby() {}, onClosed() {}, onPresent() {},
   onGuestLeft() {}, onGuestAway() {}, onGuestBack() {}, onVotes() {}, onReconnecting() {}, onReconnected() {},
 };
 export function setRoomHandlers(h) { Object.assign(handlers, h); }
@@ -53,11 +53,23 @@ function peerOptions() {
   try { custom = new URLSearchParams(location.search).get('peer'); } catch (e) { /* sin URL */ }
   if (custom) {
     const [host, port] = custom.split(':');
-    return { host, port: Number(port) || 9000, path: '/', secure: false, debug: 0 };
+    return { host, port: Number(port) || 9000, path: '/', secure: false, debug: 0, config: ICE };
   }
-  return { debug: 0 };
+  return { debug: 0, config: ICE };
 }
-const idFor = (code) => `bolonki-v${NET_VERSION}-${code.toLowerCase()}`;
+// Servidores para atravesar routers: varios STUN (para averiguar la dirección pública) y el TURN de
+// PeerJS (retransmite cuando la conexión directa no se puede, típico con datos móviles).
+const ICE = {
+  iceServers: [
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
+  ],
+  sdpSemantics: 'unified-plan',
+};
+// El id de la sala no depende de la versión: así, si alguien tiene el juego viejo, entra al saludo
+// y se le avisa "VERSIONES DISTINTAS" en vez de "NO EXISTE ESA SALA".
+const idFor = (code) => `bolonki-sala-${code.toLowerCase()}`;
 const pubId = (n) => `bolonki-v${NET_VERSION}-pub-${n}`;
 const genCode = () => Array.from({ length: 4 }, () => ALPHA[(Math.random() * ALPHA.length) | 0]).join('');
 const myName = () => settings.name || 'JUGADOR';
@@ -79,18 +91,59 @@ const ERRORS = {
   'browser-incompatible': 'NAVEGADOR SIN SOPORTE',
   full: 'LA SALA ESTÁ LLENA',
   ingame: 'LA PARTIDA YA EMPEZÓ',
-  version: 'VERSIONES DISTINTAS DEL JUEGO',
+  version: 'VERSIONES DISTINTAS · RECARGUEN LA PÁGINA',
   timeout: 'NO SE PUDO CONECTAR',
 };
 function fail(key) { room.status = 'error'; room.error = ERRORS[key] || 'ERROR DE CONEXIÓN'; changed(); }
 
 let tick = 0;
-function startTicker(fn) { clearInterval(tick); tick = setInterval(fn, 500); }
+function startTicker(fn) { clearInterval(tick); tick = setInterval(() => { keepPeer(); fn(); }, 500); }
+
+// Si se corta la conexión con el servidor de PeerJS (pasa mucho en el celular al cambiar de app),
+// se vuelve a registrar el mismo id, así la sala se sigue pudiendo encontrar.
+let lastRe = 0;
+function keepPeer(force) {
+  const p = room.peer;
+  if (!p || p.destroyed || !p.disconnected) return;
+  if (!force && now() - lastRe < 3000) return;
+  lastRe = now();
+  try { p.reconnect(); } catch (e) { /* nada */ }
+}
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (!document.hidden) keepPeer(true); });
+
+// Canal "rápido" (sin reenvíos ni orden) para lo que se manda muchas veces por segundo (posiciones):
+// si se pierde un paquete no importa, llega el siguiente, y no traba a los demás esperando el perdido.
+// Es un segundo canal pactado de antemano sobre la misma conexión (mismo id en las dos puntas).
+function openFast(conn, onMsg) {
+  try {
+    const pc = conn.peerConnection; if (!pc || conn.fast) return;
+    const ch = pc.createDataChannel('rapido', { negotiated: true, id: 5, ordered: false, maxRetransmits: 0 });
+    ch.onmessage = (e) => { let m = null; try { m = JSON.parse(e.data); } catch (er) { return; } onMsg(m); };
+    conn.fast = ch;
+  } catch (e) { conn.fast = null; }
+}
+function sendFast(conn, msg) {
+  const ch = conn && conn.fast;
+  if (ch && ch.readyState === 'open' && ch.bufferedAmount < 65536) { try { ch.send(JSON.stringify(msg)); return; } catch (e) { /* por el canal normal */ } }
+  if (conn && conn.open) { try { conn.send(msg); } catch (e) { /* nada */ } }
+}
+let fastJson = '';
+export function broadcastFast(msg) {
+  fastJson = '';
+  for (const g of room.guests.values()) {
+    const c = g.conn; if (!c) continue;
+    const ch = c.fast;
+    if (ch && ch.readyState === 'open' && ch.bufferedAmount < 65536) {
+      try { ch.send(fastJson || (fastJson = JSON.stringify(msg))); continue; } catch (e) { /* por el canal normal */ }
+    }
+    if (c.open) { try { c.send(msg); } catch (e) { /* nada */ } }
+  }
+}
 
 export function leaveRoom() {
   if (room.role === 'host') broadcast({ t: 'closed' });
   if (room.role === 'guest' && room.hostConn && room.hostConn.open) { try { room.hostConn.send({ t: 'bye' }); } catch (e) { /* nada */ } }
-  clearInterval(tick); clearTimeout(reconnectTimer);
+  clearInterval(tick); clearTimeout(reconnectTimer); clearTimeout(retryTimer); clearTimeout(joinTimer);
   stopBeacon();
   // se cierra un instante después para que el aviso llegue
   const conns = [...room.guests.values()].map((g) => g.conn).filter(Boolean).concat(room.hostConn ? [room.hostConn] : []);
@@ -123,6 +176,7 @@ function openHostPeer(tries) {
   room.peer = peer;
   peer.on('open', () => { if (room.peer === peer) { room.status = 'ready'; changed(); if (room.opts.public) startBeacon(); } });
   peer.on('connection', (conn) => {
+    conn.on('open', () => openFast(conn, (m) => hostOnData(conn, m)));
     conn.on('data', (m) => hostOnData(conn, m));
     conn.on('close', () => hostOnClose(conn));
     conn.on('error', () => hostOnClose(conn));
@@ -148,12 +202,15 @@ function hostOnData(conn, m) {
       const name = cleanName(m.name);
       // ¿vuelve alguien que se había caído?
       for (const [slot, rec] of room.guests) {
-        if (room.slots[slot].away && rec.token && rec.token === m.token) {
+        if (rec.token && rec.token === m.token) {
+          const old = rec.conn;
           rec.conn = conn; rec.last = now(); conn.slot = slot;
+          if (old && old !== conn) { try { old.close(); } catch (e) { /* nada */ } }
+          const wasAway = room.slots[slot].away;
           Object.assign(room.slots[slot], { away: false, name });
           conn.send({ t: 'welcome', slot, code: room.code });
           if (room.inGame && room.startInfo) conn.send(Object.assign({}, room.startInfo, { resume: true }));
-          broadcastLobby(); handlers.onGuestBack(slot); changed();
+          broadcastLobby(); if (wasAway) handlers.onGuestBack(slot); changed();
           return;
         }
       }
@@ -167,7 +224,7 @@ function hostOnData(conn, m) {
       broadcastLobby(); changed();
       break;
     }
-    case 'i': if (g) { g.s = m.s; g.v = m.v; g.x = m.x || 0; g.y = m.y || 0; g.st = m.st || null; if (m.h > g.h) { g.h = m.h; g.hit = true; } } break;   // st: estado propio que simula el invitado (Bombardeo)
+    case 'i': if (g) { if (m.q !== undefined) { if (m.q <= (g.q || 0) && m.q > (g.q || 0) - 1000) break; g.q = m.q; } g.s = m.s; g.v = m.v; g.x = m.x || 0; g.y = m.y || 0; g.st = m.st || null; if (m.h > g.h) { g.h = m.h; g.hit = true; } } break;   // st: estado propio que simula el invitado (Bombardeo)
     case 'ready': if (g) { room.slots[conn.slot].ready = !!m.v; broadcastLobby(); changed(); } break;
     case 'char': if (g) {
       // el invitado cambió de personaje (o lo confirmó): si otro ya lo tiene, se queda con el que tenía
@@ -347,30 +404,58 @@ export function stopBrowse(keepList) {
 
 /* ================= INVITADO ================= */
 
-let joinTimer = 0, reconnectTimer = 0, reconnectUntil = 0, lastHost = 0;
+let joinTimer = 0, reconnectTimer = 0, reconnectUntil = 0, lastHost = 0, retryTimer = 0, joinUntil = 0, lastUnavailable = false;
+const JOIN_MS = 25000;                 // cuánto se insiste en entrar (el anfitrión puede estar pasando el código por WhatsApp)
 
 export function joinRoom(code) {
   leaveRoom();
-  Object.assign(room, { role: 'guest', status: 'connecting', code, slots: [], inGame: false, votes: [] });
+  Object.assign(room, { role: 'guest', status: 'connecting', code, slots: [], inGame: false, votes: [], note: '' });
   changed();
   const peer = new Peer(peerOptions());
   room.peer = peer;
-  clearTimeout(joinTimer);
-  joinTimer = setTimeout(() => { if (room.peer === peer && room.status === 'connecting') fail('timeout'); }, 15000);
-  peer.on('open', () => { if (room.peer === peer) connectToHost(); });
+  clearTimeout(joinTimer); clearTimeout(retryTimer);
+  joinUntil = now() + JOIN_MS; lastUnavailable = false;
+  joinTimer = setTimeout(() => { if (room.peer === peer && room.status === 'connecting') fail(lastUnavailable ? 'peer-unavailable' : 'timeout'); }, JOIN_MS);
+  peer.on('open', () => { if (room.peer === peer && room.status === 'connecting' && !room.hostConn) connectToHost(); });
   peer.on('error', (err) => {
     if (room.peer !== peer) return;
     if (room.status === 'reconnecting') return;       // se sigue intentando hasta que venza el plazo
-    if (room.status === 'connecting' || room.status === 'error') fail(err.type);
+    if (room.status === 'connecting') {
+      // la sala no aparece (o el servidor tuvo un problema): se vuelve a probar un rato antes de rendirse
+      if (['peer-unavailable', 'network', 'server-error', 'socket-error', 'socket-closed', 'webrtc'].includes(err.type) && now() < joinUntil - 1500) {
+        if (err.type === 'peer-unavailable') { lastUnavailable = true; room.note = 'BUSCANDO LA SALA...'; changed(); }
+        scheduleRetry(2000);
+        return;
+      }
+      fail(err.type);
+    }
   });
   peer.on('disconnected', () => { if (room.peer === peer && room.role === 'guest') { try { peer.reconnect(); } catch (e) { /* nada */ } } });
   startTicker(guestTicker);
 }
 
+function scheduleRetry(ms) {
+  clearTimeout(retryTimer);
+  retryTimer = setTimeout(() => {
+    if (room.role !== 'guest' || room.status !== 'connecting') return;
+    const peer = room.peer; if (!peer) return;
+    if (peer.disconnected && !peer.destroyed) { keepPeer(true); scheduleRetry(1500); return; }
+    if (!peer.open) { scheduleRetry(1000); return; }
+    const old = room.hostConn; room.hostConn = null; if (old) { try { old.close(); } catch (e) { /* nada */ } }
+    connectToHost();
+  }, ms);
+}
+
 function connectToHost() {
   const conn = room.peer.connect(idFor(room.code), { reliable: true, serialization: 'json' });
   room.hostConn = conn;
-  conn.on('open', () => { lastHost = now(); conn.send({ t: 'hello', v: NET_VERSION, name: myName(), token: token() }); });
+  // si la conexión no abre en unos segundos (routers complicados), se prueba de nuevo
+  if (room.status === 'connecting') { clearTimeout(retryTimer); retryTimer = setTimeout(() => { if (room.hostConn === conn && !conn.open && room.status === 'connecting' && now() < joinUntil - 3000) scheduleRetry(0); }, 7000); }
+  conn.on('open', () => {
+    lastHost = now();
+    openFast(conn, (m) => { if (room.hostConn === conn) { lastHost = now(); guestOnData(m); } });
+    conn.send({ t: 'hello', v: NET_VERSION, name: myName(), token: token() });
+  });
   conn.on('data', (m) => { if (room.hostConn === conn) { lastHost = now(); guestOnData(m); } });
   const lost = () => { if (room.hostConn === conn) hostLost(); };
   conn.on('close', lost);
@@ -405,7 +490,7 @@ function guestOnData(m) {
   switch (m.t) {
     case 'welcome': {
       const again = room.status === 'reconnecting';
-      room.mySlot = m.slot; room.status = 'joined'; clearTimeout(joinTimer); clearTimeout(reconnectTimer);
+      room.mySlot = m.slot; room.status = 'joined'; room.note = ''; clearTimeout(joinTimer); clearTimeout(reconnectTimer); clearTimeout(retryTimer);
       if (again) handlers.onReconnected();
       changed(); break;
     }
@@ -420,6 +505,7 @@ function guestOnData(m) {
     case 'present': handlers.onPresent(m); break;
     case 'start': room.inGame = true; room.votes = []; handlers.onStart(m); break;
     case 's': if (m.pg) room.myPing = m.pg[room.mySlot] || room.myPing; handlers.onSnap(m); break;
+    case 'ev': handlers.onEvents(m); break;
     case 'toLobby': room.inGame = false; room.votes = []; handlers.onToLobby(); break;
     case 'closed': { leaveRoom(); handlers.onClosed('LA SALA SE CERRÓ'); break; }
     default: break;
@@ -427,9 +513,10 @@ function guestOnData(m) {
 }
 
 // Lo que manda el invitado sobre su nave (cada minijuego decide qué: posición, dirección, golpes)
+let inputSeq = 0;
 export function sendInput(data) {
   const c = room.hostConn;
-  if (c && c.open) { try { c.send(Object.assign({ t: 'i' }, data)); } catch (e) { /* nada */ } }
+  if (c && c.open) sendFast(c, Object.assign({ t: 'i', q: ++inputSeq }, data));
 }
 export function sendReady(v) {
   const me = room.slots[room.mySlot]; if (me) me.ready = v;

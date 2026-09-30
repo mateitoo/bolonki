@@ -300,7 +300,7 @@ const bolas = {
     const canMove = me.alive && (game.state === 'play' || game.state === 'count');
     movePod(me, canMove ? localAxis(me) * HUMAN_SPEED : 0, rdt);
     sendT -= rdt;
-    if (sendT <= 0) { sendT = 1 / 30; sendInput({ s: Math.round(me.s * 100) / 100, v: Math.round(me.v * 10) / 10, h: hits }); }
+    if (sendT <= 0) { sendT = 1 / 60; sendInput({ s: Math.round(me.s * 100) / 100, v: Math.round(me.v * 10) / 10, h: hits }); }
   },
   guestHitFx(me) { startSwing(me); },
 };

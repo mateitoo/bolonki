@@ -557,6 +557,7 @@ const colina = {
       p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.fy || 0), r2(p.ang || 0), p.out > 0 ? 1 : 0, p.stick || 0, p.hitN || 0, p.stunT > 0 ? 1 : 0, p.inv > 0 ? 1 : 0, r2(p.vx || 0), r2(p.vz || 0), p.onGround ? 1 : 0]),
     };
   },
+  ownPos: { x: 0, z: 1, fy: 2, ang: 3 },                // online: dónde viene la posición propia en la foto (para dibujarte sin retraso)
   applySnap(A, B, f) {
     const s = B.s;
     S.hill = s[0]; S.next = s[1]; S.zoneT = s[2]; S.t = s[3]; S.extra = !!s[4]; S.over = !!s[5]; game.round.winner = s[6];
@@ -582,7 +583,7 @@ const colina = {
     game.players.forEach((p) => { if (p.swingT > 0) p.swingT -= rdt; });
     sendT -= rdt;
     if (sendT > 0) return;
-    sendT = 1 / 30;
+    sendT = 1 / 60;
     const c = input.ctl.all, [wx, wz] = camMove(c.x, c.y);
     sendInput({ x: Math.round(wx * 100) / 100, y: Math.round(-wz * 100) / 100, h: hits });
   },

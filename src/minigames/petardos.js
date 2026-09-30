@@ -1088,6 +1088,7 @@ const petardos = {
       u: pups.map((u) => [u.k, u.type, r2(u.t)]),
     };
   },
+  ownPos: { x: 0, z: 1, ang: 2 },                // online: dónde viene la posición propia en la foto (para dibujarte sin retraso)
   applySnap(A, Bs, f) {
     const ro = A.ro;
     game.round = { n: ro[0], over: !!ro[1], winner: ro[2], t: ro[3] };
@@ -1102,7 +1103,7 @@ const petardos = {
       if (!p.alive && !p.death && !p.empty) FX.blast(i);
       if (p.death || p.empty) return;
       const nx = pa[0] + (pb[0] - pa[0]) * f, nz = pa[1] + (pb[1] - pa[1]) * f;
-      p.vx = (pb[0] - pa[0]) * 20; p.vz = (pb[1] - pa[1]) * 20;
+      p.vx = (pb[0] - pa[0]) * 30; p.vz = (pb[1] - pa[1]) * 30;
       p.x = nx; p.z = nz; p.ang = lerpAng(pa[2], pb[2], f);
     });
     bombs = A.b.map(([id, k, t, bx, bz]) => {
@@ -1116,7 +1117,7 @@ const petardos = {
   guestLocal(rdt, hits) {
     sendT -= rdt;
     if (sendT > 0) return;
-    sendT = 1 / 30;
+    sendT = 1 / 60;
     // se manda la dirección ya girada según tu cámara (el anfitrión la usa tal cual)
     const c = input.ctl.all, [wx, wz] = camMove(c.x, c.y);
     sendInput({ x: Math.round(wx * 100) / 100, y: Math.round(-wz * 100) / 100, h: hits });

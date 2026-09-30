@@ -664,7 +664,7 @@ const bombardeo = {
     }
     sendT -= rdt;
     if (sendT > 0) return;
-    sendT = 1 / 30;
+    sendT = 1 / 60;
     const st = me && me.alive ? { x: r2(me.x), z: r2(me.z), fy: r2(me.fy || 0), vy: r2(me.vy || 0), og: me.onGround ? 1 : 0,
       vx: r2(me.vx || 0), vz: r2(me.vz || 0), a: r2(me.ang || 0), jN: me.jN || 0, sN: me.sN || 0, sI: me.sI || 0, pN: me.sprN || 0 } : null;
     sendInput({ x: Math.round(wx * 100) / 100, y: Math.round(-wz * 100) / 100, h: hits, st });

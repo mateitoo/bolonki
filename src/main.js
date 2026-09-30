@@ -26,7 +26,8 @@ import { initDisplay, toHud, toggleFullscreen } from './display.js';
 import { input, initInput, pollInput, bindTouch, bindStick, pushEvent } from './input.js';
 import { syncNativeText } from './ui/textEntry.js';
 import { initFlow, updateFlow, onMatchEnd, inDemo } from './flow.js';
-import { hostTick, guestFrame } from './net/online.js';
+import { initUpdateCheck } from './net/update.js';
+import { hostTick, guestFrame, netStats } from './net/online.js';
 import { makeThumbs } from './render/thumbs.js';
 import { makePortraits } from './render/portraits.js';
 import { room, browse } from './net/room.js';
@@ -70,6 +71,7 @@ document.addEventListener('fullscreenchange', () => {
 });
 
 initFlow();
+initUpdateCheck();
 makeThumbs();
 makePortraits();
 resetMatch('title');
@@ -136,4 +138,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // ?debug en la URL deja el estado a mano en la consola (para pruebas)
-try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { closeAllMenus, game, room, browse, settings, eliminate, resetMatch, demoSetup, fiesta: fiestaState, startFiesta, mgById, checkSongs, renderSong, musicState }; } catch (e) { /* nada */ }
+try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { netStats, closeAllMenus, game, room, browse, settings, eliminate, resetMatch, demoSetup, fiesta: fiestaState, startFiesta, mgById, checkSongs, renderSong, musicState }; } catch (e) { /* nada */ }

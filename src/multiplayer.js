@@ -7,7 +7,7 @@ import {
   room, browse, ALPHA, joinRoom, leaveRoom, startBlocker,
   setRoomHandlers, castVote, iVoted, voteCount, allVoted, browsePublic, stopBrowse, cleanName,
 } from './net/room.js';
-import { hostStart, hostGuestLeft, hostBackToLobby, endOnline, guestStart, guestSnap, setGuestEndHandler } from './net/online.js';
+import { hostStart, hostGuestLeft, hostBackToLobby, endOnline, guestStart, guestSnap, guestEvents, setGuestEndHandler } from './net/online.js';
 import { resetMatch } from './game/match.js';
 import { openMenu, replaceMenus, closeMenu, closeAllMenus, topMenu } from './ui/menu.js';
 import { COL } from './ui/draw.js';
@@ -40,7 +40,7 @@ const JOIN = textEntry({
   hint: 'ESCRIBÍ EL CÓDIGO DE LA SALA',
   status() {
     const st = room.role === 'guest' ? room.status : 'idle';
-    if (st === 'connecting') return { text: 'CONECTANDO...', color: COL.teal };
+    if (st === 'connecting') return { text: room.note || 'CONECTANDO...', color: COL.teal };
     if (st === 'error') return { text: room.error, color: COL.red };
     return null;
   },
@@ -66,7 +66,7 @@ const PUBLIC = {
   id: 'public', title: 'SALAS PÚBLICAS', width: 300, rowH: 13,
   items: [
     { kind: 'info', label: () => {
-      if (room.role === 'guest' && room.status === 'connecting') return 'CONECTANDO...';
+      if (room.role === 'guest' && room.status === 'connecting') return room.note || 'CONECTANDO...';
       if (room.role === 'guest' && room.status === 'error') return room.error;
       if (browse.status === 'searching') return 'BUSCANDO SALAS...';
       if (browse.status === 'error') return 'SIN CONEXIÓN AL SERVIDOR';
@@ -150,6 +150,7 @@ export function initMultiplayer() {
     },
     onStart(m) { if (!(m.resume && game.online === 'guest')) closeAllMenus(); guestStart(m); },
     onSnap(m) { if (game.online === 'guest') guestSnap(m); },
+    onEvents(m) { if (game.online === 'guest') guestEvents(m); },
     onToLobby() { endOnline(); toLobbyScreen(); },
     onClosed(msg) { showToast(msg || 'LA SALA SE CERRÓ'); toMultiMenu(); },
     onGuestAway(slot) { showToast(`${nameOf(slot)} SE DESCONECTÓ · ESPERANDO`); },

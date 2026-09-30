@@ -490,6 +490,7 @@ const hexagonos = {
         r2(p.vx || 0), r2(p.vz || 0), p.onGround ? 1 : 0, p.floor || 0, p.stunT > 0 ? 1 : 0]),
     };
   },
+  ownPos: { x: 0, z: 1, fy: 2, ang: 3 },                // online: dónde viene la posición propia en la foto (para dibujarte sin retraso)
   applySnap(A, B, f) {
     const ro = A.ro;
     game.round = { n: ro[0], over: !!ro[1], winner: ro[2], t: ro[3] };
@@ -523,7 +524,7 @@ const hexagonos = {
     game.players.forEach((p) => { if (p.swingT > 0) p.swingT -= rdt; });
     sendT -= rdt;
     if (sendT > 0) return;
-    sendT = 1 / 30;
+    sendT = 1 / 60;
     const c = input.ctl.all, [wx, wz] = camMove(c.x, c.y);
     sendInput({ x: Math.round(wx * 100) / 100, y: Math.round(-wz * 100) / 100, h: hits });
   },

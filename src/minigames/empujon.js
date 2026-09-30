@@ -633,6 +633,7 @@ const empujon = {
       p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.ang || 0), p.alive ? 1 : 0, p.dashT > 0 ? 1 : 0, p.score, p.stunT > 0 ? 1 : 0]),
     };
   },
+  ownPos: { x: 0, z: 1, ang: 2 },                // online: dónde viene la posición propia en la foto (para dibujarte sin retraso)
   applySnap(A, B, f) {
     game.radius = A.r + (B.r - A.r) * f;
     S.map = B.m || 0;
@@ -656,7 +657,7 @@ const empujon = {
   guestLocal(rdt, hits) {
     sendT -= rdt;
     if (sendT > 0) return;
-    sendT = 1 / 30;
+    sendT = 1 / 60;
     // se manda la dirección ya girada según tu cámara (el anfitrión la usa tal cual)
     const c = input.ctl.all, [wx, wz] = camMove(c.x, c.y);
     sendInput({ x: Math.round(wx * 100) / 100, y: Math.round(-wz * 100) / 100, h: hits });

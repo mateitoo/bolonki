@@ -11,7 +11,7 @@
 //   · desierto: arenas movedizas que te frenan · nieve: hielo, si soltás seguís resbalando
 // Gana la ronda el último que queda. Al minuto empieza la muerte súbita: las paredes se cierran en espiral.
 import * as THREE from 'three';
-import { register } from './registry.js';
+import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
@@ -388,7 +388,9 @@ const demo = () => game.state === 'title' || game.state === 'menu';
 
 function placeAll() {
   // otra cancha al azar (distinta de la anterior)
-  if (game.online !== 'guest') { let c = (Math.random() * CANCHAS.length) | 0; if (c === S.cancha) c = (c + 1) % CANCHAS.length; S.cancha = c; }
+  const fixed = fixedMap(CANCHAS.length);
+  if (game.online !== 'guest' && fixed >= 0) S.cancha = fixed;                     // la cancha que eligieron en el menú
+  else if (game.online !== 'guest') { let c = (Math.random() * CANCHAS.length) | 0; if (c === S.cancha) c = (c + 1) % CANCHAS.length; S.cancha = c; }
   makeMap(S.cancha);
   bombs = []; flames = new Map(); pups = []; S.beltT = 1 / CONV_V; S.machT = 1.5; prevG.fill(EMPTY); crateAnim.clear(); S.sdIdx = 0; S.sdT = 0; S.sdFall = []; S.sdWarned = false; S.hasBelt = machineK(S.cancha) >= 0;
   game.players.forEach((p) => {
@@ -910,6 +912,8 @@ const petardos = {
   name: 'PETARDOS',
   desc: 'VOLÁ A LOS DEMÁS Y ROMPÉ CAJONES',
   howTo: 'PONER PETARDO',
+  maps: CANCHAS.map((c) => c.name),
+  _S: S,
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: new THREE.Vector3(0, 31.5, 15.4), look: new THREE.Vector3(0, 0, 0.4), rotate: false, orbit: true },
   fog: () => ({ col: CANCHAS[S.cancha].fog || 0x04060b, near: 50, far: 125 }),

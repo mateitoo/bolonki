@@ -20,6 +20,7 @@ let sendT = 0;
 const bolas = {
   id: 'bolas',
   name: 'BOLA BRAVA',
+  mapName: 'ARENA FLOTANTE',
   desc: 'DEFENDÉ TU ARCO DE LAS PELOTAS',
   howTo: 'GOLPE FUERTE',
   points: { label: 'PUNTOS', values: [5, 10, 15], key: 'points', demo: 15 },

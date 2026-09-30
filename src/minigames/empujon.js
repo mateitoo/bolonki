@@ -6,7 +6,7 @@
 // Gana la ronda el último que queda arriba; gana la partida el primero que llega a N rondas.
 // A los 14 s la plataforma empieza a achicarse para que nadie se quede quieto.
 import * as THREE from 'three';
-import { register } from './registry.js';
+import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
@@ -285,6 +285,8 @@ function placeAll() {
 let warned = false;
 function pickMap(first) {
   if (game.online === 'guest') return;
+  const fixed = fixedMap(MAPS.length);
+  if (fixed >= 0) { S.map = fixed; return; }                                      // el mapa que eligieron en el menú
   S.map = first ? (Math.random() * MAPS.length) | 0 : (S.map + 1) % MAPS.length;   // se van turnando
 }
 function startRound() {
@@ -476,6 +478,7 @@ const empujon = {
   name: 'EMPUJÓN',
   desc: 'TIRALOS DE LA PLATAFORMA',
   howTo: 'EMBESTIDA',
+  maps: MAPS.map((m) => m.name),
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: new THREE.Vector3(0, 24, 21), look: new THREE.Vector3(0, 0, -1.2), rotate: false, orbit: true },
   fog: () => MAPS[S.map].fog,

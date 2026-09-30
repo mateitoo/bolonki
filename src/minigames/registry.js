@@ -14,6 +14,7 @@
 //   guestLocal(rdt), guestHitFx(p)         online: lo que hace el invitado con su propia nave
 //   humanOut                               true si al perder se ve "ELIMINADO" hasta que termine la partida
 //   howTo                                  qué hace el botón de golpe (se muestra antes de jugarlo en la Fiesta)
+//   maps                                   opcional: nombres de sus mapas (se pueden elegir en el menú)
 //   tense()                                opcional: true cuando la música tiene que acelerar
 //
 // Importante: los métodos usan los imports solo adentro de funciones (hay imports circulares).
@@ -26,6 +27,13 @@ export const SCENES = [];             // todo lo que tiene mundo propio (minijue
 export function register(mg, opts = {}) { REG[mg.id] = mg; SCENES.push(mg); if (!opts.hidden) MINIGAMES.push(mg); }
 export const mgById = (id) => REG[id] || MINIGAMES[0];
 export const mg = () => mgById(game.minigame);
+// Mapa fijo que eligieron en el menú (índice), o -1 si es aleatorio (y siempre en la Fiesta)
+export function fixedMap(n) {
+  const cfg = game.setup;
+  if (!cfg || cfg.fiesta || cfg.mode === 'demo') return -1;
+  const v = cfg.map;
+  return Number.isInteger(v) && v >= 0 && v < n ? v : -1;
+}
 
 let shown = null;
 // Muestra el mundo pedido y esconde los demás

@@ -17,6 +17,7 @@ export const DEFAULTS = {
   name: '',              // apodo para el online (vacío = se pide la primera vez)
   localBots: true,       // multijugador local: bots en los lugares libres
   mg: 'bolas',           // último minijuego elegido
+  maps: {},              // mapa elegido por minijuego (índice; -1 o nada = aleatorio)
   rounds: 2,             // Empujón: rondas para ganar
   mode: 'libre',         // 'libre' (elegís el minijuego) | 'fiesta' (tablero)
   turns: 10,             // Fiesta: cantidad de turnos

@@ -412,6 +412,7 @@ let sendT = 0;
 const colina = {
   id: 'colina',
   name: 'REY DE LA COLINA',
+  mapName: 'ISLA',
   desc: 'QUEDATE SOLO ARRIBA DE LA COLINA',
   howTo: 'EMPUJAR',
   points: { label: 'PUNTOS PARA GANAR', values: [20, 30, 45], key: 'coronas', demo: 30 },

@@ -468,6 +468,7 @@ let sendT = 0;
 const futbol = {
   id: 'futbol',
   name: 'FUTBOLONKI',
+  mapName: 'ESTADIO',
   desc: 'FÚTBOL DE NAVES, 2 CONTRA 2',
   howTo: 'EMBESTIDA / PELOTAZO',
   points: { label: 'GOLES PARA GANAR', values: [3, 5, 7], key: 'goles', demo: 3 },

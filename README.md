@@ -120,6 +120,11 @@ Las dos puertas llevan a la **sala** (`src/sala/`), que es la misma pantalla par
 - **Orden:** primero se elige **qué se juega** (el minijuego o la Fiesta, CPU y puntos; Enter o espacio en cualquier fila
   sigue), después **los personajes** y, cuando están todos listos, la presentación y a jugar. Online, el anfitrión elige
   qué se juega y los invitados ya van eligiendo personaje; cuando están todos listos arranca solo.
+- **Mapa:** abajo de la descripción del minijuego está la fila **MAPA** (ALEATORIO primero). Los minijuegos con varios
+  mapas los declaran en `maps` (Empujón: GLACIAR/VOLCÁN; Petardos: PATIO/FÁBRICA/DESIERTO/NIEVE); con uno fijo se juega
+  ese en todas las rondas (`fixedMap()` del registro). En la Fiesta siempre es aleatorio. Los de un solo mapa muestran
+  su nombre (`mapName`). Se guarda por minijuego en `settings.maps` / `room.opts.maps`.
+- **ELEGIR PERSONAJES** es un botón dorado (`button: true` en el menú) y el pie dice "ENTER ELEGIR PERSONAJES".
 - Al entrar a cada minijuego hay **10 segundos de instrucciones** en un recuadro (cómo se gana y qué botón hace qué,
   `rules()` de cada minijuego) y después la cuenta 3, 2, 1.
 - Las **fotos de los minijuegos** en los menús se ven nítidas (van en una capa aparte en alta resolución, `thumbStore.js`).

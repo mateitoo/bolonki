@@ -50,7 +50,7 @@ export function hostStart() {
   const setup = {
     mode: 'online', mg: m.id, names,
     ctrl: kinds.map((k, i) => (i === 0 ? 'local' : k === 'guest' ? 'remote' : k === 'bot' ? 'ai' : 'none')),
-    me: 0, points, chars,
+    me: 0, points, chars, map: room.opts.maps && Number.isInteger(room.opts.maps[m.id]) ? room.opts.maps[m.id] : -1,
   };
   room.inGame = true; room.votes = [];
   game.online = 'host';

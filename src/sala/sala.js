@@ -14,7 +14,7 @@ import { input } from '../input.js';
 import { SFX } from '../audio.js';
 import { openMenu, replaceMenus, closeMenu, closeAllMenus, topMenu, footerHit, selectedItem } from '../ui/menu.js';
 import { txt, rect, tri, textWidth, COL, ui } from '../ui/draw.js';
-import { mgValues, pointsChoice, botValues, diffValues, mgArt } from '../ui/values.js';
+import { mgValues, pointsChoice, botValues, diffValues, mgArt, mapChoice, mapOf } from '../ui/values.js';
 import { drawThumb } from '../render/thumbStore.js';
 import { camera } from '../render/psx.js';
 import { drawPortrait } from '../render/portraits.js';
@@ -384,7 +384,7 @@ const curMgRoom = () => (room.opts.mode === 'fiesta' ? 'fiesta' : room.opts.mg);
 // Fila con las fotos de todos los minijuegos: izquierda/derecha elige, clic en una foto la elige
 function mgGrid(get, setFn) {
   let boxes = [];
-  const H = 70;
+  const H = 64;
   return {
     kind: 'choice', label: 'MINIJUEGO', h: H, get values() { return mgValues(); }, get, set: setFn,
     drawRow(x, y, w, hw, sel) {
@@ -419,6 +419,8 @@ function localOptions() {
     items.push({ kind: 'info', center: true, label: () => mgById('fiesta').desc, labelColor: () => COL.teal });
   } else {
     items.push(mgGrid(() => settings.mg, setS('mg')));
+    items.push(mapChoice(() => settings.mg, () => mapOf(settings.maps, settings.mg),
+      (v) => { settings.maps = Object.assign({}, settings.maps, { [settings.mg]: v }); saveSettings(); }));
   }
   items.push({
     kind: 'choice', label: 'CPU', hidden: () => joinedCount() >= 4,
@@ -432,7 +434,7 @@ function localOptions() {
   });
   items.push(pointsChoice(curMgLocal, () => pointsFor(curMgLocal()), (v) => { settings[mgById(curMgLocal()).points.key] = v; saveSettings(); }));
   items.push({ kind: 'action', label: 'JUGAR ONLINE', left: true, value: 'INVITAR AMIGOS', valueColor: () => COL.dim, action: () => goOnline() });
-  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', action: () => goChars() });
+  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', button: true, h: 22, action: () => goChars() });
   return items;
 }
 
@@ -440,13 +442,19 @@ function hostOptions() {
   const fiesta = room.opts.mode === 'fiesta';
   const items = [];
   if (fiesta) items.push(mgArt(() => 'fiesta', 44));
-  else items.push(mgGrid(() => room.opts.mg, (v) => { settings.mg = v; saveSettings(); setRoomOpt('mg', v); }));
+  else {
+    items.push(mgGrid(() => room.opts.mg, (v) => { settings.mg = v; saveSettings(); setRoomOpt('mg', v); }));
+    items.push(mapChoice(() => room.opts.mg, () => mapOf(room.opts.maps, room.opts.mg), (v) => {
+      settings.maps = Object.assign({}, settings.maps, { [room.opts.mg]: v }); saveSettings();
+      setRoomOpt('maps', Object.assign({}, room.opts.maps, { [room.opts.mg]: v }));
+    }));
+  }
   items.push({ kind: 'choice', label: 'BOTS', values: botValues, get: () => (room.opts.bots ? room.opts.difficulty : 'no'),
     set: (v) => { if (v !== 'no') room.opts.difficulty = v; setRoomOpt('bots', v !== 'no'); } });
   items.push(pointsChoice(curMgRoom, () => room.opts[mgById(curMgRoom()).points.key], (v) => setRoomOpt(mgById(curMgRoom()).points.key, v)));
   items.push({ kind: 'choice', label: 'SALA', values: [{ v: false, label: 'PRIVADA' }, { v: true, label: 'PÚBLICA' }],
     get: () => room.opts.public, set: (v) => setRoomOpt('public', v) });
-  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', action: () => goChars() });
+  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', button: true, h: 22, action: () => goChars() });
   return items;
 }
 
@@ -472,6 +480,7 @@ function openOptions() {
     items: online ? hostOptions() : localOptions(),
     headerH: online ? 28 : 0, header: online ? hostHeader : null,
     tick() { syncStage(); },
+    okLabel: (top) => { const it = selectedItem(top); return it && it.kind === 'action' && !it.button ? 'ACEPTAR' : 'ELEGIR PERSONAJES'; },
     // en local, los joysticks de J2..J4 no manejan este menú (solo J1, el teclado y el mouse);
     // Enter o espacio en cualquier fila sigue a elegir personajes (sin tener que bajar hasta el botón)
     onEvent: (e, top) => {
@@ -498,7 +507,7 @@ function startLocal() {
     if (s.joined) { ctrl[slot] = 'local'; pads[slot] = solo ? 'all' : PADS[s.k]; names[slot] = solo ? null : `J${s.k + 1}`; chars[slot] = s.ch; }
     else if (bots) ctrl[slot] = 'ai';
   });
-  const setup = { mode: solo ? 'solo' : 'local', ctrl, pads, names, me: 0, chars: fillChars(chars) };
+  const setup = { mode: solo ? 'solo' : 'local', ctrl, pads, names, me: 0, chars: fillChars(chars), map: S.kind === 'fiesta' ? -1 : mapOf(settings.maps, settings.mg) };
   // presentación: cada uno en su podio con su nombre abajo, y después arranca
   const HOW = ['FLECHAS/JOY1', 'WASD/JOY2', 'JOYSTICK 3', 'JOYSTICK 4'];
   const m = mgById(S.kind === 'fiesta' ? 'fiesta' : settings.mg);

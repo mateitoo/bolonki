@@ -18,6 +18,18 @@ export const pointsChoice = (getMg, getV, setV) => ({
   get: getV, set: setV,
 });
 
+// Mapa del minijuego (solo los que tienen más de uno): ALEATORIO primero y después cada mapa
+export const mapOf = (maps, id) => { const v = maps && maps[id]; return Number.isInteger(v) ? v : -1; };
+export const mapChoice = (getMg, getV, setV) => ({
+  kind: 'choice', label: 'MAPA',
+  get values() {
+    const maps = mgById(getMg()).maps || [];
+    if (maps.length < 2) return [{ v: getV(), label: mgById(getMg()).mapName || 'ÚNICO' }];     // tiene un solo mapa
+    return [{ v: -1, label: 'ALEATORIO' }].concat(maps.map((n, i) => ({ v: i, label: n })));
+  },
+  get: getV, set: (v) => { if ((mgById(getMg()).maps || []).length > 1) setV(v); },
+});
+
 // Vista previa chiquita del minijuego elegido (va abajo de la fila MINIJUEGO)
 export const mgArt = (get, h = 54) => ({
   kind: 'art', h,

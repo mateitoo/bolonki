@@ -30,7 +30,7 @@ export const room = {
   mySlot: 0,
   myPing: 0,
   slots: [],            // [{ kind: 'host' | 'guest' | 'empty', name, ready, ping, away, ch }]  ch: personaje · ready: ya lo eligió
-  opts: { mg: 'bolas', bots: true, difficulty: 'intermedio', points: 15, rounds: 2, public: false, mode: 'libre', turns: 10 },
+  opts: { mg: 'bolas', bots: true, difficulty: 'intermedio', points: 15, rounds: 2, public: false, mode: 'libre', turns: 10, maps: {} },
   inGame: false,
   votes: [],            // lugares que votaron revancha
   startInfo: null,
@@ -110,7 +110,7 @@ export function createRoom(mode, ch) {
   Object.assign(room, {
     role: 'host', status: 'opening', code: genCode(), mySlot: 0, inGame: false, votes: [],
     slots: [{ kind: 'host', name: myName(), ready: true, ping: 0, ch: ch || 0 }, empty(), empty(), empty()],
-    opts: { mg: settings.mg, bots: true, difficulty: settings.difficulty, points: settings.points, rounds: settings.rounds, public: false, mode: mode || settings.mode, turns: settings.turns },
+    opts: { mg: settings.mg, bots: true, difficulty: settings.difficulty, points: settings.points, rounds: settings.rounds, public: false, mode: mode || settings.mode, turns: settings.turns, maps: Object.assign({}, settings.maps) },
   });
   openHostPeer(0);
   startTicker(hostTicker);

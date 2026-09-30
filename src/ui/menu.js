@@ -222,6 +222,21 @@ function drawPanel(top, hw) {
       rects.push({ i, x: x + 4, y: iy - 3, w: w - 8, h: hOf(it) });
       iy += hOf(it); return;
     }
+    if (it.button) {                          // botón grande para seguir (dorado, con flechitas que se mueven)
+      const on = i === top.sel, H = hOf(it), label = L(it);
+      const bw = Math.min(w - 24, textWidth(label, 8) + 52), bx = Math.round(hw / 2 - bw / 2), by = iy - 1, bh = H - 6;
+      const glow = on ? 0.5 + 0.5 * Math.sin(ui.clock * 6) : 0;
+      if (on) rect(bx - 2, by - 2, bw + 4, bh + 4, `rgba(255,210,58,${0.25 + 0.35 * glow})`);
+      rect(bx, by + bh, bw, 2, '#6a3a00');
+      rect(bx, by, bw, bh, on ? COL.gold : '#d08a1c');
+      rect(bx, by, bw, 1, on ? '#fff2b0' : '#f0b050');
+      txt(label, hw / 2, by + Math.round(bh / 2) - 4, 8, '#1a0c00', 'center', 'rgba(0,0,0,0)');
+      const ax = Math.round((on ? Math.sin(ui.clock * 8) * 1.5 : 0));
+      tri(bx + bw - 14 + ax, by + Math.round(bh / 2) - 4, 'r', '#1a0c00');
+      tri(bx + 9 - ax, by + Math.round(bh / 2) - 4, 'r', '#1a0c00');
+      rects.push({ i, x: bx, y: by, w: bw, h: bh + 2 });
+      iy += H; return;
+    }
     const sel = i === top.sel && selectable(it);
     if (sel) {
       rect(x + 4, iy - 3, w - 8, ROW - 1, 'rgba(45,224,200,.16)');
@@ -250,7 +265,7 @@ function drawFooter(top, hw, custom) {
   rect(0, 221, hw, 19, 'rgba(4,6,14,.85)');
   const pad = input.device === 'gamepad';
   const parts = custom || [
-    { key: pad ? 'A' : input.device === 'pointer' ? 'CLIC' : 'ENTER', label: 'ACEPTAR', act: 'ok' },
+    { key: pad ? 'A' : input.device === 'pointer' ? 'CLIC' : 'ENTER', label: (top.def.okLabel && top.def.okLabel(top)) || 'ACEPTAR', act: 'ok' },
   ];
   if (!custom && top.def.tabs) parts.push({ key: pad ? 'LB RB' : 'Q E', label: 'SOLAPA', act: 'tabNext' });
   if (!custom) parts.push({ key: pad ? 'B' : 'ESC', label: 'VOLVER', act: 'back' });

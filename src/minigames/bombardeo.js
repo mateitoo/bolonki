@@ -447,6 +447,7 @@ const CAM_POS = new THREE.Vector3(0, 29, 12.5), CAM_LOOK = new THREE.Vector3(0, 
 const bombardeo = {
   id: 'bombardeo',
   name: 'BOMBARDEO',
+  mapName: 'HANGAR',
   desc: 'SALTÁ ARRIBA DE LAS CAJAS QUE CAEN',
   howTo: 'SALTAR',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },

@@ -17,13 +17,42 @@ export function initDisplay(stage, screen, gl, hud) {
   window.addEventListener('resize', applyDisplay);
   document.addEventListener('fullscreenchange', applyDisplay);
   document.addEventListener('webkitfullscreenchange', applyDisplay);
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', applyDisplay);
+  if (window.visualViewport) { window.visualViewport.addEventListener('resize', applyDisplay); window.visualViewport.addEventListener('scroll', applyDisplay); }
+  // al girar el celular, el navegador (sobre todo el del iPhone) tarda en acomodar el tamaño y a veces queda con
+  // zoom: se vuelve a medir varias veces y, si quedó con zoom, se lo saca
+  const settle = () => [60, 250, 600, 1200].forEach((t) => setTimeout(() => { unzoom(); applyDisplay(); }, t));
+  window.addEventListener('orientationchange', settle);
+  window.addEventListener('pageshow', settle);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) settle(); });
+  // por las dudas: una vez por segundo se fija si cambió el tamaño visible
+  setInterval(() => { const v = visible(); if (v.w !== lastVis.w || v.h !== lastVis.h || v.x !== lastVis.x || v.y !== lastVis.y) applyDisplay(); if (v.scale > 1.01) unzoom(); }, 1000);
   applyDisplay();
+}
+
+// Lo que realmente se ve de la página (si el navegador hizo zoom, es menos que la ventana)
+let lastVis = { w: 0, h: 0, x: 0, y: 0 };
+function visible() {
+  const v = window.visualViewport;
+  if (v) return { w: Math.round(v.width), h: Math.round(v.height), x: Math.round(v.offsetLeft), y: Math.round(v.offsetTop), scale: v.scale || 1 };
+  return { w: window.innerWidth, h: window.innerHeight, x: 0, y: 0, scale: 1 };
+}
+let unzoomT = 0;
+function unzoom() {
+  const v = window.visualViewport; if (!v || v.scale <= 1.01) return;
+  const now = performance.now(); if (now - unzoomT < 800) return; unzoomT = now;
+  const m = document.getElementById('vp'); if (!m) return;
+  const c = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+  m.setAttribute('content', c + ', minimum-scale=1');
+  setTimeout(() => { m.setAttribute('content', c); window.scrollTo(0, 0); applyDisplay(); }, 60);
 }
 
 export function applyDisplay() {
   if (!els || !renderer) return;
-  const winW = Math.max(1, els.stage.clientWidth), winH = Math.max(1, els.stage.clientHeight);
+  // el escenario ocupa exactamente la parte visible (aunque el navegador haya quedado con zoom, el juego entra entero)
+  const vis = visible(); lastVis = vis;
+  const ss = els.stage.style;
+  ss.left = vis.x + 'px'; ss.top = vis.y + 'px'; ss.width = vis.w + 'px'; ss.height = vis.h + 'px'; ss.right = 'auto'; ss.bottom = 'auto';
+  const winW = Math.max(1, vis.w), winH = Math.max(1, vis.h);
   const aspect = capsule ? winW / winH : settings.aspect === '4:3' ? 4 / 3 : Math.min(Math.max(winW / winH, 4 / 3), 21 / 9);
   const hw = Math.round((BASE_H * aspect) / 2) * 2;
 

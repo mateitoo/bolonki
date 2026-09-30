@@ -23,7 +23,7 @@ body {
 
 /* controles táctiles (celular / tablet), solo durante la partida */
 .touch {
-  display: none; position: fixed; left: 0; right: 0; bottom: 0;
+  display: none; position: absolute; left: 0; right: 0; bottom: 0;
   padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
   justify-content: space-between; align-items: flex-end; gap: 10px; pointer-events: none;
 }
@@ -44,7 +44,7 @@ body {
   width: 72px; height: 60px; touch-action: none;
 }
 .touch button.hit { width: 118px; height: 68px; font-size: 11px; border-color: var(--gold); color: var(--gold); background: rgba(58,36,8,.55); }
-.touch button.pause { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: 52px; height: 40px; font-size: 10px; }
+.touch button.pause { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: 52px; height: 40px; font-size: 10px; }
 .touch button.on { transform: translateY(2px); border-bottom-width: 3px; filter: brightness(1.4); }
 @media (pointer: coarse) { body[data-mode="playing"] .touch { display: flex; } }
 /* flechas (opción en vez del joystick): una cruz; se toca o se arrastra el dedo sobre ella */
@@ -63,7 +63,7 @@ body[data-touch-size="chico"] .touch .dpad { transform: scale(.8); transform-ori
 body[data-touch-size="grande"] .touch .dpad { transform: scale(1.2); transform-origin: bottom left; }
 body[data-stick="right"][data-touch-size] .touch .dpad { transform-origin: bottom right; }
 /* centrar la cámara (y sacar el zoom): arriba de la pausa */
-.touch button.cam { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(140px + env(safe-area-inset-bottom, 0px)); width: 52px; height: 40px; font-size: 18px; font-family: sans-serif; }
+.touch button.cam { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(140px + env(safe-area-inset-bottom, 0px)); width: 52px; height: 40px; font-size: 18px; font-family: sans-serif; }
 body[data-touch-size="grande"] .touch button.cam { bottom: calc(156px + env(safe-area-inset-bottom, 0px)); }
 body[data-stick="right"] .touch button.cam { right: auto; left: max(16px, env(safe-area-inset-left, 0px)); }
 /* opciones: botones táctiles chicos / grandes, y joystick a la derecha (para zurdos) */
@@ -79,7 +79,7 @@ body[data-stick="right"] .touch button.pause { right: auto; left: max(16px, env(
 
 /* botón de pantalla completa */
 .fsbtn {
-  display: none; position: fixed; z-index: 4; top: max(10px, env(safe-area-inset-top, 0px)); right: max(10px, env(safe-area-inset-right, 0px));
+  display: none; position: absolute; z-index: 4; top: max(10px, env(safe-area-inset-top, 0px)); right: max(10px, env(safe-area-inset-right, 0px));
   width: 38px; height: 34px; padding: 0; color: #d4dcf2; cursor: pointer;
   background: rgba(6,10,22,.72); border: 2px solid var(--line); border-bottom-width: 4px;
   align-items: center; justify-content: center;

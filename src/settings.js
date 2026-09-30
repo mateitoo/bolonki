@@ -39,10 +39,12 @@ export const DEFAULTS = {
   stickSide: 'left',     // joystick táctil a la izquierda o a la derecha
   intro: 'normal',       // instrucciones antes de cada minijuego: 'normal' | 'corta'
   tags: true,            // nombres arriba de los personajes
+  pad: 'joystick',       // celular: 'joystick' o 'flechas'
+  touchCam: false,       // celular: girar la cámara arrastrando el dedo
 };
 // las opciones que vuelven a su valor de fábrica con "RESTABLECER" (no se tocan apodo, personaje, mapas…)
 export const RESETTABLE = ['fullscreen', 'aspect', 'quality', 'integer', 'scanlines', 'sfx', 'muted', 'music', 'master', 'bgSound',
-  'psx', 'dither', 'shake', 'fps', 'aim', 'vibrate', 'camSens', 'camInvert', 'touchSize', 'stickSide', 'intro', 'tags', 'deathId'];
+  'psx', 'dither', 'shake', 'fps', 'aim', 'vibrate', 'camSens', 'camInvert', 'touchSize', 'stickSide', 'intro', 'tags', 'deathId', 'pad', 'touchCam'];
 
 function load() {
   try {

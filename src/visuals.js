@@ -6,7 +6,7 @@ import { game } from './state.js';
 import { camera, U } from './render/psx.js';
 import { updateParticles } from './fx/particles.js';
 import { mg } from './minigames/registry.js';
-import { input } from './input.js';
+import { input, isTouch } from './input.js';
 import { updateProps } from './world/props.js';
 import { settings } from './settings.js';
 
@@ -66,6 +66,8 @@ export function updateVisuals(dt, rdt) {
   // cámara que se gira arrastrando con el mouse / el dedo o con el stick derecho (en los minijuegos con cam.orbit)
   const playing = game.state === 'play' || game.state === 'count' || game.state === 'end';
   const d = input.drag;
+  // en el celular, girar la cámara arrastrando el dedo es opcional (viene apagado: se tocaba sin querer)
+  if (isTouch() && !settings.touchCam) { d.dx = 0; d.dy = 0; }
   if (m.cam.orbit && playing) {
     const sens = (settings.camSens || 5) / 5, inv = settings.camInvert ? -1 : 1;
     game.camYaw = (game.camYaw || 0) - (d.dx * 0.008 + input.camStick.x * 2.4 * rdt) * sens;

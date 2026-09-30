@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" id="vp" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Bolonki</title>
   <link rel="stylesheet" href="./src/style.css">
   <!-- instalable: en el celular, "agregar a la pantalla de inicio" lo abre en pantalla completa -->
@@ -24,6 +24,8 @@
 
     <div class="touch" aria-hidden="true">
       <div class="stick" id="stick" aria-label="Mover"><div class="knob" id="knob"></div></div>
+      <div class="dpad" id="dpad" aria-label="Flechas"><i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i><b></b></div>
+      <button id="tc" class="cam" aria-label="Centrar la cámara">⟲</button>
       <button id="tp" class="pause" aria-label="Pausa">❚❚</button>
       <button id="th" class="hit" aria-label="Golpe">GOLPE</button>
     </div>

@@ -1,6 +1,6 @@
 /* El juego ocupa toda la ventana; la pantalla de juego se centra y se escala desde display.js. */
 :root { color-scheme: dark; --gold: #ff9a1f; --line: #3a4570; }
-html, body { height: 100%; }
+html, body { height: 100%; touch-action: none; -webkit-text-size-adjust: 100%; }   /* sin zoom con dos toques ni pellizcos */
 body {
   margin: 0; overflow: hidden; background: #000;
   font-family: 'Press Start 2P', ui-monospace, monospace;
@@ -47,6 +47,25 @@ body {
 .touch button.pause { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: 52px; height: 40px; font-size: 10px; }
 .touch button.on { transform: translateY(2px); border-bottom-width: 3px; filter: brightness(1.4); }
 @media (pointer: coarse) { body[data-mode="playing"] .touch { display: flex; } }
+/* flechas (opción en vez del joystick): una cruz; se toca o se arrastra el dedo sobre ella */
+.touch .dpad { display: none; pointer-events: auto; touch-action: none; position: relative; width: 132px; height: 132px; }
+.touch .dpad i { position: absolute; width: 44px; height: 44px; background: rgba(20,26,48,.55); border: 2px solid var(--line); box-sizing: border-box; }
+.touch .dpad i::after { content: ""; position: absolute; left: 50%; top: 50%; border: 9px solid transparent; transform: translate(-50%, -50%); }
+.touch .dpad .u { left: 44px; top: 0; } .touch .dpad .u::after { border-bottom: 12px solid #aab4d6; border-top-width: 0; }
+.touch .dpad .d { left: 44px; bottom: 0; } .touch .dpad .d::after { border-top: 12px solid #aab4d6; border-bottom-width: 0; }
+.touch .dpad .l { left: 0; top: 44px; } .touch .dpad .l::after { border-right: 12px solid #aab4d6; border-left-width: 0; }
+.touch .dpad .r { right: 0; top: 44px; } .touch .dpad .r::after { border-left: 12px solid #aab4d6; border-right-width: 0; }
+.touch .dpad b { position: absolute; left: 44px; top: 44px; width: 44px; height: 44px; background: rgba(20,26,48,.55); }
+.touch .dpad i.on { background: rgba(255,154,31,.45); border-color: var(--gold); }
+body[data-pad="flechas"] .touch .stick { display: none; }
+body[data-pad="flechas"] .touch .dpad { display: block; }
+body[data-touch-size="chico"] .touch .dpad { transform: scale(.8); transform-origin: bottom left; }
+body[data-touch-size="grande"] .touch .dpad { transform: scale(1.2); transform-origin: bottom left; }
+body[data-stick="right"][data-touch-size] .touch .dpad { transform-origin: bottom right; }
+/* centrar la cámara (y sacar el zoom): arriba de la pausa */
+.touch button.cam { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(140px + env(safe-area-inset-bottom, 0px)); width: 52px; height: 40px; font-size: 18px; font-family: sans-serif; }
+body[data-touch-size="grande"] .touch button.cam { bottom: calc(156px + env(safe-area-inset-bottom, 0px)); }
+body[data-stick="right"] .touch button.cam { right: auto; left: max(16px, env(safe-area-inset-left, 0px)); }
 /* opciones: botones táctiles chicos / grandes, y joystick a la derecha (para zurdos) */
 body[data-touch-size="chico"] .touch .stick { transform: scale(.8); transform-origin: bottom left; }
 body[data-touch-size="chico"] .touch button.hit { transform: scale(.8); transform-origin: bottom right; }

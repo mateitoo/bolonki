@@ -79,6 +79,16 @@ export function initInput(stage, h) {
     hooks.onGesture();
   });
   window.addEventListener('keyup', (e) => held.delete(e.code));
+  // celular: nada de zoom del navegador (dos toques, pellizco): en el juego no sirve y después no se puede sacar
+  const noZoom = (e) => { e.preventDefault(); };
+  ['gesturestart', 'gesturechange', 'gestureend', 'dblclick'].forEach((ev) => document.addEventListener(ev, noZoom, { passive: false }));
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouchEnd < 320 && !(e.target && e.target.id === 'txtin')) e.preventDefault();   // el segundo toque rápido no hace zoom
+    lastTouchEnd = now;
+  }, { passive: false });
   window.addEventListener('blur', () => { held.clear(); input.touch.l = input.touch.r = false; input.touch.x = input.touch.y = 0; queue.push({ a: 'blur' }); });
 
   stage.addEventListener('pointermove', (e) => {
@@ -119,6 +129,35 @@ export function bindTouch(id, onDown, onUp) {
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
 }
 export function pushEvent(a) { queue.push({ a }); }
+
+// Flechas del celular (opción en vez del joystick): la cruz da una de 4 direcciones según dónde está el dedo
+export function bindDpad(id) {
+  const el = document.getElementById(id); if (!el) return;
+  const arms = { u: el.querySelector('.u'), d: el.querySelector('.d'), l: el.querySelector('.l'), r: el.querySelector('.r') };
+  let pid = null, last = null;
+  const set = (e) => {
+    const r = el.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    let dir = null;
+    if (Math.hypot(dx, dy) > r.width * 0.12) dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'r' : 'l') : (dy > 0 ? 'd' : 'u');
+    input.touch.x = dir === 'r' ? 1 : dir === 'l' ? -1 : 0;
+    input.touch.y = dir === 'u' ? 1 : dir === 'd' ? -1 : 0;
+    Object.entries(arms).forEach(([k, a]) => a && a.classList.toggle('on', k === dir));
+    if (dir && dir !== last) queue.push({ a: { u: 'up', d: 'down', l: 'left', r: 'right' }[dir] });
+    last = dir;
+  };
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); pid = e.pointerId; el.setPointerCapture(pid); input.device = 'pointer'; set(e); hooks.onGesture(); });
+  el.addEventListener('pointermove', (e) => { if (e.pointerId === pid) set(e); });
+  const up = (e) => { if (e.pointerId !== pid) return; pid = null; last = null; input.touch.x = 0; input.touch.y = 0; Object.values(arms).forEach((a) => a && a.classList.remove('on')); };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
+}
+
+// Si el navegador del celular igual hizo zoom (dos toques, pellizco), esto lo vuelve a la escala normal
+export function resetZoom() {
+  const m = document.getElementById('vp'); if (!m) return;
+  const c = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+  m.setAttribute('content', c + ', minimum-scale=1');
+  setTimeout(() => { m.setAttribute('content', c); window.scrollTo(0, 0); }, 60);
+}
 
 // Joystick virtual del celular: la perilla sigue al dedo (hasta el borde) y da una dirección en x / y
 export function bindStick(id, knobId) {

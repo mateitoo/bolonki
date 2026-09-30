@@ -52,7 +52,7 @@ export function applyDisplay() {
   renderer.setSize(iw, ih, false);
   U.uRes.value.set(iw, ih); U.uSnap.value = retro && settings.psx !== false ? 1 : 0; U.uDither.value = retro && settings.dither !== false ? 1 : 0;
   // botones táctiles: tamaño y de qué lado va el joystick
-  document.body.dataset.touchSize = settings.touchSize || 'normal'; document.body.dataset.stick = settings.stickSide || 'left';
+  document.body.dataset.touchSize = settings.touchSize || 'normal'; document.body.dataset.stick = settings.stickSide || 'left'; document.body.dataset.pad = settings.pad || 'joystick';
 
   camera.aspect = aspect; camera.updateProjectionMatrix();
 

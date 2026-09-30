@@ -23,7 +23,7 @@ import salaStage from './sala/stage.js';
 import { updateVisuals } from './visuals.js';
 import { initHud, drawHud, showToast } from './hud.js';
 import { initDisplay, toHud, toggleFullscreen, fullscreenGesture, isFullscreen, canFullscreen } from './display.js';
-import { input, initInput, pollInput, bindTouch, bindStick, pushEvent } from './input.js';
+import { input, initInput, pollInput, bindTouch, bindStick, bindDpad, resetZoom, pushEvent } from './input.js';
 import { syncNativeText } from './ui/textEntry.js';
 import { initFlow, updateFlow, onMatchEnd, inDemo } from './flow.js';
 import { initUpdateCheck } from './net/update.js';
@@ -61,6 +61,9 @@ initInput(stage, {
   onPadConnect: (on) => showToast(on ? 'JOYSTICK CONECTADO' : 'JOYSTICK DESCONECTADO'),
 });
 bindStick('stick', 'knob');
+bindDpad('dpad');
+// centrar la cámara (y sacar el zoom del navegador, si quedó)
+bindTouch('tc', () => { game.camYaw = 0; game.camPitch = 0; resetZoom(); });
 const TOUCH_LABEL = { bolas: 'GOLPE', empujon: 'EMBESTIR', bombardeo: 'SALTAR', petardos: 'PETARDO', futbol: 'EMBESTIR', colina: 'EMPUJAR', hexagonos: 'AGARRAR', fiesta: 'DADO' };
 let touchMg = null;
 bindTouch('th', () => { input.touch.hit = true; if (game.minigame === 'fiesta') pushEvent('confirm'); });

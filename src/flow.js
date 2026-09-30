@@ -23,7 +23,7 @@ import { guestHit } from './net/online.js';
 import { startFiesta, fiestaMinigameDone, fiestaRankArt } from './fiesta/board.js';
 import { openSala, setSalaHooks, salaKind } from './sala/sala.js';
 import { showToast } from './hud.js';
-import { FS_ACTION } from './ui/fsAction.js';
+import { FS_ACTION, CAM_ACTION } from './ui/fsAction.js';
 import { ACHIEVEMENTS, hasAch, achCount, checkMatchEnd, setAchNotify } from './achievements.js';
 
 const set = (key, after) => (v) => { settings[key] = v; saveSettings(); if (after) after(v); };
@@ -121,7 +121,10 @@ export const OPTIONS = {
       { kind: 'choice', label: 'INVERTIR CÁMARA', values: onOff, get: () => !!settings.camInvert, set: set('camInvert') },
       { kind: 'choice', label: 'BOTONES TÁCTILES', hidden: touchOnly, values: [{ v: 'chico', label: 'CHICOS' }, { v: 'normal', label: 'NORMALES' }, { v: 'grande', label: 'GRANDES' }],
         get: () => settings.touchSize || 'normal', set: set('touchSize', applyDisplay) },
-      { kind: 'choice', label: 'JOYSTICK', hidden: touchOnly, values: [{ v: 'left', label: 'IZQUIERDA' }, { v: 'right', label: 'DERECHA' }],
+      { kind: 'choice', label: 'MOVERSE CON', hidden: touchOnly, values: [{ v: 'joystick', label: 'JOYSTICK' }, { v: 'flechas', label: 'FLECHAS' }],
+        get: () => settings.pad || 'joystick', set: set('pad', applyDisplay) },
+      { kind: 'choice', label: 'GIRAR CÁMARA CON EL DEDO', hidden: touchOnly, values: onOff, get: () => !!settings.touchCam, set: set('touchCam') },
+      { kind: 'choice', label: 'CONTROLES A LA', hidden: touchOnly, values: [{ v: 'left', label: 'IZQUIERDA' }, { v: 'right', label: 'DERECHA' }],
         get: () => settings.stickSide || 'left', set: set('stickSide', applyDisplay) },
       { kind: 'info', label: 'TECLADO Y JOYSTICK', labelColor: () => COL.teal, hidden: () => isTouch() },
       infoRow('MOVER', 'FLECHAS / WASD / STICK'),
@@ -184,6 +187,7 @@ const PAUSE = {
     { kind: 'action', label: 'REINICIAR', hidden: () => inFiesta(), action: () => startMatch(game.setup) },
     { kind: 'action', label: 'OPCIONES', action: () => openMenu(OPTIONS) },
     FS_ACTION,
+    CAM_ACTION,
     { kind: 'action', label: 'SALIR AL MENÚ', danger: true, action: () => goMainMenu() },
   ],
   onBack: () => resume(),

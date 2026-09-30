@@ -601,7 +601,10 @@ function move(p, ix, iz, dt) {
   const dist = p.speed * (sp0 === 'q' ? 0.5 : 1) * TS * dt;       // arena movediza: la mitad de rápido
   const ax = Math.abs(ix), az = Math.abs(iz);
   if (ax > 0.3 || az > 0.3) {
-    const primX = ax >= az;
+    // eje principal con un poco de "memoria": con el joystick en diagonal no salta de un eje al otro a cada rato
+    let primX = ax >= az;
+    if (p.primX !== undefined && ax > 0.3 && az > 0.3 && Math.max(ax, az) < Math.min(ax, az) * 1.35) primX = p.primX;
+    p.primX = primX;
     const moved = primX ? stepAxis(p, 'x', Math.sign(ix), dist) : stepAxis(p, 'z', Math.sign(iz), dist);
     p.slide = moved ? { ax: primX ? 'x' : 'z', s: Math.sign(primX ? ix : iz) } : null;
     if (!moved) {

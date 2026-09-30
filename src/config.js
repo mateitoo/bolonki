@@ -3,7 +3,7 @@
 export const W = 320, HH = 240;       // resolución interna (PS1)
 
 export const H = 10;                  // medio lado de la arena
-export const R = 3.34;                // radio de las torres de esquina (el arco queda un 10% más angosto que con 2.6)
+export const R = 3.0;                 // radio de las torres de esquina (arco un 5% más angosto que con 2.6)
 export const G = H - R;               // medio ancho del arco (todo el lado entre torres)
 export const PL = 0.8;                // medio largo del pod (cápsula)
 export const PRc = 1.25;              // radio de la cápsula del pod (nave redonda)

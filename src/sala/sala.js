@@ -421,7 +421,7 @@ const curMgRoom = () => (room.opts.mode === 'fiesta' ? 'fiesta' : room.opts.mg);
 // (izquierda/derecha cambia; clic en un vecino lo elige). Abajo, el nombre y de qué se trata.
 function mgGrid(get, setFn) {
   let boxes = [], midX = 0;
-  const BW = 80, BH = 45, H = 74;
+  const BW = 48, BH = 27, H = 58;             // el elegido; los 4 vecinos, todos del mismo tamaño (más chicos)
   return {
     kind: 'choice', label: 'MINIJUEGO', h: H, get values() { return mgValues(); }, get, set: setFn,
     drawRow(x, y, w, hw, sel) {
@@ -430,8 +430,8 @@ function mgGrid(get, setFn) {
       boxes = [];
       // vecinos (de afuera hacia adentro, así el del medio queda arriba)
       midX = cx;
-      const far = w / 2 - 18 >= 132 && n >= 5;
-      [[2, 34, 19, 115], [1, 48, 27, 70]].forEach(([d, tw, th, off]) => {
+      const far = w / 2 - 18 >= 108 && n >= 5;
+      [[2, 34, 19, 91], [1, 34, 19, 49]].forEach(([d, tw, th, off]) => {
         if (d === 2 && !far) return;
         [-1, 1].forEach((dir) => {
           const m = MINIGAMES[(cur + dir * d + n * 4) % n];

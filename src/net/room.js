@@ -14,7 +14,7 @@ import { settings } from '../settings.js';
 import { mgById } from '../minigames/registry.js';
 import { CHARS } from '../config.js';
 
-export const NET_VERSION = 16;         // v3: modo Fiesta · v4: personajes en la sala · v5: 6 personajes · v6: tienda en la Fiesta · v7: Futbolonki y Rey de la colina · v8: mapas de Empujón · v9: presentación antes de jugar · v10: Hexágonos y mapas de Bola Brava · v11: 10 personajes · v12: 14 personajes · v15: canal rápido y fotos con hora · v16: torres de Bola Brava más grandes
+export const NET_VERSION = 17;         // v3: modo Fiesta · v4: personajes en la sala · v5: 6 personajes · v6: tienda en la Fiesta · v7: Futbolonki y Rey de la colina · v8: mapas de Empujón · v9: presentación antes de jugar · v10: Hexágonos y mapas de Bola Brava · v11: 10 personajes · v12: 14 personajes · v15: canal rápido y fotos con hora · v16: torres de Bola Brava más grandes · v17: torres intermedias
 export const MAX_PLAYERS = 4;
 export const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const JOIN_ORDER = [2, 1, 3];          // el primer invitado va enfrente del anfitrión

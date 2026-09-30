@@ -23,6 +23,12 @@ export default {
     m.rider.position.y = m.riderBase.y + Math.min(0.9, t * 1.4) + Math.sin(t * 30) * 0.08;
     m.rider.rotation.y += dt * 9;
     if (t < 0.8 && Math.random() < 0.3) { const w = riderWorld(p); burst(w.x, w.y + 0.6, w.z, { mat: P.WHITE, n: 1, sp: 1, up: [1, 2], life: [0.2, 0.4], size: 0.5 }); }
+    if (st.y < -3 && !st.splash && game.fallStyle === 'water') {
+      // al mar de la tormenta: salpica agua y se hunde
+      st.splash = true; m.root.visible = false; SFX.splash();
+      burst(p.x, -3, p.z, { mat: P.CYAN, n: 12, sp: 4, up: [4, 8], life: [0.4, 0.8], size: 1.2 });
+      burst(p.x, -3, p.z, { mat: P.WHITE, n: 8, sp: 3, up: [3, 6], life: [0.3, 0.6] });
+    }
     if (st.y < -12 && !st.splash && game.fallStyle === 'abyss') {
       // al vacío helado: se pierde entre la nieve y la bruma, sin salpicar lava
       st.splash = true; m.root.visible = false;

@@ -147,6 +147,13 @@ export const FX = {
     burst(x, 0.4, z, { mat: P.CYAN, n: 8, sp: 4, up: [2, 5], life: [0.3, 0.6] });
     emit(['Ic', r2(x), r2(z)]);
   },
+  // Empujón, tormenta: cae un rayo
+  lightning(x, z) {
+    SFX.thunder(); game.shake = Math.max(game.shake, 0.35); game.flashT = 0.18; game.boltAt = { x, z, t: 0.22 };
+    burst(x, 0.4, z, { mat: P.YELLOW, n: 10, sp: 6, up: [2, 6], life: [0.2, 0.5] });
+    burst(x, 0.4, z, { mat: P.WHITE, n: 10, sp: 4, up: [2, 5], life: [0.2, 0.4] });
+    emit(['Lt', r2(x), r2(z)]);
+  },
   // Rey de la colina: alguien cayó al agua
   splash(x, z) {
     SFX.splash();
@@ -198,6 +205,7 @@ export function playEvent(ev) {
     case 'Sh': FX.shot(ev[1], ev[2]); break;
     case 'Sw': FX.splash(ev[1], ev[2]); break;
     case 'Ic': FX.icicle(ev[1], ev[2]); break;
+    case 'Lt': FX.lightning(ev[1], ev[2]); break;
     case 'S': FX.snd(ev[1]); break;
     case 'X': FX.sparkle(ev[1], ev[2], ev[3], ev[4], ev[5]); break;
     default: break;

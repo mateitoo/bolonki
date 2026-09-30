@@ -12,7 +12,7 @@ import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
-import { decorGlaciar, decorVolcan } from '../world/decor.js';
+import { decorGlaciar, decorVolcan, decorTormenta } from '../world/decor.js';
 import { input } from '../input.js';
 import { burst, P } from '../fx/particles.js';
 import { FX } from '../game/fx.js';
@@ -50,12 +50,14 @@ const VOLC = { x: 2, y: -6, z: -30 };      // el cráter del volcán que tira bo
 const MAPS = [
   { name: 'GLACIAR', extra: 'HIELO Y CARÁMBANOS QUE MAREAN', fog: { col: 0xc8d8ea, near: 32, far: 118 }, fall: 'abyss' },
   { name: 'VOLCÁN', extra: 'BARRO Y BOLAS DE FUEGO', fog: { col: 0x2a0c08, near: 45, far: 115 }, fall: 'lava' },
+  { name: 'TORMENTA', extra: 'MADERA MOJADA Y RAYOS QUE MAREAN', fog: { col: 0x1a2230, near: 38, far: 100 }, fall: 'water' },
 ];
 const S = { map: 0, fb: [], fbT: 5, fbId: 1, ic: [], icT: 5 };
 const onMud = (x, z) => { const k = (game.radius || R0) / R0; return MUD.some(([mx, mz, r]) => Math.hypot(x - mx * k, z - mz * k) < r * k); };
 // cómo agarra el piso: hielo (patina), tierra (agarra bien) o barro (patina más que el hielo)
 function surface(p) {
   if (S.map === 0) return { acc: ACC, fr: FRICTION };
+  if (S.map === 2) return { acc: 26, fr: 2.2 };                                     // madera mojada: patina un poco
   if (onMud(p.x, p.z)) return { acc: 11, fr: 0.7 };
   // en la tierra se frena rápido caminando, pero si te empujaron fuerte (vas más rápido que caminando) patinás un rato
   return { acc: 34, fr: Math.hypot(p.vx, p.vz) > MAXV * 1.05 ? 1.3 : 4.8 };
@@ -105,6 +107,21 @@ function buildMap(mi) {
       M.rocks.push({ m, y: m.position.y, ph: rnd(0, 6), a, rr, sp: rnd(0.04, 0.09) * (k % 2 ? 1 : -1) });
     }
     decorGlaciar(grp);
+  } else if (mi === 2) {
+    // TORMENTA: una balsa redonda de tablones en el medio del mar, con barriles atados al borde
+    add(scaleUV(new THREE.CylinderGeometry(R0, R0, 0.8, 28, 1), 6, 1), mat({ map: TX.dock, color: 0x9a8a78 }), 0, -0.4, 0, plat);
+    const topG = scaleUV(new THREE.CircleGeometry(R0, 28), 5, 5); topG.rotateX(-Math.PI / 2);
+    add(topG, mat({ map: TX.dock, color: 0xb0a090 }), 0, 0.005, 0, plat);
+    M.rimM = mat({ map: TX.rope, unlit: false }); M.rimBase = 0xffffff;
+    add(scaleUV(new THREE.CylinderGeometry(R0 + 0.05, R0 + 0.05, 0.3, 28, 1, true), 12, 1), M.rimM, 0, -0.1, 0, plat);
+    // troncos debajo
+    const logM = mat({ map: TX.wood, color: 0x6a4a2a });
+    for (let k = 0; k < 7; k++) { const x = -R0 + 1.2 + k * ((R0 * 2 - 2.4) / 6), len = 2 * Math.sqrt(Math.max(1, R0 * R0 - x * x)) - 0.6; const l = add(new THREE.CylinderGeometry(0.7, 0.7, len, 10), logM, x, -1.2, 0, plat); l.rotation.x = Math.PI / 2; }
+    for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2 + 0.2; add(new THREE.CylinderGeometry(0.55, 0.55, 1.2, 10), mat({ map: TX.metal, color: [0x3a6ac8, 0xd83a3a][k % 2] }), Math.sin(a) * (R0 + 0.6), -0.7, Math.cos(a) * (R0 + 0.6), plat); }
+    M.seaM = mat({ map: TX.water, color: 0x243a52 });
+    const sea = scaleUV(new THREE.PlaneGeometry(220, 220, 22, 22), 34); sea.rotateX(-Math.PI / 2);
+    add(sea, M.seaM, 0, -2.8, 0, grp);
+    decorTormenta(grp, R0);
   } else {
     // VOLCÁN: tierra con charcos de barro, sobre un cono de roca
     add(scaleUV(new THREE.CylinderGeometry(R0, R0 * 0.97, 0.8, 28, 1, true), 8, 1), mat({ map: TX.dirt, color: 0xc8b0a0 }), 0, -0.4, 0, plat);
@@ -139,6 +156,9 @@ function buildMap(mi) {
 function buildWorld() {
   const grp = new THREE.Group(); grp.visible = false; scene.add(grp); W.grp = grp;
   MAPS.forEach((_, i) => buildMap(i));
+  // el rayo que cae en la balsa (tormenta): un zigzag de arriba abajo
+  const bm2 = mat({ color: 0xf4f8ff, unlit: true }), bolt = new THREE.Group(); bolt.visible = false; grp.add(bolt); W.bolt = bolt;
+  { let x = 0, y = 18; for (let i = 0; i < 8; i++) { const nx = i === 7 ? 0 : x + rnd(-1.2, 1.2), ny = i === 7 ? 0 : y - rnd(2, 2.6); const len = Math.hypot(nx - x, ny - y); const sg = add(new THREE.BoxGeometry(0.28, len, 0.28), bm2, (x + nx) / 2, (y + ny) / 2, 0, bolt); sg.rotation.z = -Math.atan2(nx - x, ny - y) + Math.PI; x = nx; y = ny; } }
   // bolas de fuego y la marca de dónde van a caer
   const fm = mat({ map: TX.fire, unlit: true }); W.fbM = fm;
   const coreM = mat({ color: 0xffe070, unlit: true });
@@ -180,7 +200,7 @@ function spawnFireball() {
 /* ---------- carámbanos (mapa glaciar): caen del cielo y marean ---------- */
 const IC_R = 1.35, IC_WARN = 1.5, IC_STUN = 1.7;
 function stepIcicles(dt, R) {
-  if (S.map !== 0) { S.ic = []; return; }
+  if (S.map !== 0 && S.map !== 2) { S.ic = []; return; }
   if (!R.over && game.elapsed > HAZARD_AT) {
     S.icT -= dt;
     if (S.icT <= 0 && S.ic.length < 3) {
@@ -205,7 +225,7 @@ function stepIcicles(dt, R) {
       const nx = d > 0.01 ? dx / d : 1, nz = d > 0.01 ? dz / d : 0; p.vx += nx * 3; p.vz += nz * 3;
       FX.sparkle(p.x, 1.6, p.z, P.YELLOW, 6);
     }
-    FX.icicle(c.x, c.z);
+    if (S.map === 2) FX.lightning(c.x, c.z); else FX.icicle(c.x, c.z);
   }
   S.ic = S.ic.filter((c) => c.u < 1);
 }
@@ -511,6 +531,11 @@ const empujon = {
     const danger = game.elapsed > WARN_AT && !(game.round && game.round.over);
     M.rimM.uniforms.uColor.value.set(danger && ((clock * (game.elapsed > SHRINK_AT ? 4 : 10)) | 0) % 2 ? 0xff3a2a : M.rimBase);
     if (M.lavaM) M.lavaM.uniforms.uOff.value.set((clock * 0.01) % 1, (clock * 0.006) % 1);
+    if (M.seaM) { M.seaM.uniforms.uOff.value.set((clock * 0.02) % 1, (clock * 0.05) % 1); M.plat.position.y = Math.sin(clock * 0.9) * 0.08; M.plat.rotation.z = Math.sin(clock * 0.7) * 0.012; }
+    if (game.flashT > 0) game.flashT -= dt;
+    const ba = game.boltAt;
+    W.bolt.visible = !!(ba && ba.t > 0 && S.map === 2);
+    if (ba && ba.t > 0) { ba.t -= dt; W.bolt.position.set(ba.x, 0, ba.z); W.bolt.rotation.y = ba.x * 3; W.bolt.children.forEach((c) => { c.visible = ((clock * 40) | 0) % 3 !== 0; }); }
     M.rocks.forEach((r) => {
       r.m.position.y = r.y + Math.sin(clock * 0.7 + r.ph) * 0.4; r.m.rotation.y += dt * 0.1;
       if (r.sp) { r.a += r.sp * dt; r.m.position.x = Math.sin(r.a) * r.rr; r.m.position.z = Math.cos(r.a) * r.rr; r.m.rotation.x += dt * 0.2; }
@@ -521,10 +546,10 @@ const empujon = {
       g.visible = mk.visible = !!c;
       if (!c) return;
       mk.position.set(c.x, 0.05, c.z);
-      mk.material.uniforms.uColor.value.setHex(((clock * (c.u > 0.6 ? 16 : 8)) | 0) % 2 ? 0xff3a1a : 0xffe14a);   // rojo y amarillo: se ve bien sobre el hielo
+      mk.material.uniforms.uColor.value.setHex(((clock * (c.u > 0.6 ? 16 : 8)) | 0) % 2 ? (S.map === 2 ? 0xffffff : 0xff3a1a) : 0xffe14a);   // rojo y amarillo: se ve bien sobre el hielo
       mk.scale.setScalar(1.2 - Math.min(1, c.u) * 0.2);
       const f = clamp((c.u - 0.35) / 0.65, 0, 1);
-      g.visible = c.u > 0.35;
+      g.visible = c.u > 0.35 && S.map === 0;                 // en la tormenta no cae un carámbano: cae el rayo (FX.lightning)
       g.position.set(c.x, 15 * (1 - f * f), c.z); g.rotation.y = clock;
     });
     // bolas de fuego: la bola (volando, rodando o cayendo) y la marca roja donde va a caer
@@ -574,6 +599,7 @@ const empujon = {
   },
   hud(hw, st) {
     const R = game.round; if (!R) return;
+    if (game.flashT > 0) rect(0, 0, hw, 240, `rgba(230,240,255,${Math.min(0.55, game.flashT * 3)})`);   // el fogonazo del rayo
     if (st === 'count') {
       txt(`RONDA ${R.n}`, hw / 2, 80, 16, COL.teal, 'center');
       txt(`MAPA: ${MAPS[S.map].name}`, hw / 2, 48, 8, COL.white, 'center');

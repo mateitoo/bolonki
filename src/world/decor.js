@@ -350,3 +350,55 @@ export function decorFiesta(grp, start) {
   P.anim(grp, (t) => clouds.forEach((q) => { const a = q.a + t * q.sp; q.c.position.set(Math.sin(a) * q.r, q.y, Math.cos(a) * q.r); }));
   P.flyers(grp, 0, 9, 0, 13, 5, 0x2a2a34, 0.6);
 }
+
+/* ---------- Empujón: TORMENTA (balsa en alta mar, de noche, con lluvia y rayos) ---------- */
+export function decorTormenta(g, R0) {
+  P.sky(g, [[0, '#0a0e18'], [0.35, '#1a2230'], [0.48, '#2a3444'], [0.52, '#1a222e'], [1, '#080a10']], { blobs: [[0.2, 0.35, 0.3, 'rgba(90,100,120,.35)'], [0.6, 0.3, 0.35, 'rgba(70,80,100,.35)'], [0.85, 0.4, 0.25, 'rgba(100,110,130,.3)']] });
+  // nubarrones bajos que pasan
+  const cm = P.M(0x3a4250), cm2 = P.M(0x2a303c);
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * Math.PI * 2, d = rnd(30, 50), cg = new THREE.Group(); cg.position.set(Math.sin(a) * d, rnd(8, 16), Math.cos(a) * d); g.add(cg);
+    for (let j = 0; j < 5; j++) add(new THREE.DodecahedronGeometry(rnd(2, 4), 1), j % 2 ? cm : cm2, rnd(-4, 4), rnd(-1, 1), rnd(-2, 2), cg);
+    const sp = rnd(0.01, 0.02), a0 = a; P.anim(cg, (t) => { const aa = a0 + t * sp; cg.position.x = Math.sin(aa) * d; cg.position.z = Math.cos(aa) * d; });
+  }
+  // olas: bloques de espuma que suben y bajan alrededor
+  const fm = P.M(0x8a9aac);
+  for (let k = 0; k < 16; k++) {
+    const a = rnd(0, Math.PI * 2), d = rnd(R0 + 3, 30), w = add(new THREE.BoxGeometry(rnd(2, 4), 0.12, 0.35), fm, Math.sin(a) * d, -2.75, Math.cos(a) * d, g);
+    w.rotation.y = a + Math.PI / 2; const ph = rnd(0, 6);
+    P.anim(w, (t) => { w.position.y = -2.75 + Math.sin(t * 1.2 + ph) * 0.35; w.scale.x = 0.6 + Math.abs(Math.sin(t * 0.6 + ph)) * 0.8; });
+  }
+  // faro a lo lejos con la luz que gira
+  lighthouse(g, -26, -24);
+  const beam = new THREE.Mesh(new THREE.ConeGeometry(3, 34, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff0b0, transparent: true, opacity: 0.12, depthWrite: false, fog: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+  beam.geometry.translate(0, -17, 0); beam.rotation.z = Math.PI / 2;
+  const bg = new THREE.Group(); bg.position.set(-26, 9.8, -24); bg.add(beam); g.add(bg);
+  P.anim(bg, (t) => { bg.rotation.y = t * 0.7; });
+  // rocas, el mástil de un barco hundido y aletas de tiburón dando vueltas
+  [[18, -22, 3], [22, -18, 2], [-20, 18, 2.5], [26, 14, 1.8]].forEach(([x, z, s]) => P.rock(g, x, -3, z, s, 0x4a4a54));
+  const wr = new THREE.Group(); wr.position.set(20, -3, 20); wr.rotation.z = 0.35; g.add(wr);
+  add(new THREE.CylinderGeometry(0.25, 0.35, 10, 6), P.M(0x5a3a1a, { map: TX.wood }), 0, 4, 0, wr);
+  add(new THREE.BoxGeometry(4, 0.2, 0.2), P.M(0x5a3a1a, { map: TX.wood }), 0, 7, 0, wr);
+  add(new THREE.PlaneGeometry(3.4, 2.4), P.M(0xc8c0a8, { side: THREE.DoubleSide }), 0.4, 5.6, 0.1, wr).rotation.y = 0.3;
+  const finM = P.M(0x4a5468);
+  for (let k = 0; k < 3; k++) {
+    const f = add(new THREE.ConeGeometry(0.5, 1.2, 3), finM, 0, -2.4, 0, g); f.scale.z = 0.3;
+    const r = R0 + 3 + k * 2.2, sp = (k % 2 ? 1 : -1) * rnd(0.25, 0.4), ph = rnd(0, 6);
+    P.anim(f, (t) => { const a = t * sp + ph; f.position.set(Math.sin(a) * r, -2.4 + Math.sin(t * 2 + k) * 0.1, Math.cos(a) * r); f.rotation.y = a + (sp > 0 ? Math.PI / 2 : -Math.PI / 2); });
+  }
+  // lluvia (rápida y en diagonal)
+  P.drift(g, 160, -24, 24, 20, -3, -22, 22, 0xa8c0e0, 0.06, 18);
+  // rayos lejanos cada tanto (se prende un zigzag en el horizonte)
+  const boltM = new THREE.MeshBasicMaterial({ color: 0xeef4ff, fog: false });
+  const bolts = [0, 1].map(() => {
+    const b = new THREE.Group(); b.visible = false; g.add(b);
+    let x = 0, y = 26;
+    for (let i = 0; i < 7; i++) { const nx = x + rnd(-2.5, 2.5), ny = y - rnd(3.5, 5); const len = Math.hypot(nx - x, ny - y); const seg = add(new THREE.BoxGeometry(0.35, len, 0.35), boltM, (x + nx) / 2, (y + ny) / 2, 0, b); seg.rotation.z = Math.atan2(-(nx - x), ny - y) + Math.PI; x = nx; y = ny; }
+    return { b, t: rnd(2, 6) };
+  });
+  P.anim(g, (t, dt) => bolts.forEach((q) => {
+    q.t -= dt;
+    if (q.t <= 0 && !q.b.visible) { const a = rnd(-1.2, 1.2) + Math.PI; q.b.position.set(Math.sin(a) * 60, -8, Math.cos(a) * 60); q.b.lookAt(0, -8, 0); q.b.visible = true; q.on = 0.18; }
+    if (q.b.visible) { q.on -= dt; if (q.on <= 0) { q.b.visible = false; q.t = rnd(3, 7); } else q.b.children.forEach((c) => { c.visible = ((t * 30) | 0) % 3 !== 0; }); }
+  }));
+}

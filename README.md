@@ -43,6 +43,9 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   que resbalan más que el hielo, sobre la lava; el volcán de atrás tira **bolas de fuego**: una marca roja avisa dónde
   caen, al caer empujan a los que estén cerca y después siguen rodando, chocando naves, hasta caerse de la plataforma;
   empiezan a los 10 s de la ronda).
+  Tercer mapa: **Tormenta** (una balsa redonda de tablones en alta mar, de noche, con lluvia, faro, tiburones y rayos
+  a lo lejos; la madera mojada patina un poco y desde los 10 s caen **rayos**: un círculo blanco avisa, y al que
+  agarra lo deja mareado, con fogonazo en la pantalla; el que se cae, al agua).
 - **Bombardeo** (a pie): caen cajas de metal sobre una grilla y quedan apiladas; hay que ir saltando de pila en pila
   (el golpe es **saltar**) sin quedar abajo de una caja ni encerrado en un pozo. Cayendo sobre la cabeza de otro lo
   dejás mareado (**pisotón**). Antes de caer se ve la sombra de la caja en el piso y la caja bajando desde arriba.

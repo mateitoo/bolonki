@@ -12,6 +12,7 @@
 //   { kind:'info',   label, value? }                             -> texto, no seleccionable
 // Cualquier ítem puede tener hidden() para ocultarse según el momento.
 // No hay filas "VOLVER": se vuelve con B / ESC o tocando VOLVER en la barra de abajo.
+import { hiTxt } from '../render/thumbStore.js';
 import { input } from '../input.js';
 import { SFX } from '../audio.js';
 import { ui, txt, rect, panel, tri, textWidth, COL } from './draw.js';
@@ -174,7 +175,7 @@ function drawBig(top, hw) {
 }
 
 // Ventana: lista simple o con solapas
-export const FOOT_Y = 226;             // barra de abajo (teclas): arranca acá y llega hasta el fondo (240)
+export const FOOT_Y = 231;             // barra de abajo (teclas): arranca acá y llega hasta el fondo (240)
 function drawPanel(top, hw) {
   const def = top.def;
   const tabs = def.tabs;
@@ -260,6 +261,8 @@ export function keyCap(label, x, y, align) {
 }
 
 // Barra de botones al pie (cambia según teclado, joystick o mouse)
+const FS = 5;                          // tamaño de la letra de la barra de teclas (nítida, en la capa de alta resolución)
+const fw = (s) => (textWidth(s, 8) * FS) / 8;
 function drawFooter(top, hw, custom) {
   rect(0, FOOT_Y, hw, 240 - FOOT_Y, 'rgba(4,6,14,.85)');
   const pad = input.device === 'gamepad';
@@ -268,16 +271,17 @@ function drawFooter(top, hw, custom) {
   ];
   if (!custom && top.def.tabs) parts.push({ key: pad ? 'LB RB' : 'Q E', label: 'SOLAPA', act: 'tabNext' });
   if (!custom) parts.push({ key: pad ? 'B' : 'ESC', label: 'VOLVER', act: 'back' });
-  const widths = parts.map((p) => textWidth(p.key, 8) + 6 + 5 + textWidth(p.label, 8));
-  const total = widths.reduce((a, b) => a + b, 0) + (parts.length - 1) * 14;
+  const widths = parts.map((p) => fw(p.key) + 4 + 4 + fw(p.label));
+  const total = widths.reduce((a, b) => a + b, 0) + (parts.length - 1) * 12;
   let x = hw / 2 - total / 2;
+  const ty = FOOT_Y + (240 - FOOT_Y - FS) / 2;
   parts.forEach((p, i) => {
-    const kw = textWidth(p.key, 8) + 6;                 // tapita chiquita (la barra es finita)
-    rect(x, FOOT_Y + 2, kw, 10, '#1d2338');
-    txt(p.key, x + 3, FOOT_Y + 3, 8, COL.white);
-    txt(p.label, x + kw + 5, FOOT_Y + 3, 8, COL.dim);
+    const kw = fw(p.key) + 4;                           // tapita chiquita
+    rect(Math.round(x), FOOT_Y + 2, Math.round(kw), 240 - FOOT_Y - 4, '#1d2338');
+    hiTxt(p.key, x + 2, ty, FS, COL.white);
+    hiTxt(p.label, x + kw + 4, ty, FS, COL.dim);
     footRects.push({ act: p.act, x, y: FOOT_Y, w: widths[i], h: 240 - FOOT_Y });
-    x += widths[i] + 14;
+    x += widths[i] + 12;
   });
 }
 

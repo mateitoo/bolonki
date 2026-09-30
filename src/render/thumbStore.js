@@ -2,7 +2,7 @@
 // Se dibujan NÍTIDAS: el HUD es de 240 líneas (todo pixelado a propósito), así que las fotos van en otra capa
 // (#hires) del tamaño real de la pantalla, encima del HUD. drawThumb deja el marco en el HUD y anota la foto;
 // flushThumbs (al final de cada cuadro del HUD) las pinta en esa capa.
-import { ui, rect, COL } from '../ui/draw.js';
+import { ui, rect, COL, PX } from '../ui/draw.js';
 import { view } from '../display.js';
 
 export const thumbs = {};   // id del minijuego -> canvas
@@ -21,6 +21,8 @@ export function drawThumb(id, dx, dy, dw, dh, dim) {
   rect(dx, dy, dw, dh, '#0b1020');
   queue.push({ cv, sx, sy, sw, sh, dx, dy, dw, dh, dim });
 }
+// Texto nítido y más chico que la fuente del HUD (la barra de teclas de abajo): va en la misma capa
+export function hiTxt(s, x, y, size, col, align) { queue.push({ text: s, x, y, size, col, align: align || 'left' }); }
 export function beginThumbs() { queue.length = 0; }
 export function flushThumbs() {
   if (!hires) { hires = document.getElementById('hires'); if (!hires) return; }
@@ -33,6 +35,11 @@ export function flushThumbs() {
   const k = W / view.hw;
   c.imageSmoothingEnabled = true;
   for (const q of queue) {
+    if (q.text !== undefined) {
+      c.font = `${Math.round(q.size * k)}px ${PX}`; c.textAlign = q.align; c.textBaseline = 'top'; c.fillStyle = q.col;
+      c.fillText(q.text, Math.round(q.x * k), Math.round(q.y * k));
+      continue;
+    }
     c.drawImage(q.cv, q.sx, q.sy, q.sw, q.sh, q.dx * k, q.dy * k, q.dw * k, q.dh * k);
     if (q.dim) { c.fillStyle = 'rgba(4,6,14,.5)'; c.fillRect(q.dx * k, q.dy * k, q.dw * k, q.dh * k); }
   }

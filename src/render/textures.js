@@ -628,5 +628,39 @@ export const TX = {
     noisy(x, w, h, '#2a2c32', 0.2); x.fillStyle = '#16171b'; for (let i = 1; i < w; i += 3) x.fillRect(i, 3, 1, 10);
     x.fillStyle = '#4a4c52'; x.fillRect(0, 2, w, 1); x.fillRect(0, 13, w, 1);
   }),
+
+  /* ---------- Hexágonos: DULCES y NEÓN ---------- */
+  frosting: tex(32, 32, (x, w, h) => {            // glaseado con granitos de colores
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h);
+    const g = x.createRadialGradient(16, 16, 3, 16, 16, 18); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.18)'); x.fillStyle = g; x.fillRect(0, 0, w, h);
+    const cols = ['#ff3a7a', '#3ad8ff', '#ffe03a', '#7aff5a', '#b07aff', '#ffffff'];
+    for (let i = 0; i < 26; i++) { x.fillStyle = cols[i % cols.length]; const a = rnd(0, 3); x.save(); x.translate(rnd(2, 30), rnd(2, 30)); x.rotate(a); x.fillRect(-1.5, -0.5, 3, 1); x.restore(); }
+  }),
+  wafer: tex(16, 16, (x, w, h) => {               // costado de galletita / oblea
+    x.fillStyle = '#e8b870'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#c8904a'; for (let i = 0; i < w; i += 4) x.fillRect(i, 0, 1, h); x.fillRect(0, 7, w, 2);
+    x.fillStyle = '#fff4e0'; x.fillRect(0, 0, w, 2);
+  }),
+  choco: tex(32, 32, (x, w, h) => {               // río de chocolate con brillos
+    noisy(x, w, h, '#5a2e1a', 0.15);
+    for (let i = 0; i < 16; i++) { x.fillStyle = 'rgba(255,200,160,.25)'; x.fillRect(Math.random() * w, Math.random() * h, rnd(3, 9), 1); }
+    for (let i = 0; i < 8; i++) { x.fillStyle = 'rgba(30,10,5,.5)'; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, rnd(1, 3), 0, 7); x.fill(); }
+  }),
+  candyStripe: tex(16, 32, (x, w, h) => {         // bastón de caramelo (rayas en diagonal)
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#e8203a'; for (let i = -32; i < 48; i += 10) { x.beginPath(); x.moveTo(0, i); x.lineTo(w, i - 8); x.lineTo(w, i - 3); x.lineTo(0, i + 5); x.fill(); }
+  }),
+  neonTop: tex(32, 32, (x, w, h) => {             // baldosa de neón: oscura con el borde que brilla
+    x.fillStyle = '#12081e'; x.fillRect(0, 0, w, h);
+    const g = x.createRadialGradient(16, 16, 6, 16, 16, 17); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.75, 'rgba(255,255,255,.15)'); g.addColorStop(1, 'rgba(255,255,255,1)');
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+    x.fillStyle = 'rgba(255,255,255,.35)'; x.fillRect(15, 6, 2, 20); x.fillRect(6, 15, 20, 2);
+  }),
+  neonSide: tex(16, 16, (x, w, h) => { x.fillStyle = '#0a0612'; x.fillRect(0, 0, w, h); x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, 2); x.fillStyle = 'rgba(255,255,255,.35)'; x.fillRect(0, 13, w, 1); }),
+  neonGrid: tex(32, 32, (x, w, h) => {            // piso de grilla de neón (synthwave)
+    x.fillStyle = '#0a0418'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#ff3aa8'; x.fillRect(0, 0, w, 2); x.fillRect(0, 0, 2, h);
+    x.fillStyle = 'rgba(255,58,168,.35)'; x.fillRect(0, 2, w, 1); x.fillRect(2, 0, 1, h);
+  }),
 };
 setWhiteTexture(TX.white);

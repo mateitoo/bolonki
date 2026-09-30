@@ -4,7 +4,7 @@
 // El golpe es AGARRAR: agarrás al que tenés adelante y lo frenás (su baldosa se sigue cayendo); al soltarlo
 // (apretando otra vez, o solo al rato) lo tirás para adelante. A los 45 s el piso empieza a caerse solo.
 import * as THREE from 'three';
-import { register } from './registry.js';
+import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
@@ -19,12 +19,18 @@ import { drawWalker } from '../world/walker.js';
 import { camMove } from '../game/controls.js';
 import { sendInput } from '../net/room.js';
 import { txt, rect, COL } from '../ui/draw.js';
-import { decorHexagonos } from '../world/decorHex.js';
+import { decorHexagonos, decorDulces, decorNeon } from '../world/decorHex.js';
 
 /* ---------- medidas ---------- */
 const N = 8, HS = 1.0, TR = 0.95, SQ3 = Math.sqrt(3);          // anillos de baldosas, separación y radio de cada una
 const FLOORS = [0, -6, -12, -18], SLIME_Y = -40, OUT_Y = -30;         // alto de cada piso, el slime y dónde quedás afuera
 const FLOOR_COL = [0xff6fae, 0xffc83a, 0x5ae07a, 0x4ad8ff];
+// mapas: los mismos 4 pisos con otra pinta y otro fondo (abajo de todo: slime, chocolate o la grilla de neón)
+const MAPS = [
+  { name: 'CIELO', decor: decorHexagonos, fog: { col: 0xbfe0ff, near: 42, far: 100 }, top: 'hexTop', side: 'hexSide', cols: FLOOR_COL, bottom: 'SLIME', fall: P.YELLOW },
+  { name: 'DULCES', decor: decorDulces, fog: { col: 0xffd8f0, near: 42, far: 100 }, top: 'frosting', side: 'wafer', cols: [0xffb0d8, 0xb0e8ff, 0xfff0a0, 0xc8ffb0], bottom: 'CHOCOLATE', fall: P.DEBRIS },
+  { name: 'NEÓN', decor: decorNeon, fog: { col: 0x14062a, near: 45, far: 110 }, top: 'neonTop', side: 'neonSide', cols: [0xff3aa8, 0x3af0ff, 0xffe03a, 0x9a5aff], bottom: 'VACÍO', fall: P.CYAN, glow: true },
+];
 const PR = 0.45, CHAR_SCALE = 0.86;
 const ACC = 55, MAXV = 5.4, FRICTION = 14, GRAV = 24;
 const WARN_T = 0.55, FALL_T = 1.4;                               // lo que tarda en caerse una baldosa pisada
@@ -57,7 +63,7 @@ function cellAt(x, z) {
 
 /* ---------- estado ---------- */
 // st de cada baldosa: 0 entera · 1 temblando (se va a caer) · 2 cayéndose · 3 ya no está
-const S = { st: FLOORS.map(() => new Uint8Array(NT)), t: FLOORS.map(() => new Float32Array(NT)), crumbleT: 0, camY: 0 };
+const S = { st: FLOORS.map(() => new Uint8Array(NT)), t: FLOORS.map(() => new Float32Array(NT)), crumbleT: 0, camY: 0, map: 0 };
 
 /* ---------- mundo ---------- */
 const W = { grp: null, body: [], cap: [], dirty: [true, true, true], seen: null, slimeM: null, tilt: FLOORS.map(() => new Float32Array(NT * 2)) };
@@ -78,7 +84,24 @@ function buildWorld() {
     grp.add(body); grp.add(cap); W.body.push(body); W.cap.push(cap);
   });
   W.seen = FLOORS.map(() => new Uint8Array(NT));
-  W.slimeM = decorHexagonos(grp, SLIME_Y);
+  W.maps = MAPS.map((m) => { const g = new THREE.Group(); g.visible = false; grp.add(g); return { g, bottom: m.decor(g, SLIME_Y) }; });
+  applyMap(0);
+}
+function applyMap(i) {
+  S.map = i; const m = MAPS[i];
+  W.maps.forEach((q, k) => { q.g.visible = k === i; });
+  W.slimeM = W.maps[i].bottom;
+  FLOORS.forEach((fy, f) => {
+    const col = new THREE.Color(m.cols[f]);
+    W.body[f].material.uniforms.uMap.value = TX[m.side]; W.body[f].material.uniforms.uColor.value.copy(col).multiplyScalar(m.glow ? 1 : 0.8);
+    W.cap[f].material.uniforms.uMap.value = TX[m.top]; W.cap[f].material.uniforms.uColor.value.copy(col);
+    W.cap[f].material.uniforms.uUnlit.value = m.glow ? 1 : 0; W.body[f].material.uniforms.uUnlit.value = m.glow ? 1 : 0;
+  });
+}
+function pickMap() {
+  if (game.online === 'guest') return;
+  const f = fixedMap(MAPS.length);
+  applyMap(f >= 0 ? f : (Math.random() * MAPS.length) | 0);
 }
 
 // posición de cada baldosa según su estado (temblando: se hunde y vibra; cayéndose: cae girando)
@@ -332,7 +355,7 @@ function step(dt) {
       p.alive = false; game.elimOrder.push(p.i);
       if (p.grab >= 0) release(p, false);
       if (p.grabbedBy >= 0) { const g = game.players[p.grabbedBy]; if (g) { g.grab = -1; g.cd = GRAB_CD; } p.grabbedBy = -1; }
-      FX.snd('splash'); FX.sparkle(p.x, SLIME_Y + 0.5, p.z, P.YELLOW, 10);
+      FX.snd('splash'); FX.sparkle(p.x, SLIME_Y + 0.5, p.z, MAPS[S.map].fall, 10);
       if (p.i === game.me && game.mode === 'solo') game.timeScale = 1.5;
     }
   }
@@ -368,12 +391,12 @@ const CAM_Y0 = 29;
 const hexagonos = {
   id: 'hexagonos',
   name: 'HEXÁGONOS',
-  mapName: 'CIELO',
+  maps: MAPS.map((m) => m.name),
   desc: 'EL PISO SE CAE DONDE PISÁS',
   howTo: 'AGARRAR',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: new THREE.Vector3(0, CAM_Y0, 22.5), look: new THREE.Vector3(0, 0, 2.2), rotate: false, orbit: true },
-  fog: { col: 0xbfe0ff, near: 42, far: 100 },
+  fog: () => MAPS[S.map].fog,
   humanOut: false,
   tense: () => game.elapsed > CRUMBLE_AT,
   tagY: 2.4, tagFeet: true, markMe: true,
@@ -381,7 +404,7 @@ const hexagonos = {
   thumbCam: { pos: new THREE.Vector3(0, 18, 14), look: new THREE.Vector3(0, -1.5, 0.5) },
 
   rules(K) {
-    return ['¡NO TE CAIGAS AL SLIME!', 'CADA BALDOSA QUE PISÁS SE CAE: ¡NO TE QUEDES QUIETO!', `${K} = AGARRAR · ${K} OTRA VEZ = TIRARLO`,
+    return [`¡NO TE CAIGAS ${MAPS[S.map].bottom === 'VACÍO' ? 'AL VACÍO' : 'AL ' + MAPS[S.map].bottom}!`, 'CADA BALDOSA QUE PISÁS SE CAE: ¡NO TE QUEDES QUIETO!', `${K} = AGARRAR · ${K} OTRA VEZ = TIRARLO`,
       'HAY 4 PISOS: SI SE TE CAE EL PISO, SEGUÍS EN EL DE ABAJO', `GANA EL ÚLTIMO EN PIE · A ${game.target || 2} RONDAS`];
   },
   build: buildWorld,
@@ -392,6 +415,7 @@ const hexagonos = {
     game.round = { n: 1, over: false, winner: -1, t: 0 };
     game.players.forEach((p) => { p.score = 0; });
     game.elimOrder = []; game.elapsed = 0;
+    pickMap();
     placeAll();
     S.camY = 0;
     sendT = 0;
@@ -401,7 +425,7 @@ const hexagonos = {
   visuals(dt) {
     const clock = game.clock;
     for (let f = 0; f < FLOORS.length; f++) updateFloor(f, clock);
-    if (W.slimeM) W.slimeM.uniforms.uOff.value.set((clock * 0.03) % 1, (clock * 0.02) % 1);
+    if (W.slimeM) W.slimeM.uniforms.uOff.value.set(MAPS[S.map].glow ? 0 : (clock * 0.03) % 1, MAPS[S.map].glow ? (clock * 0.25) % 1 : (clock * 0.02) % 1);
     // cámara: baja siguiendo a los que quedan (al piso promedio donde están)
     const alive = game.players.filter((p) => p.alive && !p.empty);
     const target = alive.length ? alive.reduce((a, p) => a + Math.max(FLOORS[p.floor], p.fy), 0) / alive.length : S.camY;
@@ -451,7 +475,7 @@ const hexagonos = {
     if (game.elapsed > CRUMBLE_AT && game.elapsed < CRUMBLE_AT + 2.5 && blink) txt('¡EL PISO SE CAE SOLO!', hw / 2, 64, 8, COL.red, 'center');
     const me = game.players[game.me];
     if (game.mode === 'local' || !me || me.empty) return;
-    if (!me.alive) txt('¡AL SLIME!', hw / 2, 196, 16, '#b8ff5a', 'center', '#1a3a00');
+    if (!me.alive) txt(MAPS[S.map].bottom === 'VACÍO' ? '¡AL VACÍO!' : `¡AL ${MAPS[S.map].bottom}!`, hw / 2, 196, 16, '#b8ff5a', 'center', '#1a3a00');
     else if (me.grabbedBy >= 0) txt('¡TE AGARRARON!', hw / 2, 196, 16, COL.red, 'center');
     else if (me.grab >= 0) txt(`¡LO TENÉS! ${input.device === 'gamepad' ? 'A' : 'ESPACIO'} = TIRARLO`, hw / 2, 200, 8, COL.gold, 'center');
   },
@@ -460,7 +484,7 @@ const hexagonos = {
   snapshot() {
     const R = game.round;
     return {
-      ro: [R.n, R.over ? 1 : 0, R.winner, Math.round(R.t * 10) / 10, Math.round(game.elapsed)],
+      ro: [R.n, R.over ? 1 : 0, R.winner, Math.round(R.t * 10) / 10, Math.round(game.elapsed)], m: S.map,
       tl: S.st.map((a) => String.fromCharCode(...a.map((v) => 48 + v))),
       p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.fy || 0), r2(p.ang || 0), p.alive ? 1 : 0, p.score, p.grab, p.grabbedBy, p.hitN || 0,
         r2(p.vx || 0), r2(p.vz || 0), p.onGround ? 1 : 0, p.floor || 0, p.stunT > 0 ? 1 : 0]),
@@ -470,6 +494,7 @@ const hexagonos = {
     const ro = A.ro;
     game.round = { n: ro[0], over: !!ro[1], winner: ro[2], t: ro[3] };
     game.elapsed = ro[4];
+    if (B.m !== undefined && B.m !== S.map) applyMap(B.m);
     // baldosas: el estado que manda el anfitrión (las que empiezan a caer arrancan su animación acá)
     (B.tl || []).forEach((s, fl) => {
       const st = S.st[fl], tt = S.t[fl];

@@ -135,6 +135,83 @@ function boat(p, x, z, ry) {
   add(sail, P.M(0xfff4e6, { side: THREE.DoubleSide }), 0, 0, 0, g);
   P.anim(g, (t) => { g.position.y = -2.45 + Math.sin(t * 1.3 + x) * 0.08; g.rotation.z = Math.sin(t * 0.9 + z) * 0.05; });
 }
+// Gaviotas: cuerpo, cabeza con pico naranja, cola y alas en dos tramos (forma de "M") que planean y aletean
+function seagulls(p, cx, cy, cz, r, n = 4) {
+  const wm = P.M(0xffffff), gm = P.M(0xb8c0cc), km = P.M(0x1a1a22), bm = P.M(0xffa01a);
+  const gs = [];
+  for (let i = 0; i < n; i++) {
+    const g = grp(p); g.scale.setScalar(1.25);
+    const b = add(new THREE.SphereGeometry(0.32, 7, 5), wm, 0, 0, 0, g); b.scale.set(0.8, 0.7, 1.7);
+    add(new THREE.SphereGeometry(0.2, 6, 5), wm, 0, 0.12, 0.55, g);
+    add(new THREE.ConeGeometry(0.07, 0.26, 4), bm, 0, 0.1, 0.8, g).rotation.x = Math.PI / 2;
+    add(new THREE.BoxGeometry(0.02, 0.05, 0.05), km, 0.12, 0.17, 0.62, g); add(new THREE.BoxGeometry(0.02, 0.05, 0.05), km, -0.12, 0.17, 0.62, g);
+    add(box(0.3, 0.05, 0.35), gm, 0, 0, -0.62, g);
+    const wings = [-1, 1].map((sd) => {
+      const inner = grp(g, sd * 0.18, 0.06, 0);
+      add(box(0.9, 0.05, 0.5), gm, sd * 0.45, 0, 0, inner);
+      const outer = grp(inner, sd * 0.9, 0, 0);
+      add(box(0.85, 0.04, 0.38), gm, sd * 0.42, 0, -0.04, outer);
+      add(box(0.3, 0.045, 0.3), km, sd * 0.78, 0, -0.08, outer);          // puntas negras
+      return { inner, outer, sd };
+    });
+    gs.push({ g, wings, ph: (i / n) * Math.PI * 2, rr: r * rnd(0.6, 1.1), hh: rnd(-1.5, 1.5), sp: rnd(0.14, 0.22) * (i % 2 ? 1 : -1) });
+  }
+  P.anim(p, (t) => gs.forEach((q) => {
+    const a = t * q.sp + q.ph;
+    q.g.position.set(cx + Math.sin(a) * q.rr, cy + q.hh + Math.sin(t * 0.7 + q.ph) * 0.8, cz + Math.cos(a) * q.rr);
+    q.g.rotation.y = a + (q.sp > 0 ? Math.PI / 2 : -Math.PI / 2);
+    q.g.rotation.z = (q.sp > 0 ? -1 : 1) * 0.25;                               // se inclina en la curva
+    const flapping = Math.sin(t * 0.5 + q.ph) > 0.2;                            // a ratos aletea, a ratos planea
+    const f = flapping ? Math.sin(t * 9 + q.ph) * 0.6 : 0.12;
+    q.wings.forEach((w) => { w.inner.rotation.z = w.sd * f; w.outer.rotation.z = w.sd * (flapping ? -f * 0.7 : -0.28); });
+  }));
+}
+function parador(p, x, z) {                                    // bar de playa con techo de paja
+  const g = grp(p, x, Y, z, ry0(x, z));
+  const wm = P.M(0xb8905a, { map: TX.wood }), straw = P.M(0xd8b060, { map: TX.leaf });
+  [[-2.2, -1.4], [2.2, -1.4], [-2.2, 1.4], [2.2, 1.4]].forEach(([a, b]) => add(box(0.22, 3, 0.22), wm, a, 1.5, b, g));
+  const rf = new THREE.ConeGeometry(3.6, 1.6, 4); rf.rotateY(Math.PI / 4);
+  add(rf, straw, 0, 3.7, 0, g).scale.set(1, 1, 0.75);
+  add(box(4, 1.1, 0.5), P.M(0x3aa8e0, { map: TX.wood }), 0, 0.55, 1.1, g);
+  add(box(4.2, 0.12, 0.8), wm, 0, 1.15, 1.1, g);
+  add(box(2.6, 0.55, 0.08), P.M(0xff5fa2, { unlit: true }), 0, 2.6, 1.42, g);
+  [-1.4, 0, 1.4].forEach((sx) => { add(new THREE.CylinderGeometry(0.25, 0.25, 0.08, 8), P.M(0xffe14a), sx, 0.8, 2.0, g); add(new THREE.CylinderGeometry(0.05, 0.05, 0.8, 4), wm, sx, 0.4, 2.0, g); });
+  for (let k = 0; k < 5; k++) add(new THREE.CylinderGeometry(0.08, 0.08, 0.3, 5), P.M([0x39d98a, 0xff9a1f, 0xffffff, 0xff5a4a, 0x3a7aff][k]), -1.4 + k * 0.7, 1.35, 1.0, g);
+}
+function surfboards(p, x, z) {
+  const g = grp(p, x, Y, z, rnd(0, 6));
+  [[0xff5a4a, -0.6], [0x39d98a, 0], [0xffe14a, 0.6]].forEach(([c, dx], k) => {
+    const b = add(new THREE.SphereGeometry(0.5, 8, 5), P.M(c), dx, 1.1, 0, g); b.scale.set(0.8, 2.4, 0.12); b.rotation.z = (k - 1) * 0.12;
+  });
+}
+function beachKit(p, x, z) {                                   // heladerita, balde y pala, reposera
+  const g = grp(p, x, Y, z, rnd(0, 6));
+  add(box(0.9, 0.6, 0.6), P.M(0x3a7aff), 0, 0.3, 0, g); add(box(0.95, 0.12, 0.65), P.M(0xffffff), 0, 0.66, 0, g);
+  add(new THREE.CylinderGeometry(0.28, 0.2, 0.45, 8), P.M(0xff5a4a), 1.1, 0.22, 0.3, g);
+  const sh = add(box(0.12, 0.04, 0.8), P.M(0xffe14a), 1.4, 0.05, -0.2, g); sh.rotation.y = 0.6;
+  const ch = grp(g, -1.4, 0, 0.6, 0.4);
+  add(box(0.8, 0.06, 1.3), P.M(0xff9ac8, { map: TX.cloth }), 0, 0.35, 0, ch);
+  add(box(0.8, 0.06, 0.9), P.M(0xff9ac8, { map: TX.cloth }), 0, 0.7, -0.85, ch).rotation.x = 0.9;
+}
+function starfish(p, x, z, col = 0xff7a3a) { P.floorStar(p, x, Y + 0.02, z, 0.35, col); }
+function volleyNet(p, x, z) {
+  const g = grp(p, x, Y, z, ry0(x, z) + Math.PI / 2);
+  [-3.5, 3.5].forEach((sx) => add(new THREE.CylinderGeometry(0.08, 0.08, 2.6, 5), P.M(0xe8e8e8), sx, 1.3, 0, g));
+  for (let k = 0; k < 5; k++) add(box(7, 0.03, 0.03), P.M(0x2a2a2a), 0, 1.6 + k * 0.18, 0, g);
+  for (let k = 0; k < 14; k++) add(box(0.03, 0.75, 0.03), P.M(0x2a2a2a), -3.3 + k * 0.5, 1.95, 0, g);
+  add(box(7, 0.1, 0.05), P.M(0xffffff), 0, 2.35, 0, g);
+}
+function kite(p, x, y, z) {                                    // barrilete volando, con la cola moviéndose
+  const g = grp(p, x, y, z);
+  const d = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 1, 0), new THREE.Vector3(0.7, 0, 0), new THREE.Vector3(0, -1.2, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1.2, 0), new THREE.Vector3(-0.7, 0, 0)]);
+  d.computeVertexNormals();
+  const kg = grp(g); add(d, P.M(0xff5fa2, { side: THREE.DoubleSide }), 0, 0, 0, kg);
+  const tail = [];
+  for (let k = 0; k < 6; k++) tail.push(add(box(0.25, 0.12, 0.05), P.M([0xffe14a, 0x2de0c8][k % 2]), 0, -1.5 - k * 0.45, 0, kg));
+  P.anim(g, (t) => { kg.rotation.z = Math.sin(t * 0.9) * 0.3; kg.position.y = Math.sin(t * 0.6) * 0.8; tail.forEach((q, k) => { q.position.x = Math.sin(t * 3 - k * 0.7) * 0.25 * (k + 1) * 0.4; }); });
+}
+function shoreRocks(p, pts) { pts.forEach(([x, z, s]) => P.rock(p, x, -2.55, z, s, 0x7a7068)); }
+
 export function decorPlaya(g) {
   P.sky(g, [[0, '#23204f'], [0.3, '#7a3a78'], [0.42, '#e8667a'], [0.49, '#ffb25a'], [0.52, '#ffd88a'], [0.56, '#5a4a7a'], [1, '#1a2040']], { stars: 16, starBand: 0.2 });
   // sol que se hunde en el mar
@@ -155,7 +232,15 @@ export function decorPlaya(g) {
   lifeguardChair(g, 0, -24); lifeguardChair(g, 24, 0);
   sandcastle(g, -12, 24, 1.2); sandcastle(g, 26, -12, 0.9);
   boat(g, -40, -44, 0.6); boat(g, 44, -30, -0.4); boat(g, 12, 48, 1.2);
-  P.flyers(g, 0, 10, -10, 26, 5, 0xffffff, 0.8);
+  seagulls(g, 0, 11, -6, 24, 5);
+  parador(g, -26, -14); surfboards(g, -22, -24); surfboards(g, 27, 20);
+  beachKit(g, 14, -22); beachKit(g, -23, 8); beachKit(g, 20, 22);
+  volleyNet(g, 0, 26);
+  kite(g, -18, 16, -34); kite(g, 30, 13, -30);
+  [[-15, -26, 0xff7a3a], [16, 25, 0xff5a8a], [-27, 16, 0xffb03a], [27, -4, 0xff7a3a], [5, -29, 0xff5a8a]].forEach(([x, z, c]) => starfish(g, x, z, c));
+  shoreRocks(g, [[-33, -20, 1.6], [-34, -17, 1.1], [33, 24, 1.8], [35, 27, 1.2], [20, -34, 1.4]]);
+  // huellas en la arena
+  for (let k = 0; k < 14; k++) add(box(0.22, 0.02, 0.36), P.M(0xc8a870), -8 + k * 1.1 + (k % 2) * 0.1, Y + 0.02, -18 - (k % 2) * 0.4 - k * 0.3, g).rotation.y = -0.3;
   P.scatter(g, 0, Y + 0.01, 0, 30, 30, 120, 0xfff4e6, 0.16, [15, 15]);   // caracoles
   P.dune(g, -30, Y, 28, 6, 4, 0xe6c98e); P.dune(g, 30, Y, -28, 5, 4, 0xe6c98e);
 }
@@ -262,11 +347,51 @@ export function carousel(p, r) {
   add(new THREE.SphereGeometry(0.2, 6, 4), P.M(0xffe07a, { unlit: true }), 0, 2.6, 0, rot);
   return { g, rot };
 }
-// Chimeneas de la TERRAZA (postes fijos que rebotan las pelotas)
-export function chimney(p, x, z, r) {
-  const g = grp(p, x, 0, z);
-  add(scaleUV(new THREE.CylinderGeometry(r, r, 1.9, 8), 2, 1), P.M(0xc07a5a, { map: TX.brick }), 0, 0.95, 0, g);
-  add(new THREE.CylinderGeometry(r + 0.12, r + 0.12, 0.2, 8), P.M(0x5a5a62, { map: TX.metal }), 0, 1.95, 0, g);
-  add(new THREE.CircleGeometry(r * 0.75, 8), P.M(0x0a0a0c), 0, 2.06, 0, g).rotation.x = -Math.PI / 2;
+// Columna del medio de la TERRAZA: se va rajando con cada pelotazo (etapas) hasta romperse
+export function column(p, r) {
+  const g = grp(p, 0, 0, 0), bm = mat({ map: TX.brick, color: 0xc07a5a }), dm = P.M(0x2a1a14);     // material propio: se oscurece con el daño
+  const body = add(scaleUV(new THREE.CylinderGeometry(r, r * 1.08, 2.6, 10), 3, 1.4), bm, 0, 1.3, 0, g);
+  const top = grp(g, 0, 2.6, 0);
+  add(new THREE.CylinderGeometry(r + 0.15, r + 0.15, 0.25, 10), P.M(0x8a8a92, { map: TX.stone }), 0, 0.12, 0, top);
+  add(new THREE.CylinderGeometry(0.25, 0.25, 0.6, 6), P.M(0x5a5a62, { map: TX.metal }), 0.3, 0.5, 0, top);
+  // grietas (se muestran según el daño)
+  const cracks = [];
+  for (let k = 0; k < 9; k++) {
+    const a = (k / 9) * Math.PI * 2 + rnd(-0.2, 0.2), c = add(box(0.07, rnd(0.6, 1.4), 0.04), dm, Math.sin(a) * (r + 0.01), rnd(0.6, 2.0), Math.cos(a) * (r + 0.01), g);
+    c.rotation.y = a; c.rotation.z = rnd(-0.6, 0.6); c.visible = false; cracks.push(c);
+  }
+  return { g, body, top, cracks };
+}
+// Montoncito de escombros (queda en el piso y rebota las pelotas)
+export function rubble(p, r) {
+  const g = grp(p, 0, 0, 0), bm = P.M(0xe08a5a, { map: TX.brick }), sm = P.M(0xc8a890, { map: TX.stone });
+  for (let k = 0; k < 7; k++) {
+    const a = (k / 7) * Math.PI * 2, d = k === 0 ? 0 : r * 0.55;
+    const c = add(new THREE.DodecahedronGeometry(k === 0 ? r * 0.8 : r * 0.5, 0), k % 3 ? bm : sm, Math.sin(a) * d, k === 0 ? r * 0.35 : r * 0.2, Math.cos(a) * d, g);
+    c.rotation.set(rnd(0, 3), rnd(0, 3), 0); c.scale.y = 0.7;
+  }
   return g;
+}
+// Cangrejo de la PLAYA: sale de una torre, cruza la arena de costado y se mete en otra
+export function crab(p) {
+  const g = grp(p, 0, 0, 0); g.scale.setScalar(1.25);
+  const rm = P.M(0xe8402a), dm = P.M(0xb82a1a), wm = P.M(0xffffff), km = P.M(0x111111);
+  const body = grp(g);
+  const sh = add(new THREE.SphereGeometry(0.62, 10, 6), rm, 0, 0.42, 0, body); sh.scale.set(1.25, 0.55, 0.9);
+  // ojos en palitos
+  [-0.2, 0.2].forEach((x) => { add(new THREE.CylinderGeometry(0.04, 0.04, 0.3, 4), dm, x, 0.75, 0.42, body); add(new THREE.SphereGeometry(0.1, 6, 4), wm, x, 0.92, 0.42, body); add(new THREE.SphereGeometry(0.05, 4, 3), km, x, 0.94, 0.5, body); });
+  // pinzas
+  const claws = [-1, 1].map((sd) => {
+    const c = grp(body, sd * 0.62, 0.45, 0.45);
+    add(box(0.14, 0.14, 0.45), dm, 0, 0, 0.1, c).rotation.y = -sd * 0.5;
+    const pz = grp(c, sd * 0.2, 0.05, 0.42);
+    add(new THREE.SphereGeometry(0.22, 6, 4), rm, 0, 0, 0, pz).scale.set(1, 0.7, 1.3);
+    const jaw = add(box(0.1, 0.08, 0.3), dm, sd * 0.05, -0.1, 0.2, pz);
+    return { c, pz, jaw, sd };
+  });
+  // patas
+  const legs = [];
+  [-1, 1].forEach((sd) => { for (let k = 0; k < 3; k++) { const l = grp(body, sd * 0.55, 0.35, -0.25 + k * 0.25); add(box(0.55, 0.07, 0.07), dm, sd * 0.28, -0.1, 0, l).rotation.z = sd * -0.5; legs.push({ l, sd, k }); } });
+  g.visible = false;
+  return { g, body, claws, legs };
 }

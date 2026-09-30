@@ -18,7 +18,7 @@ export function movePod(p, tv, dt) {
 }
 
 // Lo que cambia según el mapa de Bola Brava: postes/calesita que rebotan las pelotas y el viento de la playa.
-// bumpers: [{ x, z, r, spin }] (spin: velocidad de giro de la calesita, empuja de costado) · wind: { x, z } aceleración
+// bumpers: [{ x, z, r, spin, snd, onHit }] (spin: giro de la calesita, empuja de costado; onHit(pelota): la columna se raja) · wind: { x, z } aceleración
 export const arenaMods = { bumpers: [], wind: null };
 
 const playing = () => game.state === 'play' || game.state === 'title' || game.state === 'menu';
@@ -103,8 +103,8 @@ export function step(dt) {
         if (q.spin) { b.vx += -mz * q.spin; b.vz += mx * q.spin; }        // la calesita gira: la tira de costado
         const sp = Math.hypot(b.vx, b.vz), ns = Math.min(Math.max(sp * 1.08, 12), BALL.maxNormal);
         b.vx *= ns / sp; b.vz *= ns / sp;
-        if (q.hit !== undefined) q.hit = 0.25;
-        FX.snd('boing');
+        FX.snd(q.snd || 'boing');
+        if (q.onHit) q.onHit(b);
       }
     }
     // viento (playa): curva la pelota mientras sopla

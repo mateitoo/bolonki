@@ -7,12 +7,16 @@ export const COL = {
 
 export const ui = { ctx: null };
 
+// Texto con sombra solo abajo a la derecha (sin contorno). Se ubica en píxeles enteros: la fuente pixel queda nítida
 export function txt(s, x, y, size, col, align, shadow) {
   const c = ui.ctx;
-  c.font = `${size}px ${PX}`; c.textAlign = align || 'left'; c.textBaseline = 'top';
+  c.font = `${size}px ${PX}`; c.textAlign = 'left'; c.textBaseline = 'top';
+  let lx = x;
+  if (align === 'center' || align === 'right') { const w = c.measureText(s).width; lx = align === 'center' ? x - w / 2 : x - w; }
+  lx = Math.round(lx); y = Math.round(y);
   const o = size >= 16 ? 2 : 1;
-  c.fillStyle = shadow || '#000'; c.fillText(s, x + o, y + o); c.fillText(s, x - 1, y);
-  c.fillStyle = col; c.fillText(s, x, y);
+  c.fillStyle = shadow || 'rgba(0,0,0,.75)'; c.fillText(s, lx + o, y + o);
+  c.fillStyle = col; c.fillText(s, lx, y);
 }
 
 export function rect(x, y, w, h, col) { ui.ctx.fillStyle = col; ui.ctx.fillRect(x, y, w, h); }

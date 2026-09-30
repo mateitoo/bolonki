@@ -140,6 +140,13 @@ export const FX = {
     burst(x, 1, z, { mat: P.WHITE, n: 8, sp: 5, up: [2, 7], life: [0.4, 0.9] });
     emit(['Gl', team, r2(x), r2(z)]);
   },
+  // Empujón, glaciar: un carámbano se hace pedazos contra el hielo
+  icicle(x, z) {
+    SFX.crumble(); SFX.thud(); game.shake = Math.max(game.shake, 0.18);
+    burst(x, 0.4, z, { mat: P.WHITE, n: 10, sp: 5, up: [2, 6], life: [0.3, 0.7] });
+    burst(x, 0.4, z, { mat: P.CYAN, n: 8, sp: 4, up: [2, 5], life: [0.3, 0.6] });
+    emit(['Ic', r2(x), r2(z)]);
+  },
   // Rey de la colina: alguien cayó al agua
   splash(x, z) {
     SFX.splash();
@@ -190,6 +197,7 @@ export function playEvent(ev) {
     case 'Gl': FX.gol(ev[1], ev[2], ev[3]); break;
     case 'Sh': FX.shot(ev[1], ev[2]); break;
     case 'Sw': FX.splash(ev[1], ev[2]); break;
+    case 'Ic': FX.icicle(ev[1], ev[2]); break;
     case 'S': FX.snd(ev[1]); break;
     case 'X': FX.sparkle(ev[1], ev[2], ev[3], ev[4], ev[5]); break;
     default: break;

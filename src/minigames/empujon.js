@@ -1,12 +1,13 @@
 // Minijuego 2: EMPUJÓN. Todos arriba de una plataforma redonda sobre un abismo. Hay dos mapas que se van
-// turnando por ronda: GLACIAR (hielo que patina, en una grieta helada) y VOLCÁN (tierra con charcos de barro que
+// turnando por ronda: GLACIAR (un iceberg que patina, flotando arriba de un valle nevado; del cielo caen carámbanos
+// que te dejan mareado un rato) y VOLCÁN (tierra con charcos de barro que
 // resbalan, sobre la lava, y un volcán que tira bolas de fuego: empujan al caer y después ruedan hasta caerse).
 // Las naves se mueven libres (patinan un poco, es hielo) y con el botón de golpe hacen una EMBESTIDA.
 // Gana la ronda el último que queda arriba; gana la partida el primero que llega a N rondas.
 // A los 14 s la plataforma empieza a achicarse para que nadie se quede quieto.
 import * as THREE from 'three';
 import { register } from './registry.js';
-import { DIFFICULTIES, rnd } from '../config.js';
+import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { scene, mat, add, scaleUV } from '../render/psx.js';
@@ -46,10 +47,10 @@ const lerpAng = (a, b, f) => { let d = b - a; while (d > Math.PI) d -= Math.PI *
 const MUD = [[-3.5, 2.0, 1.9], [3.8, -2.6, 2.1], [1.2, 4.9, 1.5], [-4.6, -4.2, 1.6], [5.9, 3.0, 1.3], [-0.6, -0.4, 1.1]];
 const VOLC = { x: 2, y: -6, z: -30 };      // el cráter del volcán que tira bolas de fuego
 const MAPS = [
-  { name: 'GLACIAR', extra: 'HIELO QUE PATINA', fog: { col: 0x0c1c34, near: 42, far: 105 }, fall: 'abyss' },
+  { name: 'GLACIAR', extra: 'HIELO Y CARÁMBANOS QUE MAREAN', fog: { col: 0xc8d8ea, near: 32, far: 118 }, fall: 'abyss' },
   { name: 'VOLCÁN', extra: 'BARRO Y BOLAS DE FUEGO', fog: { col: 0x2a0c08, near: 45, far: 115 }, fall: 'lava' },
 ];
-const S = { map: 0, fb: [], fbT: 5, fbId: 1 };
+const S = { map: 0, fb: [], fbT: 5, fbId: 1, ic: [], icT: 5 };
 const onMud = (x, z) => { const k = (game.radius || R0) / R0; return MUD.some(([mx, mz, r]) => Math.hypot(x - mx * k, z - mz * k) < r * k); };
 // cómo agarra el piso: hielo (patina), tierra (agarra bien) o barro (patina más que el hielo)
 function surface(p) {
@@ -60,7 +61,7 @@ function surface(p) {
 }
 
 /* ---------- mundo ---------- */
-const W = { grp: null, maps: [], fb: [], marks: [] };
+const W = { grp: null, maps: [], fb: [], marks: [], ic: [], icMarks: [] };
 
 function buildMap(mi) {
   const grp = new THREE.Group(); grp.visible = false; W.grp.add(grp);
@@ -75,15 +76,34 @@ function buildMap(mi) {
     add(dot, mat({ color: 0x5aa8c0, unlit: true }), 0, 0.02, 0, plat);
     M.rimM = mat({ map: TX.lights, unlit: true }); M.rimBase = 0xffffff;
     add(scaleUV(new THREE.CylinderGeometry(R0 + 0.03, R0 + 0.03, 0.28, 28, 1, true), 26, 1), M.rimM, 0, -0.16, 0, plat);
-    // pedazos de hielo flotando en la grieta
+    // abajo: un iceberg desparejo (no un cono liso), con carámbanos en el borde
+    const bg = new THREE.CylinderGeometry(R0 * 0.99, 1.4, 11, 18, 7, true), bp = bg.attributes.position;
+    for (let i = 0; i < bp.count; i++) {
+      const x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i), a = Math.atan2(x, z), depth = (5.5 - y) / 11;   // 0 arriba, 1 en la punta
+      if (depth < 0.02) continue;                                            // el borde de arriba queda redondo (pega con la plataforma)
+      const f = 1 + (Math.sin(a * 3 + y * 0.7) * 0.16 + Math.sin(a * 7 + 2) * 0.1 + Math.cos(a * 5 - y) * 0.08) * Math.min(1, depth * 3);
+      bp.setX(i, x * f); bp.setZ(i, z * f); bp.setY(i, y + Math.sin(a * 4 + y) * 0.6 * depth);
+    }
+    bg.computeVertexNormals();
+    add(scaleUV(bg, 5, 3), mat({ map: TX.ice, color: 0xc8eaf8 }), 0, -0.8 - 5.5, 0, plat);
+    const chunkM = mat({ map: TX.ice, color: 0xb0dcf0 });
+    [[0.6, 5.2, -3.4, 2.2], [2.3, 4.4, -5.6, 1.7], [4.0, 5.6, -2.6, 1.9], [5.3, 3.8, -6.8, 1.4], [1.4, 2.4, -8.6, 1.3]].forEach(([a, r, y, sz]) => {
+      const c = add(new THREE.DodecahedronGeometry(sz, 0), chunkM, Math.sin(a) * r, y, Math.cos(a) * r, plat); c.rotation.set(a, a * 2, 0); c.scale.set(1, 1.4, 1);
+    });
+    const icM = mat({ map: TX.ice, color: 0xe0f6ff });
+    for (let k = 0; k < 26; k++) {
+      const a = (k / 26) * Math.PI * 2, r = R0 * 0.96, h = rnd(0.7, 1.6);
+      const c = add(new THREE.ConeGeometry(0.22, h, 4), icM, Math.sin(a) * r, -0.8 - h / 2, Math.cos(a) * r, plat); c.rotation.x = Math.PI;
+    }
+    // bolas de hielo flotando alrededor (dan vueltas despacio y suben y bajan)
     const im = mat({ map: TX.ice, color: 0xd8f2ff });
     for (let k = 0; k < 10; k++) {
       const a = (k / 10) * Math.PI * 2 + rnd(-0.2, 0.2), rr = rnd(14, 19);
       const m = add(new THREE.DodecahedronGeometry(rnd(0.8, 1.8), 0), im, Math.sin(a) * rr, rnd(-9, -3), Math.cos(a) * rr, grp);
       m.rotation.set(rnd(0, 3), rnd(0, 3), 0);
-      M.rocks.push({ m, y: m.position.y, ph: rnd(0, 6) });
+      M.rocks.push({ m, y: m.position.y, ph: rnd(0, 6), a, rr, sp: rnd(0.04, 0.09) * (k % 2 ? 1 : -1) });
     }
-    decorGlaciar(grp, plat, R0);
+    decorGlaciar(grp);
   } else {
     // VOLCÁN: tierra con charcos de barro, sobre un cono de roca
     add(scaleUV(new THREE.CylinderGeometry(R0, R0 * 0.97, 0.8, 28, 1, true), 8, 1), mat({ map: TX.dirt, color: 0xc8b0a0 }), 0, -0.4, 0, plat);
@@ -129,6 +149,16 @@ function buildWorld() {
     const rg = new THREE.RingGeometry(FB_HIT * 0.8, FB_HIT, 20); rg.rotateX(-Math.PI / 2);
     const mk = add(rg, mat({ color: 0xff3a1a, unlit: true }), 0, 0.05, 0, grp); mk.visible = false;
     W.marks.push(mk);
+    // carámbano que cae y su círculo de aviso
+    const ic = new THREE.Group(); ic.visible = false; grp.add(ic);
+    const cg = new THREE.ConeGeometry(0.6, 3.2, 6); cg.rotateX(Math.PI);
+    add(cg, mat({ map: TX.ice, color: 0x7ab8e0 }), 0, 1.6, 0, ic);
+    add(new THREE.CylinderGeometry(0.75, 0.62, 0.35, 6), mat({ map: TX.snow }), 0, 3.3, 0, ic);           // un pedazo de nieve arriba
+    add(new THREE.ConeGeometry(0.22, 1.2, 5), mat({ color: 0xffffff, unlit: true }), 0.25, 2.4, 0.2, ic);
+    W.ic.push(ic);
+    const ig = new THREE.RingGeometry(IC_R * 0.78, IC_R, 20); ig.rotateX(-Math.PI / 2);
+    const im2 = add(ig, mat({ color: 0xff3a1a, unlit: true }), 0, 0.05, 0, grp); im2.visible = false;
+    W.icMarks.push(im2);
   }
 }
 
@@ -146,6 +176,39 @@ function spawnFireball() {
   S.fb.push({ id: S.fbId++, st: 0, u: 0, x: VOLC.x, y: VOLC.y, z: VOLC.z, tx, tz, vx: 0, vz: 0, vy: 0 });
   FX.snd('fireball');
 }
+/* ---------- carámbanos (mapa glaciar): caen del cielo y marean ---------- */
+const IC_R = 1.35, IC_WARN = 1.5, IC_STUN = 1.7;
+function stepIcicles(dt, R) {
+  if (S.map !== 0) { S.ic = []; return; }
+  if (!R.over && game.elapsed > 3) {
+    S.icT -= dt;
+    if (S.icT <= 0 && S.ic.length < 3) {
+      const alive = game.players.filter((p) => p.alive && !p.empty), r = game.radius * 0.85;
+      let tx, tz;
+      if (alive.length && Math.random() < 0.65) { const q = alive[(Math.random() * alive.length) | 0]; tx = q.x + rnd(-1.2, 1.2); tz = q.z + rnd(-1.2, 1.2); }
+      else { const a = rnd(0, Math.PI * 2), d = rnd(0, r); tx = Math.sin(a) * d; tz = Math.cos(a) * d; }
+      const l = Math.hypot(tx, tz); if (l > r) { tx *= r / l; tz *= r / l; }
+      S.ic.push({ id: S.fbId++, x: tx, z: tz, u: 0 });
+      S.icT = rnd(2.2, 3.8) * (game.radius < R0 - 2 ? 0.75 : 1);
+    }
+  }
+  for (const c of S.ic) {
+    c.u += dt / IC_WARN;
+    if (c.u < 1) continue;
+    // ¡pum!: el que esté abajo queda mareado (y lo corre un poquito)
+    for (const p of game.players) {
+      if (!p.alive || p.empty || p.death) continue;
+      const dx = p.x - c.x, dz = p.z - c.z, d = Math.hypot(dx, dz);
+      if (d > IC_R + PR * 0.5) continue;
+      p.stunT = IC_STUN; p.dashT = 0;
+      const nx = d > 0.01 ? dx / d : 1, nz = d > 0.01 ? dz / d : 0; p.vx += nx * 3; p.vz += nz * 3;
+      FX.sparkle(p.x, 1.6, p.z, P.YELLOW, 6);
+    }
+    FX.icicle(c.x, c.z);
+  }
+  S.ic = S.ic.filter((c) => c.u < 1);
+}
+
 function stepFireballs(dt, R) {
   if (S.map !== 1) { S.fb = []; return; }
   if (!R.over && game.elapsed > 3) {
@@ -214,7 +277,8 @@ function placeAll() {
   game.radius = R0;
   game.elapsed = 0;
   warned = false;
-  S.fb = []; S.fbT = 4;
+  S.fb = []; S.fbT = 4; S.ic = []; S.icT = 4;
+  game.players.forEach((p) => { p.stunT = 0; });
 }
 
 let warned = false;
@@ -265,10 +329,11 @@ function aiInput(p, dt) {
       }
     }
     // se viene una bola de fuego justo acá: los más vivos se corren (hacia el centro, no hacia el borde)
-    for (const b of S.fb) {
-      if (b.st !== 0 || b.u < 0.35 || Math.random() > D.lead) continue;
-      const dx = p.x - b.tx, dz = p.z - b.tz, dd = Math.hypot(dx, dz);
-      if (dd > FB_HIT + 0.6) continue;
+    const hz = S.fb.filter((b) => b.st === 0 && b.u > 0.35).map((b) => [b.tx, b.tz, FB_HIT]).concat(S.ic.filter((c) => c.u > 0.2).map((c) => [c.x, c.z, IC_R]));
+    for (const [hx, hzz, hr] of hz) {
+      if (Math.random() > D.lead) continue;
+      const dx = p.x - hx, dz = p.z - hzz, dd = Math.hypot(dx, dz);
+      if (dd > hr + 0.8) continue;
       const ox = dx / (dd || 1) - p.x / (d0 || 1) * 0.8, oz = dz / (dd || 1) - p.z / (d0 || 1) * 0.8, ol = Math.hypot(ox, oz) || 1;
       tx = p.x + (ox / ol) * 3.5; tz = p.z + (oz / ol) * 3.5; p.aiDash = false;
       const tl = Math.hypot(tx, tz), safe = r - margin * 0.8; if (tl > safe) { tx *= safe / tl; tz *= safe / tl; }
@@ -364,10 +429,12 @@ function step(dt) {
     } else if (p.ctrl === 'ai') {
       const a = aiInput(p, dt); wx = a.x; wz = a.z; dash = a.dash;
     }
+    if (p.stunT > 0) { p.stunT -= dt; wx = 0; wz = 0; dash = false; }   // mareado: no maneja (y sigue patinando)
     drive(p, wx, wz, dash, dt);
   }
   for (let i = 0; i < alive.length; i++) for (let j = i + 1; j < alive.length; j++) collide(alive[i], alive[j]);
   stepFireballs(dt, R);
+  stepIcicles(dt, R);
 
   // ¿alguien se cayó?
   for (const p of alive) {
@@ -439,7 +506,22 @@ const empujon = {
     const danger = game.elapsed > WARN_AT && !(game.round && game.round.over);
     M.rimM.uniforms.uColor.value.set(danger && ((clock * (game.elapsed > SHRINK_AT ? 4 : 10)) | 0) % 2 ? 0xff3a2a : M.rimBase);
     if (M.lavaM) M.lavaM.uniforms.uOff.value.set((clock * 0.01) % 1, (clock * 0.006) % 1);
-    M.rocks.forEach((r) => { r.m.position.y = r.y + Math.sin(clock * 0.7 + r.ph) * 0.4; r.m.rotation.y += dt * 0.1; });
+    M.rocks.forEach((r) => {
+      r.m.position.y = r.y + Math.sin(clock * 0.7 + r.ph) * 0.4; r.m.rotation.y += dt * 0.1;
+      if (r.sp) { r.a += r.sp * dt; r.m.position.x = Math.sin(r.a) * r.rr; r.m.position.z = Math.cos(r.a) * r.rr; r.m.rotation.x += dt * 0.2; }
+    });
+    // carámbanos: círculo celeste que titila y el carámbano que baja cada vez más rápido
+    W.ic.forEach((g, n) => {
+      const c = S.ic[n], mk = W.icMarks[n];
+      g.visible = mk.visible = !!c;
+      if (!c) return;
+      mk.position.set(c.x, 0.05, c.z);
+      mk.material.uniforms.uColor.value.setHex(((clock * (c.u > 0.6 ? 16 : 8)) | 0) % 2 ? 0xff3a1a : 0xffe14a);   // rojo y amarillo: se ve bien sobre el hielo
+      mk.scale.setScalar(1.2 - Math.min(1, c.u) * 0.2);
+      const f = clamp((c.u - 0.35) / 0.65, 0, 1);
+      g.visible = c.u > 0.35;
+      g.position.set(c.x, 15 * (1 - f * f), c.z); g.rotation.y = clock;
+    });
     // bolas de fuego: la bola (volando, rodando o cayendo) y la marca roja donde va a caer
     W.fbM.uniforms.uOff.value.set((clock * 0.7) % 1, (clock * 0.9) % 1);
     W.fb.forEach((g, n) => {
@@ -464,6 +546,10 @@ const empujon = {
       m.root.scale.setScalar(POD_SCALE);
       m.root.rotation.set(0, p.ang || 0, 0);
       const e = p.dashT > 0 ? 0.9 : 0; m.hullM.uniforms.uEmissive.value.setRGB(e, e * 0.9, e * 0.6);
+      if (p.stunT > 0) {                               // mareado: se bambolea y le dan vueltas estrellitas
+        m.root.rotation.z = Math.sin(clock * 16) * 0.2; m.root.rotation.x = Math.cos(clock * 13) * 0.12;
+        if (Math.random() < 0.35) { const a = clock * 9 + Math.random(); burst(p.x + Math.cos(a) * 0.8, 2.6, p.z + Math.sin(a) * 0.8, { mat: P.YELLOW, n: 1, sp: 0.2, up: [0.1, 0.4], life: [0.2, 0.35], g: 0, size: 0.7 }); }
+      }
       m.veh.rotation.x = p.dashT > 0 ? -0.18 : 0;
       m.sh.position.set(p.x, 0.03, p.z); m.sh.rotation.y = p.ang || 0; m.sh.scale.set(1.95 * POD_SCALE, 1, 1.6 * POD_SCALE); m.sh.visible = true;
     }
@@ -500,6 +586,7 @@ const empujon = {
     }
     const me = game.players[game.me];
     if (st === 'play' && me && !me.alive && !R.over && game.mode !== 'local') txt('¡TE CAÍSTE!', hw / 2, 196, 16, COL.red, 'center');
+    if (st === 'play' && me && me.alive && me.stunT > 0 && game.mode !== 'local') txt('¡MAREADO!', hw / 2, 196, 16, '#ffe14a', 'center', COL.goldShadow);
     if (st === 'play' && game.elapsed > WARN_AT && game.elapsed < SHRINK_AT + 1.5 && !R.over && ((game.clock * 3) | 0) % 2) {
       txt('¡LA PLATAFORMA SE ACHICA!', hw / 2, 64, 8, COL.red, 'center');
     }
@@ -511,12 +598,14 @@ const empujon = {
     return {
       r: r2(game.radius), ro: [R.n, R.over ? 1 : 0, R.winner, Math.round(R.t * 10) / 10], m: S.map,
       fb: S.fb.map((b) => [b.id, b.st, r2(b.x), r2(b.y), r2(b.z), r2(b.tx), r2(b.tz), r2(b.u)]),
-      p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.ang || 0), p.alive ? 1 : 0, p.dashT > 0 ? 1 : 0, p.score]),
+      ic: S.ic.map((c) => [c.id, r2(c.x), r2(c.z), r2(c.u)]),
+      p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.ang || 0), p.alive ? 1 : 0, p.dashT > 0 ? 1 : 0, p.score, p.stunT > 0 ? 1 : 0]),
     };
   },
   applySnap(A, B, f) {
     game.radius = A.r + (B.r - A.r) * f;
     S.map = B.m || 0;
+    S.ic = (B.ic || []).map(([id, x, z, u]) => { const a = (A.ic || []).find((q) => q[0] === id); return { id, x, z, u: a ? a[3] + (u - a[3]) * f : u }; });
     S.fb = (B.fb || []).map(([id, st, x, y, z, tx, tz, u]) => {
       const a = (A.fb || []).find((q) => q[0] === id && q[1] === st);
       return a ? { id, st, x: a[2] + (x - a[2]) * f, y: a[3] + (y - a[3]) * f, z: a[4] + (z - a[4]) * f, tx, tz, u: a[7] + (u - a[7]) * f } : { id, st, x, y, z, tx, tz, u };
@@ -526,7 +615,7 @@ const empujon = {
     game.players.forEach((p, i) => {
       const pa = A.p[i], pb = B.p[i];
       if (pa[3] && p.death) { p.death = null; resetPodVisual(p); }          // empezó otra ronda
-      p.alive = !!pa[3]; p.score = pa[5]; p.dashT = pa[4] ? 0.1 : 0;
+      p.alive = !!pa[3]; p.score = pa[5]; p.dashT = pa[4] ? 0.1 : 0; p.stunT = pb[6] ? 0.2 : 0;
       if (!p.alive && !p.death && !p.empty) FX.fall(i, 0, 0);               // por si se perdió el aviso
       if (p.death || p.empty) return;
       p.x = pa[0] + (pb[0] - pa[0]) * f; p.z = pa[1] + (pb[1] - pa[1]) * f;

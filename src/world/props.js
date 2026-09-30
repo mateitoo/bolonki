@@ -46,6 +46,18 @@ export function pine(p, x, y, z, s = 1, snow = false) {
   });
   return g;
 }
+// Bosque de pinos nevados (instanciado: muchos árboles con pocas mallas). pts: [[x, z, escala], ...]
+export function forest(p, y, pts) {
+  const n = pts.length, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const parts = [[new THREE.CylinderGeometry(0.2, 0.28, 1.2, 6), M(0x5a3c22, { map: TX.wood }), 0.6]];
+  const lm = M(0x2a6a4a, { map: TX.leaf }), sm = M(0xf4f8ff, { map: TX.snow });
+  [[1.4, 1.6, 1.4], [1.1, 1.4, 2.3], [0.75, 1.2, 3.1]].forEach(([r, h, yy]) => { parts.push([new THREE.ConeGeometry(r, h, 7), lm, yy]); parts.push([new THREE.ConeGeometry(r * 0.72, h * 0.42, 7), sm, yy + h * 0.32]); });
+  parts.forEach(([geo, mt, yy]) => {
+    const im = new THREE.InstancedMesh(geo, mt, n);
+    pts.forEach(([x, z, s2], i) => { q.setFromAxisAngle(up, (i * 2.4) % 6.28); sc.setScalar(s2); v.set(x, y + yy * s2, z); m4.compose(v, q, sc); im.setMatrixAt(i, m4); });
+    p.add(im);
+  });
+}
 export function palm(p, x, y, z, s = 1) {
   const g = G(p, x, y, z, rnd(0, 6)); g.scale.setScalar(s);
   const tm = M(0x9a7448, { map: TX.wood });

@@ -462,5 +462,32 @@ export const TX = {
     noisy(x, w, h, '#4ec81a', 0.25);
     for (let i = 0; i < 18; i++) { const cx = Math.random() * w, cy = Math.random() * h, r = rnd(1, 3); x.fillStyle = 'rgba(210,255,120,.7)'; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); x.fillStyle = 'rgba(40,120,10,.5)'; x.fillRect(cx + r * 0.3, cy + r * 0.3, 1, 1); }
   }),
+
+  /* ---------- Futbolonki: mapas nuevos ---------- */
+  potrero: tex(32, 32, (x, w, h) => {             // POTRERO: tierra apisonada con matas de pasto
+    noisy(x, w, h, '#a8784a', 0.28);
+    for (let i = 0; i < 6; i++) { const cx = Math.random() * w, cy = Math.random() * h; for (let k = 0; k < 18; k++) { x.fillStyle = Math.random() < 0.5 ? '#6a8a3a' : '#587a2e'; x.fillRect((cx + rnd(-4, 4) + w) % w, (cy + rnd(-3, 3) + h) % h, 1, rnd(1, 3)); } }
+    for (let i = 0; i < 16; i++) { x.fillStyle = 'rgba(60,40,20,.35)'; x.fillRect(Math.random() * w, Math.random() * h, rnd(2, 5), 1); }
+  }),
+  graffiti: tex(64, 16, (x, w, h) => {            // pared del potrero: ladrillo con grafitis
+    x.fillStyle = '#9a4a32'; x.fillRect(0, 0, w, h);
+    for (let r = 0; r < 4; r++) for (let c = -1; c < 9; c++) { x.fillStyle = `rgb(${150 + rnd(-20, 20)},${70 + rnd(-10, 10)},${50 + rnd(-10, 10)})`; x.fillRect(c * 8 + (r % 2) * 4 + 1, r * 4 + 1, 7, 3); }
+    const cols = ['#2de0c8', '#ff5fa2', '#ffe14a', '#6aff5a', '#ffffff', '#4a8cff'];
+    for (let k = 0; k < 5; k++) {                 // manchones y garabatos de aerosol
+      x.strokeStyle = cols[(Math.random() * cols.length) | 0]; x.lineWidth = 2; x.beginPath();
+      let px = rnd(0, w), py = rnd(3, 13); x.moveTo(px, py);
+      for (let j = 0; j < 5; j++) { px += rnd(-6, 8); py = Math.max(2, Math.min(14, py + rnd(-5, 5))); x.lineTo(px, py); }
+      x.stroke();
+    }
+    x.fillStyle = 'rgba(0,0,0,.25)'; x.fillRect(0, 14, w, 2);
+  }),
+  icePitch: tex(32, 32, (x, w, h) => {            // HIELO: pista con rayones de patines
+    noisy(x, w, h, '#d8eefa', 0.12);
+    for (let i = 0; i < 26; i++) { x.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,.7)' : 'rgba(120,170,210,.35)'; const l = rnd(4, 14), a = rnd(0, 3); for (let k = 0; k < l; k++) x.fillRect((rnd(0, w) + Math.cos(a) * k) % w, (rnd(0, h) * 0 + (i * 1.3) % h + Math.sin(a) * k + h) % h, 1, 1); }
+  }),
+  boards: tex(32, 16, (x, w, h) => {              // tablas blancas de la pista de hielo, con franja azul
+    noisy(x, w, h, '#f4f6fa', 0.08); x.fillStyle = '#2a5aff'; x.fillRect(0, 11, w, 3); x.fillStyle = '#e8303a'; x.fillRect(0, 14, w, 2);
+    x.fillStyle = 'rgba(0,0,0,.08)'; for (let i = 0; i < w; i += 8) x.fillRect(i, 0, 1, 11);
+  }),
 };
 setWhiteTexture(TX.white);

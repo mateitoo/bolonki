@@ -60,6 +60,10 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   a 3, 5 o 7 goles, o el que va ganando a los 2 minutos; si empatan hay **gol de oro** y los arcos se agrandan de a poco
   hasta que alguien la meta. Los CPU se reparten: uno va a buscar la pelota y el otro ataja. Un tiro que el rival desvía
   adentro cuenta como gol del que pateó.
+  Tres mapas (misma cancha; `world/decorFutbol.js`): **Estadio** (el de siempre), **Potrero** (canchita de tierra del
+  barrio al atardecer, con alambrado, casas, autos y un perro dando vueltas; cuatro **charcos de barro** —simétricos
+  respecto del medio— frenan la pelota y a las naves) y **Lago helado** (pista de hielo en el bosque nevado de noche,
+  con aurora y nieve que cae; las naves **patinan** y la pelota corre más).
 - **Rey de la colina** (a pie): una isla de costa irregular con tres colinas distintas (el Morro, con ruinas arriba; la Mesa,
   ancha y con bandera; y el Peñón, chico y pegado al agua), un puente colgante entre el Morro y la Mesa, un muelle que sale
   al mar (a veces el palo aparece en la punta) y palmeras, rocas, un bote y barriles que estorban. La corona flota sobre la cima

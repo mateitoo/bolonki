@@ -4,13 +4,15 @@
 // Gana el primer equipo que llega a N goles, o el que va ganando cuando se termina el tiempo.
 // Si empatan al final: gol de oro (y los arcos se van agrandando de a poco hasta que alguien meta).
 import * as THREE from 'three';
-import { register } from './registry.js';
+import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorFutbol } from '../world/decor.js';
+import { decorPotrero, decorHielo } from '../world/decorFutbol.js';
+import { burst, P } from '../fx/particles.js';
 import { input } from '../input.js';
 import { FX } from '../game/fx.js';
 import { resetPodVisual } from '../world/pods.js';
@@ -38,25 +40,43 @@ const lerpAng = (a, b, f) => { let d = b - a; while (d > Math.PI) d -= Math.PI *
 const demo = () => game.state === 'title' || game.state === 'menu';
 const matchT = () => (game.setup && game.setup.fiesta ? 90 : MATCH_T);   // en la Fiesta los partidos son más cortos
 
+/* ---------- mapas ----------
+   La cancha mide lo mismo en todos. ESTADIO: el de siempre · POTRERO: canchita de tierra del barrio con cuatro
+   charcos de barro (la pelota se frena y las naves van más lento adentro) · LAGO HELADO: pista de hielo, las naves
+   patinan y la pelota corre más. */
+const MUD = [[-7.2, 4.6], [7.2, -4.6], [0, 5.3], [0, -5.3]], MUD_R = 1.5;       // simétricos respecto del medio (parejo para los dos equipos)
+const MAPS = [
+  { name: 'ESTADIO', decor: (g) => decorFutbol(g, HX, HZ), fog: { col: 0x070a1c, near: 55, far: 130 },
+    pitch: [TX.pitch, 0xffffff], lines: 0xf4f6f0, wall: TX.ads, cap: 0x2a2f3c, post: 0xf2f4f8, net: 0xdfe6ee, phys: { acc: 1, fric: 1, bfric: 1 } },
+  { name: 'POTRERO', decor: (g) => decorPotrero(g, HX, HZ), fog: { col: 0x4a2a3a, near: 50, far: 125 }, extra: 'CHARCOS DE BARRO: FRENAN LA PELOTA',
+    pitch: [TX.potrero, 0xffffff], lines: 0xf0e8d0, wall: TX.graffiti, cap: 0x6a5a4a, post: 0xb8bcc4, net: 0xe8e8e0, phys: { acc: 1, fric: 1, bfric: 1 }, mud: true },
+  { name: 'LAGO HELADO', decor: (g) => decorHielo(g, HX, HZ), fog: { col: 0x0a1428, near: 50, far: 125 }, extra: 'HIELO: LAS NAVES PATINAN',
+    pitch: [TX.icePitch, 0xa8d0f0], lines: 0xe8303a, wall: TX.boards, cap: 0x2a5aff, post: 0xe8303a, net: 0xf4f6fa, phys: { acc: 0.62, fric: 0.28, bfric: 0.35 } },
+];
+const inMud = (x, z) => MAPS[S.map].mud && MUD.some(([mx, mz]) => Math.hypot(x - mx, z - mz) < MUD_R);
+
 /* ---------- estado del partido ---------- */
 const S = {
   ball: { x: 0, z: 0, vx: 0, vz: 0, h: 0, vh: 0, last: -1 },
   goals: [0, 0], t: MATCH_T, golden: false, goldT: 0, gw: GW0,
   goalT: 0, goalTeam: -1, scorer: -1, ending: false, freeze: 0,
   team: [-1, -1, -1, -1], pg: [0, 0, 0, 0], touchAt: [-9, -9, -9, -9],   // equipo de cada lugar y goles de cada jugador
+  map: 0,
 };
 
 /* ---------- mundo ---------- */
-const W = { side: [], grp: null, ball: null, ballSh: null, goals: [], rings: [], ringM: [], lastB: null };
+const W = { side: [], grp: null, ball: null, ballSh: null, goals: [], rings: [], ringM: [], lastB: null, M: {}, maps: [], mud: null };
 
 function buildGoal(grp, side) {
   const g = new THREE.Group(); g.position.set(side * HX, 0, 0); grp.add(g);
-  const white = mat({ color: 0xf2f4f8 }), H = 2.3;
+  W.M.post = W.M.post || mat({ color: 0xf2f4f8 });
+  const white = W.M.post, H = 2.3;
   // palos y travesaño
   [-1, 1].forEach((sz) => add(new THREE.CylinderGeometry(POST, POST, H, 6), white, 0, H / 2, sz * GW0, g));
   const bar = add(new THREE.CylinderGeometry(POST, POST, GW0 * 2 + POST * 2, 6), white, 0, H, 0, g); bar.rotation.x = Math.PI / 2;
   // red: una grilla de palitos finos (así se ve bien en PS1 sin transparencias)
-  const netM = mat({ color: 0xdfe6ee, unlit: true }), thin = 0.035;
+  W.M.net = W.M.net || mat({ color: 0xdfe6ee, unlit: true });
+  const netM = W.M.net, thin = 0.035;
   const D = side * GD;
   // fondo
   for (let k = 0; k <= 10; k++) { const z = -GW0 + (k / 10) * GW0 * 2; add(new THREE.BoxGeometry(thin, H * 0.8, thin), netM, D, H * 0.4, z, g); }
@@ -75,7 +95,8 @@ function buildGoal(grp, side) {
   });
   // piso del arco (un poco más oscuro) y marco de atrás
   const fl = new THREE.PlaneGeometry(GD, GW0 * 2); fl.rotateX(-Math.PI / 2);
-  add(fl, mat({ map: TX.pitch, color: 0x9ab0a0 }), D / 2, 0.01, 0, g);
+  W.M.goalFloor = W.M.goalFloor || mat({ map: TX.pitch, color: 0x9ab0a0 });
+  add(fl, W.M.goalFloor, D / 2, 0.01, 0, g);
   [-1, 1].forEach((sz) => add(new THREE.BoxGeometry(0.12, 0.12, 0.12), white, D, 0.06, sz * GW0, g));
   return g;
 }
@@ -85,9 +106,10 @@ function buildWorld() {
   // pasto con franjas
   const L = HX * 2 + 10, Wd = HZ * 2 + 8;
   const pitch = scaleUV(new THREE.PlaneGeometry(L, Wd, 16, 12), L / 3.2, Wd / 3.2); pitch.rotateX(-Math.PI / 2);
-  add(pitch, mat({ map: TX.pitch }), 0, 0, 0, grp);
+  W.M.pitch = mat({ map: TX.pitch });
+  add(pitch, W.M.pitch, 0, 0, 0, grp);
   // líneas blancas
-  const lm = mat({ color: 0xf4f6f0, unlit: true }), Y = 0.04, lw = 0.14;
+  const lm = mat({ color: 0xf4f6f0, unlit: true }), Y = 0.04, lw = 0.14; W.M.lines = lm;
   const line = (x, z, w, d) => { const g = new THREE.PlaneGeometry(w, d); g.rotateX(-Math.PI / 2); add(g, lm, x, Y, z, grp); };
   const arc = (x, z, r, a0, len, seg = 10) => { const g = new THREE.RingGeometry(r - lw / 2, r + lw / 2, seg, 1, a0, len); g.rotateX(-Math.PI / 2); add(g, lm, x, Y, z, grp); };
   const I = 0.5;                                     // las líneas van un poco adentro de las paredes
@@ -106,7 +128,7 @@ function buildWorld() {
     const pd = new THREE.CircleGeometry(0.14, 6); pd.rotateX(-Math.PI / 2); add(pd, lm, s * (lx - 3.9), Y, 0, grp);
   });
   // paredes bajas con carteles de publicidad (siguen las esquinas redondeadas; los arcos quedan abiertos)
-  const adM = mat({ map: TX.ads, unlit: true }), capM = mat({ color: 0x2a2f3c }), WH = 0.8, T = 0.3;
+  const adM = mat({ map: TX.ads, unlit: true }), capM = mat({ color: 0x2a2f3c }), WH = 0.8, T = 0.3; W.M.ad = [adM]; W.M.cap = capM;
   const wall = (x, z, w, d, uvw) => {
     const g = new THREE.Group(); g.position.set(x, 0, z); grp.add(g);
     add(scaleUV(new THREE.BoxGeometry(w, WH, d), uvw, 1), adM, 0, WH / 2, 0, g);
@@ -121,7 +143,8 @@ function buildWorld() {
   [[1, 1], [-1, 1], [-1, -1], [1, -1]].forEach(([sx, sz]) => {
     const a0 = Math.atan2(sx, sz) - Math.PI / 4;      // cilindro: ángulo 0 = +z, crece hacia +x
     const cyl = scaleUV(new THREE.CylinderGeometry(CR + T / 2, CR + T / 2, WH, 6, 1, true, a0, Math.PI / 2), 1, 1);
-    add(cyl, mat({ map: TX.ads, unlit: true, side: THREE.DoubleSide }), sx * (HX - CR), WH / 2, sz * (HZ - CR), grp);
+    const cm = mat({ map: TX.ads, unlit: true, side: THREE.DoubleSide }); W.M.ad.push(cm);
+    add(cyl, cm, sx * (HX - CR), WH / 2, sz * (HZ - CR), grp);
   });
   W.goals = [buildGoal(grp, -1), buildGoal(grp, 1)];
   // pelota y su sombra
@@ -134,7 +157,37 @@ function buildWorld() {
     const rg = new THREE.RingGeometry(1.02, 1.24, 18); rg.rotateX(-Math.PI / 2);
     W.rings.push(add(rg, m, 0, 0.03, 0, grp));
   }
-  decorFutbol(grp, HX, HZ);
+  // decorado de cada mapa (se muestra el que toca)
+  W.maps = MAPS.map((m) => { const g = new THREE.Group(); g.visible = false; grp.add(g); m.decor(g); return g; });
+  // charcos de barro del potrero
+  const mg = new THREE.Group(); grp.add(mg); W.mud = mg;
+  const mm = mat({ map: TX.dirt, color: 0x8a5a38 });
+  MUD.forEach(([x, z], k) => {
+    const sh = new THREE.Shape();
+    for (let i = 0; i <= 14; i++) { const a = (i / 14) * Math.PI * 2, r = MUD_R * (0.92 + Math.sin(a * 3 + k) * 0.08 + Math.cos(a * 5 + k * 2) * 0.05); if (i === 0) sh.moveTo(Math.cos(a) * r, Math.sin(a) * r); else sh.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2);
+    add(g, mm, x, 0.025, z, mg);
+    const hl = new THREE.RingGeometry(MUD_R * 0.35, MUD_R * 0.45, 8, 1, 0.5 + k, 1.4); hl.rotateX(-Math.PI / 2);
+    add(hl, mat({ color: 0xc8a882, unlit: true }), x - 0.3, 0.03, z - 0.2, mg);
+  });
+  applyMap(0);
+}
+function applyMap(i) {
+  S.map = i;
+  const m = MAPS[i];
+  W.maps.forEach((g, k) => { g.visible = k === i; });
+  W.mud.visible = !!m.mud;
+  W.M.pitch.uniforms.uMap.value = m.pitch[0]; W.M.pitch.uniforms.uColor.value.set(m.pitch[1]);
+  W.M.goalFloor.uniforms.uMap.value = m.pitch[0];
+  W.M.lines.uniforms.uColor.value.set(m.lines);
+  W.M.ad.forEach((a) => { a.uniforms.uMap.value = m.wall; });
+  W.M.cap.uniforms.uColor.value.set(m.cap);
+  W.M.post.uniforms.uColor.value.set(m.post); W.M.net.uniforms.uColor.value.set(m.net);
+}
+function pickMap() {
+  if (game.online === 'guest') { applyMap(S.map); return; }
+  const f = fixedMap(MAPS.length);
+  applyMap(f >= 0 ? f : (Math.random() * MAPS.length) | 0);
 }
 
 /* ---------- equipos y saques ---------- */
@@ -277,9 +330,10 @@ function drive(p, wx, wz, dash, dt) {
     p.dashT = DASH_T; p.cd = DASH_CD; p.aiDash = false; p.kicked = false;
     FX.dash(p.i, p.x, p.z);
   }
-  p.vx += wx * ACC * dt; p.vz += wz * ACC * dt;
-  const fr = Math.exp(-FRICTION * dt); p.vx *= fr; p.vz *= fr;
-  const sp = Math.hypot(p.vx, p.vz), max = p.dashT > 0 ? DASH_V : MAXV;
+  const ph = MAPS[S.map].phys, mud = inMud(p.x, p.z);
+  p.vx += wx * ACC * ph.acc * dt; p.vz += wz * ACC * ph.acc * dt;
+  const fr = Math.exp(-FRICTION * ph.fric * (mud ? 3 : 1) * dt); p.vx *= fr; p.vz *= fr;
+  const sp = Math.hypot(p.vx, p.vz), max = p.dashT > 0 ? DASH_V : MAXV * (mud ? 0.6 : 1);
   if (sp > max) { const ns = max + (sp - max) * Math.exp(-4 * dt); p.vx *= ns / sp; p.vz *= ns / sp; }
   p.x += p.vx * dt; p.z += p.vz * dt;
   if (sp > 0.6) p.ang = lerpAng(p.ang, Math.atan2(p.vx, p.vz), Math.min(1, dt * 10));
@@ -430,7 +484,9 @@ function step(dt) {
   // pelota (en pasos chicos, así no atraviesa nada cuando va rapidísimo)
   const n = 3, h = dt / n;
   for (let k = 0; k < n; k++) {
-    const fr = Math.exp(-BFRIC * h); b.vx *= fr; b.vz *= fr;
+    const bm = inMud(b.x, b.z);
+    const fr = Math.exp(-BFRIC * MAPS[S.map].phys.bfric * (bm ? 7 : 1) * h); b.vx *= fr; b.vz *= fr;
+    if (bm && k === 0 && Math.hypot(b.vx, b.vz) > 4 && Math.random() < 0.3) burst(b.x, 0.2, b.z, { mat: P.DEBRIS, n: 1, sp: 2, up: [1, 3], life: [0.2, 0.4] });
     const sp = Math.hypot(b.vx, b.vz); if (sp > BMAX) { b.vx *= BMAX / sp; b.vz *= BMAX / sp; }
     b.x += b.vx * h; b.z += b.vz * h;
     for (const p of act) hitBall(p);
@@ -468,13 +524,13 @@ let sendT = 0;
 const futbol = {
   id: 'futbol',
   name: 'FUTBOLONKI',
-  mapName: 'ESTADIO',
+  maps: MAPS.map((m) => m.name),
   desc: 'FÚTBOL DE NAVES, 2 CONTRA 2',
   howTo: 'EMBESTIDA / PELOTAZO',
   points: { label: 'GOLES PARA GANAR', values: [3, 5, 7], key: 'goles', demo: 3 },
   fiestaPoints: 3,
   cam: { pos: new THREE.Vector3(0, 25, 19.5), look: new THREE.Vector3(0, 0, 0.9), rotate: false, orbit: true },
-  fog: { col: 0x070a1c, near: 55, far: 130 },
+  fog: () => MAPS[S.map].fog,
   humanOut: false,
   markMe: true, tagY: 2.8,
   tense: () => S.golden || (S.t < 20 && !S.ending),
@@ -485,12 +541,13 @@ const futbol = {
     const r = [], myT = S.team[game.me];
     if (game.mode !== 'local' && myT >= 0) r.push(`JUGÁS EN EL EQUIPO ${TEAM_NAME[myT]}`);
     r.push(`¡EL PRIMERO EN METER ${game.target || 3} GOLES GANA!`, `${K} = EMBESTIDA (CONTRA LA PELOTA, PELOTAZO)`, 'SI EMPATAN AL FINAL: GOL DE ORO');
+    if (MAPS[S.map].extra) r.push(`MAPA ${MAPS[S.map].name}: ${MAPS[S.map].extra}`);
     return r;
   },
   build: buildWorld,
   show(on) { if (W.grp) W.grp.visible = on; },
 
-  reset() { newMatch(); sendT = 0; W.lastB = null; },
+  reset() { pickMap(); newMatch(); sendT = 0; W.lastB = null; },
   step,
 
   visuals(dt) {
@@ -572,7 +629,7 @@ const futbol = {
     return {
       b: [r2(b.x), r2(b.z), r2(b.h)],
       s: [S.goals[0], S.goals[1], Math.round(S.t * 10) / 10, S.golden ? 1 : 0, Math.round(S.goalT * 10) / 10, S.goalTeam, S.scorer, S.ending ? 1 : 0, r2(S.gw), Math.round(S.goldT * 10) / 10],
-      tm: S.team,
+      tm: S.team, m: S.map,
       p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.ang || 0), p.dashT > 0 ? 1 : 0, p.score]),
     };
   },
@@ -582,6 +639,7 @@ const futbol = {
     const s = B.s;
     S.goals = [s[0], s[1]]; S.t = s[2]; S.golden = !!s[3]; S.goalT = s[4]; S.goalTeam = s[5]; S.scorer = s[6]; S.ending = !!s[7]; S.gw = s[8]; S.goldT = s[9];
     S.team = B.tm.slice();
+    if (B.m !== undefined && B.m !== S.map) applyMap(B.m);
     game.players.forEach((p, i) => {
       const pa = A.p[i], pb = B.p[i];
       p.score = pb[4]; p.dashT = pb[3] ? 0.1 : 0;

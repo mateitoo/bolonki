@@ -17,6 +17,10 @@ export function movePod(p, tv, dt) {
   podPos(p);
 }
 
+// Lo que cambia según el mapa de Bola Brava: postes/calesita que rebotan las pelotas y el viento de la playa.
+// bumpers: [{ x, z, r, spin }] (spin: velocidad de giro de la calesita, empuja de costado) · wind: { x, z } aceleración
+export const arenaMods = { bumpers: [], wind: null };
+
 const playing = () => game.state === 'play' || game.state === 'title' || game.state === 'menu';
 
 export function step(dt) {
@@ -86,6 +90,25 @@ export function step(dt) {
       }
     }
     if (b.fresh && !inside) b.fresh = false;
+
+    // postes / calesita del mapa
+    for (const q of arenaMods.bumpers) {
+      const dx = b.x - q.x, dz = b.z - q.z, d2 = dx * dx + dz * dz, rr = q.r + BR;
+      if (d2 >= rr * rr) continue;
+      const d = Math.sqrt(d2) || 1e-3, mx = dx / d, mz = dz / d;
+      b.x = q.x + mx * rr; b.z = q.z + mz * rr;
+      const vn = b.vx * mx + b.vz * mz;
+      if (vn < 0) {
+        b.vx -= 2 * vn * mx; b.vz -= 2 * vn * mz;
+        if (q.spin) { b.vx += -mz * q.spin; b.vz += mx * q.spin; }        // la calesita gira: la tira de costado
+        const sp = Math.hypot(b.vx, b.vz), ns = Math.min(Math.max(sp * 1.08, 12), BALL.maxNormal);
+        b.vx *= ns / sp; b.vz *= ns / sp;
+        if (q.hit !== undefined) q.hit = 0.25;
+        FX.snd('boing');
+      }
+    }
+    // viento (playa): curva la pelota mientras sopla
+    if (arenaMods.wind && !b.fresh) { b.vx += arenaMods.wind.x * dt; b.vz += arenaMods.wind.z * dt; }
 
     // lados: arco abierto, o pared/barrera si el dueño está eliminado
     let gone = false;

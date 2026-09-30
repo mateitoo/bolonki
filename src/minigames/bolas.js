@@ -1,13 +1,17 @@
 // Minijuego 1: BOLA BRAVA. Cada uno defiende su arco; las pelotas salen de las torres.
 import * as THREE from 'three';
-import { register } from './registry.js';
+import { register, fixedMap } from './registry.js';
 import { BR, HUMAN_SPEED } from '../config.js';
 import { game, world } from '../state.js';
-import { buildArena, arenaGroup } from '../world/arena.js';
+import { buildArena, arenaGroup, arenaMats } from '../world/arena.js';
 import { decorBolas } from '../world/decor.js';
+import { decorFeria, decorPlaya, decorTerraza, carousel, chimney } from '../world/decorBolas.js';
+import { TX } from '../render/textures.js';
+import { mat } from '../render/psx.js';
 import { buildBalls, removeBall } from '../world/balls.js';
 import { dropDot } from '../fx/particles.js';
-import { step as ballStep, movePod } from '../game/physics.js';
+import { step as ballStep, movePod, arenaMods } from '../game/physics.js';
+import { FX } from '../game/fx.js';
 import { podPos, startSwing } from '../game/match.js';
 import { localAxis } from '../game/controls.js';
 import { txt, COL } from '../ui/draw.js';
@@ -17,10 +21,80 @@ const r2 = (v) => Math.round(v * 100) / 100;
 const r1 = (v) => Math.round(v * 10) / 10;
 let sendT = 0;
 
+/* ---------- mapas ----------
+   La arena es siempre la misma (mismo tamaño, torres y arcos); cada mapa cambia el aspecto y le suma una vuelta:
+   FERIA: calesita en el medio que rebota las pelotas y las tira de costado (gira) · PLAYA: ráfagas de viento que
+   curvan las pelotas (las flechas del piso avisan para dónde) · TERRAZA: cuatro chimeneas que las hacen rebotar. */
+const CAR_R = 1.5, CAR_SPIN = 6, CHIM_R = 0.65, CHIM_D = 3.8, WIND = 5;
+const MAPS = [
+  { name: 'ESPACIO', build: (g) => decorBolas(g), fog: { col: 0x04060b, near: 40, far: 80 },
+    floor: [TX.floor, 0xe8eef0], outer: [TX.outer, 0xffffff, 1], rim: TX.rim, tower: [TX.tower, 0xffffff], ring: 0x35f0ff, cap: [TX.bronze, 0xffffff], ball: 'chrome' },
+  { name: 'FERIA', build: (g) => decorFeria(g), fog: { col: 0x1a0c26, near: 42, far: 105 }, rule: 'LA CALESITA DESVÍA LAS PELOTAS',
+    floor: [TX.carnival, 0xffffff], outer: [TX.dirt, 0x9a8a78, 1], rim: TX.fairFence, tower: [TX.circus, 0xffffff], ring: 0xffd24a, cap: [TX.circus, 0xffffff], ball: 'chrome', carousel: true },
+  { name: 'PLAYA', build: (g) => decorPlaya(g), fog: { col: 0xd8807a, near: 55, far: 150 }, rule: 'LAS FLECHAS AVISAN PARA DÓNDE SOPLA EL VIENTO',
+    floor: [TX.beachFloor, 0xffffff], outer: [TX.sand, 0xffffff, 0.58], rim: TX.beachRim, tower: [TX.lifeguard, 0xffffff], ring: 0xffffff, cap: [TX.cloth, 0xe83a3a], ball: 'beach', wind: true },
+  { name: 'TERRAZA', build: (g) => decorTerraza(g), fog: { col: 0x0c1030, near: 45, far: 110 }, rule: 'LAS CHIMENEAS REBOTAN LAS PELOTAS',
+    floor: [TX.roofTiles, 0xffffff], outer: [TX.roofTiles, 0x8a8a8a, 0.5], rim: TX.parapet, tower: [TX.tank, 0xffffff], ring: 0xff5fa2, cap: [TX.metal, 0xa8b0b8], ball: 'chrome', chimneys: true },
+];
+const S = { map: 0, wa: 0, wst: 0, wT: 8 };      // wst: 0 calma · 1 aviso · 2 sopla
+const MG = {};                                     // grupos de cada mapa, calesita, flechas del viento…
+const chevGeo = () => {
+  const cs = new THREE.Shape();
+  cs.moveTo(-0.85, 0); cs.lineTo(0, 0.75); cs.lineTo(0.85, 0); cs.lineTo(0.85, -0.4); cs.lineTo(0, 0.33); cs.lineTo(-0.85, -0.4); cs.closePath();
+  const g = new THREE.ShapeGeometry(cs); g.rotateX(-Math.PI / 2); return g;
+};
+function buildMaps() {
+  MG.groups = MAPS.map((m) => { const g = new THREE.Group(); g.visible = false; arenaGroup.add(g); m.build(g); return g; });
+  // calesita (FERIA)
+  MG.car = carousel(MG.groups[1], CAR_R);
+  // chimeneas (TERRAZA)
+  [[CHIM_D, 0], [-CHIM_D, 0], [0, CHIM_D], [0, -CHIM_D]].forEach(([x, z]) => chimney(MG.groups[3], x, z, CHIM_R));
+  // viento (PLAYA): flechas en el piso y arena volando
+  const wg = new THREE.Group(); MG.groups[2].add(wg); MG.wind = wg;
+  MG.windM = mat({ color: 0xffe14a, unlit: true });
+  const cg = chevGeo();
+  for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(cg, MG.windM); c.position.set(0, 0.03, -1.4 + k * 1.5); c.scale.setScalar(1.9); wg.add(c); }
+  const n = 40, im = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 0.08, 1.2), mat({ color: 0xfff0c8, unlit: true }), n);
+  MG.sand = { im, ps: Array.from({ length: n }, () => ({ u: Math.random() * 30 - 15, v: Math.random() * 22 - 11, y: 0.2 + Math.random() * 1.6, sp: 0.7 + Math.random() * 0.6 })) };
+  im.visible = false; MG.groups[2].add(im);
+  // pelotas de playa
+  MG.beachMats = [];
+}
+// materiales de la arena y pelotas según el mapa
+function applyMap(i) {
+  S.map = i;
+  const m = MAPS[i];
+  MG.groups.forEach((g, k) => { g.visible = k === i; });
+  const setM = (mt, map, col) => { mt.uniforms.uMap.value = map; mt.uniforms.uColor.value.set(col); };
+  setM(arenaMats.floor, m.floor[0], m.floor[1]);
+  setM(arenaMats.outerMesh.material, m.outer[0], m.outer[1]); arenaMats.outerMesh.scale.set(m.outer[2], 1, m.outer[2]);
+  setM(arenaMats.rim, m.rim, 0xffffff);
+  setM(arenaMats.tower, m.tower[0], m.tower[1]);
+  arenaMats.towerRing.uniforms.uColor.value.set(m.ring);
+  setM(arenaMats.cap, m.cap[0], m.cap[1]); setM(arenaMats.capRim, m.cap[0], new THREE.Color(m.cap[1]).multiplyScalar(0.7).getHex());
+  game.balls.forEach((b) => {
+    if (!b.chromeM) { b.chromeM = b.m; b.beachM = mat({ map: TX.beachBall }); }
+    b.m = m.ball === 'beach' ? b.beachM : b.chromeM; b.mesh.material = b.m;
+  });
+  arenaMods.bumpers = m.carousel ? [{ x: 0, z: 0, r: CAR_R, spin: CAR_SPIN }] : m.chimneys ? [[CHIM_D, 0], [-CHIM_D, 0], [0, CHIM_D], [0, -CHIM_D]].map(([x, z]) => ({ x, z, r: CHIM_R })) : [];
+  arenaMods.wind = null; S.wst = 0; S.wT = 7;
+}
+// viento de la playa: calma un rato, avisa (flechas titilando) y sopla unos segundos para un lado al azar
+function stepWind(dt) {
+  const live = game.state === 'play' || game.state === 'menu' || game.state === 'title';
+  if (!MAPS[S.map].wind || !live || game.pendingEnd) { arenaMods.wind = null; return; }
+  S.wT -= dt;
+  if (S.wT <= 0) {
+    if (S.wst === 0) { S.wst = 1; S.wT = 1.6; S.wa = Math.random() * Math.PI * 2; FX.snd('wind'); }
+    else if (S.wst === 1) { S.wst = 2; S.wT = 3.5; }
+    else { S.wst = 0; S.wT = 6 + Math.random() * 4; }
+  }
+  arenaMods.wind = S.wst === 2 ? { x: Math.sin(S.wa) * WIND, z: Math.cos(S.wa) * WIND } : null;
+}
+
 const bolas = {
   id: 'bolas',
   name: 'BOLA BRAVA',
-  mapName: 'ARENA FLOTANTE',
   desc: 'DEFENDÉ TU ARCO DE LAS PELOTAS',
   howTo: 'GOLPE FUERTE',
   points: { label: 'PUNTOS', values: [5, 10, 15], key: 'points', demo: 15 },
@@ -31,16 +105,23 @@ const bolas = {
 
   rules(K) {
     const r = ['¡DEFENDÉ TU ARCO: QUE NO TE ENTREN PELOTAS!', `CADA GOL EN CONTRA TE SACA UNA VIDA (TENÉS ${game.target || 5})`, `MOVETE POR TU LADO · ${K} = GOLPE FUERTE`, 'EL ÚLTIMO QUE QUEDA GANA'];
+    if (MAPS[S.map].rule) r.push(`MAPA ${MAPS[S.map].name}: ${MAPS[S.map].rule}`);
     if (game.mode === 'local' && game.players.some((p) => p.ctrl === 'local' && p.i % 2 === 1)) r.push('LOS DE LOS COSTADOS SE MUEVEN CON ARRIBA / ABAJO');
     return r;
   },
-  build() { buildArena(); decorBolas(arenaGroup); buildBalls(); },
+  maps: MAPS.map((m) => m.name),
+  fog: () => MAPS[S.map].fog,
+  _S: S,
+  build() { buildArena(); buildBalls(); buildMaps(); applyMap(0); },
   show(on) {
     arenaGroup.visible = on;
-    if (!on) game.balls.forEach(removeBall);
+    if (!on) { game.balls.forEach(removeBall); arenaMods.bumpers = []; arenaMods.wind = null; }
+    else applyMap(S.map);
   },
 
   reset() {
+    if (game.online !== 'guest') { const f = fixedMap(MAPS.length); applyMap(f >= 0 ? f : (Math.random() * MAPS.length) | 0); }
+    else applyMap(S.map);
     world.barriers.forEach((b) => (b.y = -3));
     game.players.forEach((p) => {
       p.mesh.root.rotation.set(0, p.mesh.baseRot, 0);
@@ -52,7 +133,7 @@ const bolas = {
     sendT = 0;
   },
 
-  step(dt) { ballStep(dt); },
+  step(dt) { stepWind(dt); ballStep(dt); },
 
   visuals(dt) {
     const clock = game.clock;
@@ -90,6 +171,7 @@ const bolas = {
       b.g.position.y += (b.y - b.g.position.y) * Math.min(1, dt * 7);
       b.m.uniforms.uOff.value.y = (clock * 1.5) % 1;
     });
+    mapVisuals(dt, clock);
   },
 
   onLocalHit(p) { if (p.cd <= 0) startSwing(p); },
@@ -102,11 +184,14 @@ const bolas = {
   /* ---------- online ---------- */
   snapshot() {
     return {
+      m: S.map, w: [Math.round(S.wa * 100) / 100, S.wst],
       p: game.players.map((p) => [r2(p.s), r1(p.v), p.alive ? 1 : 0, p.score, p.swing > 0 ? 1 : 0]),
       b: game.balls.map((b) => (b.on ? [r2(b.x), r2(b.z), b.power > 0 ? 1 : 0] : 0)),
     };
   },
   applySnap(A, B, f, rdt, resumed) {
+    if (A.m !== undefined && A.m !== S.map) applyMap(A.m);
+    if (A.w) { S.wa = A.w[0]; S.wst = A.w[1]; }
     game.players.forEach((p, i) => {
       const pa = A.p[i], pb = B.p[i];
       p.alive = !!pa[2]; p.score = pa[3];
@@ -141,6 +226,33 @@ const bolas = {
   },
   guestHitFx(me) { startSwing(me); },
 };
+
+// calesita girando, flechas y arena del viento
+const sandM4 = new THREE.Matrix4(), sandQ = new THREE.Quaternion(), sandV = new THREE.Vector3(), sandS = new THREE.Vector3(1, 1, 1), UP = new THREE.Vector3(0, 1, 0);
+function mapVisuals(dt, clock) {
+  const m = MAPS[S.map];
+  if (m.carousel && MG.car) {
+    MG.car.rot.rotation.y = -clock * (CAR_SPIN / CAR_R) * 0.35;
+    MG.car.rot.children.forEach((h) => { if (h.userData.ph !== undefined) h.position.y = 0.85 + Math.sin(clock * 4 + h.userData.ph * 1.7) * 0.18; });
+  }
+  if (m.wind && MG.wind) {
+    const show = S.wst === 1 ? ((clock * 8) | 0) % 2 === 0 : S.wst === 2;
+    MG.wind.visible = show; MG.wind.rotation.y = S.wa + Math.PI;     // las flechas apuntan para donde sopla
+    if (S.wst === 2) { const k = 0.4 + 0.3 * Math.sin(clock * 20); MG.windM.uniforms.uColor.value.setRGB(1, 0.85 + k * 0.15, 0.3); }
+    else MG.windM.uniforms.uColor.value.set(0xffe14a);
+    const sd = MG.sand; sd.im.visible = S.wst === 2;
+    if (S.wst === 2) {
+      sandQ.setFromAxisAngle(UP, S.wa);
+      const sx = Math.sin(S.wa), sz = Math.cos(S.wa);
+      sd.ps.forEach((q, i) => {
+        q.v += dt * 16 * q.sp; if (q.v > 13) { q.v = -13; q.u = Math.random() * 30 - 15; }
+        sandV.set(sx * q.v + sz * q.u, q.y, sz * q.v - sx * q.u);
+        sandM4.compose(sandV, sandQ, sandS); sd.im.setMatrixAt(i, sandM4);
+      });
+      sd.im.instanceMatrix.needsUpdate = true;
+    }
+  }
+}
 
 register(bolas);
 export default bolas;

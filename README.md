@@ -23,6 +23,12 @@ También se puede usar el mouse en los menús, y en el celular aparecen botones 
 Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego al armar la partida (solitario, local u online).
 
 - **Bola Brava:** cada uno defiende su arco; las pelotas salen de las torres. Se juega a 5, 10 o 15 puntos (vidas).
+  Cuatro mapas (misma arena, distinto aspecto y una vuelta de juego; `bolas.js` + `world/decorBolas.js`):
+  **Espacio** (la arena flotando en la oscuridad, como siempre), **Feria** (parque de diversiones de noche: una
+  **calesita** en el medio rebota las pelotas y, como gira, las tira de costado), **Playa** (al atardecer, con pelotas
+  de playa: cada tanto sopla **viento** para un lado al azar y curva las pelotas; unas flechas en el piso avisan antes
+  y mientras sopla) y **Terraza** (azotea del barrio con la ciudad abajo: cuatro **chimeneas** que rebotan las
+  pelotas). Los rebotes y el viento están en `arenaMods` de `game/physics.js`.
 - **Empujón:** todos arriba de una plataforma redonda sobre un abismo. Las naves se mueven libres; el botón de golpe es
   una **embestida**. Gana la ronda el último que queda arriba; gana la partida el primero que llega a 1, 2 o 3 rondas.
   A los 14 segundos la plataforma empieza a achicarse. Hay dos mapas que se turnan por ronda: **Glaciar** (un iceberg de

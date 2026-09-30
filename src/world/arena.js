@@ -7,24 +7,33 @@ import { world } from '../state.js';
 
 // Todo lo de esta arena queda en un grupo para poder mostrarla u ocultarla según el minijuego
 export const arenaGroup = new THREE.Group();
+// materiales que cambian según el mapa de Bola Brava (ver minigames/bolas.js)
+export const arenaMats = {};
 
 export function buildArena() {
   const before = new Set(scene.children);
   // piso y suelo exterior
   const fg = scaleUV(new THREE.PlaneGeometry(2 * H, 2 * H, 12, 12), 2); fg.rotateX(-Math.PI / 2);
-  add(fg, mat({ map: TX.floor, color: 0xe8eef0 }));
+  arenaMats.floor = mat({ map: TX.floor, color: 0xe8eef0 });
+  add(fg, arenaMats.floor);
   const og = scaleUV(new THREE.PlaneGeometry(110, 110, 18, 18), 34); og.rotateX(-Math.PI / 2);
-  add(og, mat({ map: TX.outer }), 0, -2.2, 0);
+  arenaMats.outerMesh = add(og, mat({ map: TX.outer }), 0, -2.2, 0);
+  arenaMats.strip = mat({ map: TX.lights, unlit: true });
+  arenaMats.rim = mat({ map: TX.rim });
+  arenaMats.tower = mat({ map: TX.tower });
+  arenaMats.towerRing = mat({ color: 0x35f0ff, unlit: true });
+  arenaMats.cap = mat({ map: TX.bronze });
+  arenaMats.capRim = mat({ map: TX.bronze, color: 0xb0b0b0 });
 
   // por lado: tira de luces, foso, pared exterior, láser de gol y barrera de eliminado
   SIDES.forEach((s) => {
     const rt = rotT(s);
     const strip = scaleUV(new THREE.PlaneGeometry(2 * G, 0.7), 22, 1); strip.rotateX(-Math.PI / 2);
-    add(strip, mat({ map: TX.lights, unlit: true }), s.nx * (H + 0.35), 0.02, s.nz * (H + 0.35)).rotation.y = rt;
+    add(strip, arenaMats.strip, s.nx * (H + 0.35), 0.02, s.nz * (H + 0.35)).rotation.y = rt;
     const pit = new THREE.PlaneGeometry(2 * G, 3.2); pit.rotateX(-Math.PI / 2);
     add(pit, mat({ map: TX.pit }), s.nx * (H + 2.3), -1.2, s.nz * (H + 2.3)).rotation.y = rt;
     const wall = scaleUV(new THREE.BoxGeometry(2 * G + 2, 1.4, 0.6), 8, 1);
-    add(wall, mat({ map: TX.rim }), s.nx * (H + 4.1), -0.5, s.nz * (H + 4.1)).rotation.y = rt;
+    add(wall, arenaMats.rim, s.nx * (H + 4.1), -0.5, s.nz * (H + 4.1)).rotation.y = rt;
 
     const lg = new THREE.CylinderGeometry(0.1, 0.1, 2 * G, 6); lg.rotateZ(Math.PI / 2);
     const laser = add(lg, mat({ color: 0xff2030, unlit: true }), s.nx * (H + 0.1), 0.55, s.nz * (H + 0.1));
@@ -57,11 +66,11 @@ export function buildArena() {
   // torres de esquina con boca de lanzamiento
   CORN.forEach((c) => {
     const g = new THREE.Group(); g.position.set(c[0], 0, c[1]); scene.add(g);
-    add(scaleUV(new THREE.CylinderGeometry(R, R + 0.25, 2.4, 12), 3, 1), mat({ map: TX.tower }), 0, 1.0, 0, g);
-    add(new THREE.CylinderGeometry(R + 0.35, R + 0.45, 0.35, 12), mat({ color: 0x35f0ff, unlit: true }), 0, 0.02, 0, g);
+    add(scaleUV(new THREE.CylinderGeometry(R, R + 0.25, 2.4, 12), 3, 1), arenaMats.tower, 0, 1.0, 0, g);
+    add(new THREE.CylinderGeometry(R + 0.35, R + 0.45, 0.35, 12), arenaMats.towerRing, 0, 0.02, 0, g);
     const cap = new THREE.SphereGeometry(R * 0.95, 12, 4, 0, Math.PI * 2, 0, Math.PI / 2);
-    add(cap, mat({ map: TX.bronze }), 0, 2.2, 0, g).scale.y = 0.45;
-    add(new THREE.CylinderGeometry(R + 0.08, R + 0.08, 0.22, 12), mat({ map: TX.bronze, color: 0xb0b0b0 }), 0, 2.25, 0, g);
+    add(cap, arenaMats.cap, 0, 2.2, 0, g).scale.y = 0.45;
+    add(new THREE.CylinderGeometry(R + 0.08, R + 0.08, 0.22, 12), arenaMats.capRim, 0, 2.25, 0, g);
     const l = Math.hypot(c[0], c[1]);
     const mouth = new THREE.Group(); mouth.rotation.y = Math.atan2(-c[0] / l, -c[1] / l); g.add(mouth);
     const holeM = mat({ color: 0x05070a, unlit: true });

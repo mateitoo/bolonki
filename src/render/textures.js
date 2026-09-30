@@ -391,5 +391,61 @@ export const TX = {
     x.fillStyle = '#3f8f3a'; x.fillRect(0, 0, w, h); x.fillStyle = '#4aa243'; x.fillRect(0, 0, w / 2, h);
     for (let i = 0; i < 90; i++) { x.fillStyle = ['rgba(120,200,90,.35)', 'rgba(20,60,20,.25)'][i % 2]; x.fillRect(Math.random() * w, Math.random() * h, 1, rnd(1, 3)); }
   }),
+
+  /* ---------- Bola Brava: mapas nuevos ---------- */
+  carnival: tex(64, 64, (x, w, h) => {            // FERIA: tablones pintados a cuadros rojo y crema
+    for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) { x.fillStyle = (i + j) % 2 ? '#c8323a' : '#f2e2c0'; x.fillRect(i * 16, j * 16, 16, 16); }
+    for (let i = 0; i < 260; i++) { x.fillStyle = Math.random() < 0.5 ? 'rgba(0,0,0,.10)' : 'rgba(255,255,255,.08)'; x.fillRect(Math.random() * w, Math.random() * h, rnd(2, 8), 1); }
+    x.fillStyle = 'rgba(60,20,10,.35)'; for (let k = 0; k < h; k += 8) x.fillRect(0, k, w, 1);
+  }),
+  circus: tex(32, 32, (x, w, h) => {              // torres de la feria: rayas rojas y blancas con foquitos
+    for (let i = 0; i < w; i += 8) { x.fillStyle = '#e8303a'; x.fillRect(i, 0, 4, h); x.fillStyle = '#fff4e6'; x.fillRect(i + 4, 0, 4, h); }
+    x.fillStyle = '#6a1a10'; x.fillRect(0, 20, w, 5);
+    for (let i = 1; i < w; i += 4) { x.fillStyle = '#ffe07a'; x.fillRect(i, 21, 2, 3); }
+  }),
+  fairFence: tex(32, 16, (x, w, h) => {           // borde de la feria: madera con foquitos
+    noisy(x, w, h, '#6a3e22', 0.25); x.fillStyle = '#3e2412'; x.fillRect(0, 0, w, 2); x.fillRect(0, 14, w, 2);
+    for (let i = 2; i < w; i += 6) { x.fillStyle = '#ffd24a'; x.fillRect(i, 6, 3, 3); }
+  }),
+  beachFloor: tex(64, 64, (x, w, h) => {          // PLAYA: arena apisonada
+    noisy(x, w, h, '#e6c98e', 0.22);
+    for (let i = 0; i < 40; i++) { x.fillStyle = 'rgba(160,110,60,.14)'; x.fillRect(Math.random() * w, Math.random() * h, rnd(6, 20), 1); }
+    for (let i = 0; i < 30; i++) { x.fillStyle = 'rgba(255,255,255,.3)'; x.fillRect(Math.random() * w, Math.random() * h, 1, 1); }
+  }),
+  lifeguard: tex(32, 32, (x, w, h) => {           // torres de la playa: tablas blancas y celestes
+    for (let k = 0; k < h; k += 4) { x.fillStyle = (k / 4) % 2 ? '#f4f4ee' : '#3aa8e0'; x.fillRect(0, k, w, 4); }
+    x.fillStyle = 'rgba(0,0,0,.18)'; for (let i = 0; i < w; i += 8) x.fillRect(i, 0, 1, h);
+    x.fillStyle = '#e83a3a'; x.fillRect(0, 12, w, 4); x.fillStyle = '#ffffff'; x.fillRect(12, 12, 8, 4);
+  }),
+  beachRim: tex(32, 16, (x, w, h) => {            // borde de la playa: tablas de madera gastada
+    noisy(x, w, h, '#b8905a', 0.25); x.fillStyle = '#7a5a34'; for (let i = 0; i < w; i += 8) x.fillRect(i, 0, 1, h); x.fillRect(0, 15, w, 1);
+  }),
+  beachBall: tex(32, 8, (x, w, h) => {            // pelota de playa: gajos de colores (a lo largo de la vuelta)
+    ['#ff3a3a', '#ffffff', '#3a7aff', '#ffe03a', '#ffffff', '#2ec46a'].forEach((c, i) => { x.fillStyle = c; x.fillRect(Math.round((i * w) / 6), 0, Math.ceil(w / 6), h); });
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, 1); x.fillRect(0, h - 1, w, 1);
+  }),
+  roofTiles: tex(64, 64, (x, w, h) => {           // TERRAZA: baldosas de azotea con juntas de brea
+    x.fillStyle = '#8a4a36'; x.fillRect(0, 0, w, h);
+    for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) {
+      const v = rnd(-14, 14); x.fillStyle = `rgb(${150 + v},${82 + v * 0.6},${60 + v * 0.4})`; x.fillRect(i * 16 + 1, j * 16 + 1, 14, 14);
+    }
+    for (let i = 0; i < 300; i++) { x.fillStyle = Math.random() < 0.5 ? 'rgba(0,0,0,.12)' : 'rgba(255,220,180,.08)'; x.fillRect(Math.random() * w, Math.random() * h, 1, 1); }
+    x.fillStyle = 'rgba(20,14,12,.55)'; for (let k = 0; k < w; k += 16) { x.fillRect(k, 0, 1, h); x.fillRect(0, k, w, 1); }
+  }),
+  tank: tex(32, 32, (x, w, h) => {                // torres de la terraza: tanque de agua de chapa
+    noisy(x, w, h, '#8c9aa4', 0.22);
+    x.fillStyle = '#5d6a74'; for (let k = 0; k < h; k += 8) x.fillRect(0, k, w, 2);
+    for (let i = 0; i < 12; i++) { x.fillStyle = 'rgba(150,80,30,.35)'; x.fillRect(Math.random() * w, Math.random() * h, 2, rnd(2, 6)); }
+    x.fillStyle = '#ff5a8a'; x.fillRect(0, 24, w, 2);
+  }),
+  parapet: tex(32, 16, (x, w, h) => {             // borde de la terraza: murito revocado
+    noisy(x, w, h, '#b8aca0', 0.2); x.fillStyle = '#8a7e72'; x.fillRect(0, 0, w, 2); x.fillStyle = 'rgba(0,0,0,.15)'; x.fillRect(0, 9, w, 1);
+  }),
+  facade: tex(32, 64, (x, w, h) => {              // edificios de la ciudad: ventanas, algunas prendidas
+    x.fillStyle = '#1a1c2c'; x.fillRect(0, 0, w, h);
+    for (let j = 2; j < h - 2; j += 6) for (let i = 2; i < w - 2; i += 6) {
+      const r = Math.random(); x.fillStyle = r < 0.35 ? '#ffd88a' : r < 0.45 ? '#8ad8ff' : '#0c0e18'; x.fillRect(i, j, 3, 3);
+    }
+  }),
 };
 setWhiteTexture(TX.white);

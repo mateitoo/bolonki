@@ -1,4 +1,5 @@
 // Punto de entrada: arma la escena, conecta pantalla/entrada/menús y corre el loop.
+import { closeAllMenus } from './ui/menu.js';
 import { game } from './state.js';
 import { CHARS, SIDES } from './config.js';
 import { scene, camera, initRenderer } from './render/psx.js';
@@ -128,4 +129,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // ?debug en la URL deja el estado a mano en la consola (para pruebas)
-try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { game, room, browse, settings, eliminate, resetMatch, demoSetup, fiesta: fiestaState, startFiesta, mgById, checkSongs, renderSong, musicState }; } catch (e) { /* nada */ }
+try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { closeAllMenus, game, room, browse, settings, eliminate, resetMatch, demoSetup, fiesta: fiestaState, startFiesta, mgById, checkSongs, renderSong, musicState }; } catch (e) { /* nada */ }

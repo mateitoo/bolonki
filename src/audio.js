@@ -99,6 +99,8 @@ export const SFX = {
   fireball() { noise(0.6, 0.12, 700); beep(140, 60, 0.5, 'sawtooth', 0.05); },
   whistle() { [0, 0.09, 0.18].forEach((d) => beep(2350, 2250, 0.08, 'square', 0.03, d)); beep(2400, 2300, 0.28, 'square', 0.035, 0.28); },
   cheer() { noise(1.6, 0.14, 1500); noise(1.1, 0.08, 3400, 0.25); [523, 659, 784, 1046, 1318].forEach((f, k) => beep(f, f, 0.12, 'square', 0.045, k * 0.08)); },
+  boing() { beep(520, 880, 0.09, 'square', 0.04); beep(880, 660, 0.06, 'triangle', 0.03, 0.05); },
+  wind() { noise(1.6, 0.09, 900); noise(1.2, 0.05, 2600, 0.3); },
   thump() { beep(260, 120, 0.07, 'square', 0.05); noise(0.05, 0.06, 1500); },
   warnShrink() { beep(300, 300, 0.1, 'square', 0.05); beep(300, 300, 0.1, 'square', 0.05, 0.2); },
 };

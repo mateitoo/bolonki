@@ -662,5 +662,19 @@ export const TX = {
     x.fillStyle = '#ff3aa8'; x.fillRect(0, 0, w, 2); x.fillRect(0, 0, 2, h);
     x.fillStyle = 'rgba(255,58,168,.35)'; x.fillRect(0, 2, w, 1); x.fillRect(2, 0, 1, h);
   }),
+
+  /* ---------- Bombardeo: PUERTO y NEVADA ---------- */
+  dock: tex(32, 32, (x, w, h) => {                // tablones del muelle, con clavos
+    for (let i = 0; i < 4; i++) { x.fillStyle = ['#a8784a', '#9a6a40', '#b0804e', '#8e6038'][i]; x.fillRect(0, i * 8, w, 8); }
+    for (let i = 0; i < 90; i++) { x.fillStyle = 'rgba(60,35,15,.3)'; x.fillRect(Math.random() * w, Math.random() * h, rnd(3, 10), 1); }
+    x.fillStyle = '#4a2e18'; for (let i = 0; i < 4; i++) x.fillRect(0, i * 8, w, 1);
+    x.fillStyle = '#2a2a2a'; [[3, 3], [28, 3], [3, 11], [28, 11], [3, 19], [28, 19], [3, 27], [28, 27]].forEach(([a, b]) => x.fillRect(a, b, 1, 1));
+  }),
+  packedSnow: tex(32, 32, (x, w, h) => {          // nieve pisada con huellas
+    noisy(x, w, h, '#e8f0fa', 0.08);
+    for (let i = 0; i < 10; i++) { x.fillStyle = 'rgba(120,150,190,.18)'; x.beginPath(); x.ellipse(Math.random() * w, Math.random() * h, rnd(1.5, 3), rnd(1, 2), rnd(0, 3), 0, 7); x.fill(); }
+    x.fillStyle = 'rgba(160,190,220,.35)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+  }),
+  snowFence: tex(16, 8, (x, w, h) => { x.fillStyle = '#e8702a'; x.fillRect(0, 0, w, h); x.fillStyle = '#1a1a1a'; for (let i = 0; i < w; i += 4) x.fillRect(i, 2, 2, 4); x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, 1); }),
 };
 setWhiteTexture(TX.white);

@@ -60,7 +60,7 @@ export function decorColina(g, rim) {
     P.rock(g, Math.sin(a) * r, -1.0, Math.cos(a) * r, 0.6 + (k % 3) * 0.35, 0x9a9488);
   }
 }
-function lighthouse(g, x, z) {
+export function lighthouse(g, x, z) {
   const base = add(new THREE.CylinderGeometry(3.0, 3.8, 2.4, 9), P.M(0x9a9488, { map: TX.pebble }), x, -0.3, z, g); base.rotation.y = 0.4;
   const wh = P.M(0xf4f0e8, { map: TX.stone }), rd = P.M(0xd8402e, { map: TX.stone });
   for (let k = 0; k < 5; k++) add(new THREE.CylinderGeometry(1.15 - k * 0.1 - 0.1, 1.15 - k * 0.1, 1.5, 10), k % 2 ? rd : wh, x, 1.65 + k * 1.5, z, g);

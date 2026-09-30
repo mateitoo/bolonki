@@ -8,13 +8,14 @@
 // y EXPLOSIVA (roja; al caer vuela la caja de arriba de las 4 pilas de al lado).
 // Gana la ronda el último que queda; gana la partida el primero que llega a N rondas.
 import * as THREE from 'three';
-import { register } from './registry.js';
+import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { scene, mat, add, scaleUV, camera } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorBombardeo } from '../world/decor.js';
+import { decorPuerto, decorNevada } from '../world/decorBomb.js';
 import { input } from '../input.js';
 import { FX } from '../game/fx.js';
 import { burst, P } from '../fx/particles.js';
@@ -54,6 +55,18 @@ const col = (x) => clamp(Math.floor(x / TS + GN / 2), 0, GN - 1);
 const tileOf = (x, z) => col(z) * GN + col(x);
 const NB = (k) => { const c = k % GN, r = (k / GN) | 0, o = []; if (c > 0) o.push(k - 1); if (c < GN - 1) o.push(k + 1); if (r > 0) o.push(k - GN); if (r < GN - 1) o.push(k + GN); return o; };
 
+/* ---------- mapas ----------
+   La grilla y las reglas son las mismas; cambia la pinta y lo que sube desde el piso (lava, la marea o la nieve). */
+const MAPS = [
+  { name: 'HANGAR', decor: decorBombardeo, fog: { col: 0x05070f, near: 45, far: 115 }, base: [TX.metal, 0x6a7288], outer: [TX.outer, 0xffffff, true],
+    tiles: 'hangar', rail: TX.hazard, box: [TX.block, 0xd6dae6], rise: [TX.magma, 0xffffff, true], riseName: 'LAVA', warn: '¡EL PISO ES LAVA! ¡SUBÍ!', dead: '¡TE QUEMASTE!', style: 'lava' },
+  { name: 'PUERTO', decor: decorPuerto, fog: { col: 0x6a4a6a, near: 50, far: 125 }, base: [TX.stone, 0x8a8a88], outer: [TX.outer, 0xffffff, false],
+    tiles: 'dock', rail: TX.rope, box: [TX.crate, 0xffffff], rise: [TX.water, 0x5aa0d0, false], riseName: 'LA MAREA', warn: '¡SUBE LA MAREA! ¡SUBÍ!', dead: '¡AL AGUA!', style: 'water' },
+  { name: 'NEVADA', decor: decorNevada, fog: { col: 0xc8d4e8, near: 45, far: 115 }, base: [TX.iceBlock, 0xb8c8e0], outer: [TX.outer, 0xffffff, false],
+    tiles: 'snow', rail: TX.snowFence, box: [TX.iceBlock, 0xe8f4ff], rise: [TX.snow, 0xdce8ff, false], riseName: 'LA NIEVE', warn: '¡AVALANCHA! ¡SUBÍ!', dead: '¡TAPADO DE NIEVE!', style: 'snow' },
+];
+const MAP = { i: 0 };
+
 /* ---------- estado ---------- */
 const H = new Array(GN * GN).fill(0);     // cajas apiladas en cada baldosa
 const top = (k) => H[k] * TS;             // altura de la superficie de esa baldosa
@@ -68,9 +81,11 @@ const W = { grp: null, shadows: [], falling: [], stack: [], coils: [], stackGeo:
 
 function buildWorld() {
   const grp = new THREE.Group(); grp.visible = false; scene.add(grp); W.grp = grp;
-  add(scaleUV(new THREE.BoxGeometry(GN * TS + 1.6, 1.2, GN * TS + 1.6), 6, 1), mat({ map: TX.metal, color: 0x6a7288 }), 0, -1.1, 0, grp);
+  W.baseM = mat({ map: TX.metal, color: 0x6a7288 });
+  add(scaleUV(new THREE.BoxGeometry(GN * TS + 1.6, 1.2, GN * TS + 1.6), 6, 1), W.baseM, 0, -1.1, 0, grp);
   const out = scaleUV(new THREE.PlaneGeometry(140, 140, 10, 10), 24); out.rotateX(-Math.PI / 2);
-  add(out, mat({ map: TX.outer }), 0, -1.7, 0, grp);
+  W.outer = add(out, mat({ map: TX.outer }), 0, -1.7, 0, grp);
+  W.tileMats = [];
   const tg = scaleUV(new THREE.BoxGeometry(TS - 0.08, 0.5, TS - 0.08), 1, 1);
   const sg = new THREE.PlaneGeometry(CS, CS); sg.rotateX(-Math.PI / 2);
   // baldosas: la plataforma de aterrizaje en las 4 del medio, alguna rejilla y marcas amarillas en las esquinas
@@ -81,16 +96,19 @@ function buildWorld() {
     if ((c === mid - 1 || c === mid) && (r === mid - 1 || r === mid)) {
       const m = mat({ map: TX.pad }); m.uniforms.uOff.value.set(c === mid ? 0.5 : 0, r === mid - 1 ? 0.5 : 0);
       add(padG, m, cx(k), -0.25, cz(k), grp);
+      W.tileMats.push({ m, kind: 'pad', dark: false, off: [c === mid ? 0.5 : 0, r === mid - 1 ? 0.5 : 0] });
     } else {
       const corner = (c === 0 || c === GN - 1) && (r === 0 || r === GN - 1);
       const tex = corner ? TX.tileWarn : hsh(k) < 0.14 ? TX.tileVent : TX.tile;
-      const t = add(tg, mat({ map: tex, color: tint }), cx(k), -0.25, cz(k), grp);
+      const tm = mat({ map: tex, color: tint });
+      const t = add(tg, tm, cx(k), -0.25, cz(k), grp);
+      W.tileMats.push({ m: tm, kind: corner ? 'warn' : tex === TX.tileVent ? 'vent' : 'tile', dark });
       if (corner) t.rotation.y = c === 0 ? (r === 0 ? 0 : Math.PI / 2) : (r === 0 ? -Math.PI / 2 : Math.PI);   // la marca mira hacia la esquina
     }
     const sh = add(sg, mat({ color: 0x000000, unlit: true }), cx(k), 0.02, cz(k), grp); sh.visible = false; W.shadows.push(sh);
   }
   // baranda alrededor (no te podés caer de la grilla)
-  const hz = mat({ map: TX.hazard, unlit: true }), len = GN * TS + 1.6;
+  const hz = mat({ map: TX.hazard, unlit: true }), len = GN * TS + 1.6; W.railM = hz;
   [[0, HALF + 0.55, 0], [0, -HALF - 0.55, 0], [HALF + 0.55, 0, Math.PI / 2], [-HALF - 0.55, 0, Math.PI / 2]].forEach(([x, z, r]) => {
     add(scaleUV(new THREE.BoxGeometry(len, 0.55, 0.5), len / 1.2, 1), hz, x, 0.2, z, grp).rotation.y = r;
   });
@@ -99,9 +117,11 @@ function buildWorld() {
     add(new THREE.CylinderGeometry(0.22, 0.28, 3.4, 6), postM, sx * (HALF + 0.9), 1.2, sz * (HALF + 0.9), grp);
     add(new THREE.BoxGeometry(0.5, 0.5, 0.5), lampM, sx * (HALF + 0.9), 3.1, sz * (HALF + 0.9), grp);
   });
+  // decorado de cada mapa (el del hangar incluye estos cajones sueltos)
+  W.maps = MAPS.map((m) => { const g = new THREE.Group(); g.visible = false; grp.add(g); return g; });
   const bm = mat({ map: TX.block });
   [[-12, -4, 2], [-11.5, 3, 1], [12, -2, 3], [11.8, 5, 1], [-6, -12.5, 2], [7, -12, 1], [-13, 10, 1], [13, 11, 2]].forEach(([x, z, n]) => {
-    for (let h = 0; h < n; h++) add(new THREE.BoxGeometry(CS, CS, CS), bm, x + rnd(-0.2, 0.2), -1.7 + CS / 2 + h * CS, z + rnd(-0.2, 0.2), grp).rotation.y = rnd(-0.3, 0.3);
+    for (let h = 0; h < n; h++) add(new THREE.BoxGeometry(CS, CS, CS), bm, x + rnd(-0.2, 0.2), -1.7 + CS / 2 + h * CS, z + rnd(-0.2, 0.2), W.maps[0]).rotation.y = rnd(-0.3, 0.3);
   });
   // cajas: las que caen y las apiladas (mallas reutilizables)
   const bg = new THREE.BoxGeometry(CS, CS, CS), fm = mat({ map: TX.block });
@@ -122,7 +142,31 @@ function buildWorld() {
   W.lavaM = mat({ map: TX.magma, unlit: true });
   const lg = scaleUV(new THREE.PlaneGeometry(GN * TS + 1.2, GN * TS + 1.2, 8, 8), 6); lg.rotateX(-Math.PI / 2);
   W.lava = add(lg, W.lavaM, 0, -5, 0, grp); W.lava.visible = false;
-  decorBombardeo(grp, HALF);
+  MAPS.forEach((m, i) => m.decor(W.maps[i], HALF));
+  applyMap(0);
+}
+function applyMap(i) {
+  MAP.i = i; const m = MAPS[i];
+  W.maps.forEach((g, k) => { g.visible = k === i; });
+  const set = (mt, map, col) => { mt.uniforms.uMap.value = map; mt.uniforms.uColor.value.set(col); };
+  set(W.baseM, m.base[0], m.base[1]);
+  W.outer.visible = m.outer[2];
+  W.railM.uniforms.uMap.value = m.rail;
+  W.tileMats.forEach((q) => {
+    if (m.tiles === 'hangar') {
+      const map = q.kind === 'pad' ? TX.pad : q.kind === 'warn' ? TX.tileWarn : q.kind === 'vent' ? TX.tileVent : TX.tile;
+      set(q.m, map, q.dark ? 0xc4cad8 : 0xffffff); q.m.uniforms.uOff.value.set(q.off ? q.off[0] : 0, q.off ? q.off[1] : 0);
+    } else if (m.tiles === 'dock') { set(q.m, TX.dock, q.dark ? 0xd8c8b0 : 0xffffff); q.m.uniforms.uOff.value.set(0, 0); }
+    else { set(q.m, TX.packedSnow, q.dark ? 0xd8e4f4 : 0xffffff); q.m.uniforms.uOff.value.set(0, 0); }
+  });
+  W.fallMats.n.uniforms.uMap.value = m.box[0]; W.fallMats.s.uniforms.uMap.value = m.box[0]; W.fallMats.x.uniforms.uMap.value = m.box[0];
+  set(W.stackMat, m.box[0], m.box[1]);
+  set(W.lavaM, m.rise[0], m.rise[1]); W.lavaM.uniforms.uUnlit.value = m.rise[2] ? 1 : 0;
+}
+function pickMap() {
+  if (game.online === 'guest') return;
+  const f = fixedMap(MAPS.length);
+  applyMap(f >= 0 ? f : (Math.random() * MAPS.length) | 0);
 }
 function newStackBox() { const b = add(W.stackGeo, W.stackMat, 0, -20, 0, W.grp); b.visible = false; W.stack.push(b); return b; }
 
@@ -447,25 +491,26 @@ const CAM_POS = new THREE.Vector3(0, 29, 12.5), CAM_LOOK = new THREE.Vector3(0, 
 const bombardeo = {
   id: 'bombardeo',
   name: 'BOMBARDEO',
-  mapName: 'HANGAR',
+  maps: MAPS.map((m) => m.name),
   desc: 'SALTÁ ARRIBA DE LAS CAJAS QUE CAEN',
   howTo: 'SALTAR',
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: CAM_POS.clone(), look: CAM_LOOK.clone(), rotate: false, orbit: true },
-  fog: { col: 0x05070f, near: 45, far: 115 },
+  fog: () => MAPS[MAP.i].fog,
   humanOut: false,
   tense: () => B.lava > 0,                      // música más rápida con la lava
   tagY: 2.6, tagFeet: true, markMe: true,     // nombre arriba de la cabeza (a la altura de la pila donde está parado)
   thumbSteps: 1500,
   thumbCam: { pos: new THREE.Vector3(0, 19, 13), look: new THREE.Vector3(0, 0, -0.6) },
 
-  rules(K) { return ['¡QUE NO TE CAIGA UNA CAJA ENCIMA!', `${K} = SALTAR · SUBITE A LAS PILAS`, 'CAYENDO SOBRE OTRO LO DEJÁS MAREADO', 'A LOS 25 S EL PISO ES LAVA Y SUBE', `GANA EL PRIMERO EN GANAR ${game.target || 2} RONDAS`]; },
+  rules(K) { return ['¡QUE NO TE CAIGA UNA CAJA ENCIMA!', `${K} = SALTAR · SUBITE A LAS PILAS`, 'CAYENDO SOBRE OTRO LO DEJÁS MAREADO', MAP.i === 0 ? 'A LOS 25 S EL PISO ES LAVA Y SUBE' : `A LOS 25 S EMPIEZA A SUBIR ${MAPS[MAP.i].riseName}`, `GANA EL PRIMERO EN GANAR ${game.target || 2} RONDAS`]; },
   build: buildWorld,
   show(on) { if (W.grp) W.grp.visible = on; },
 
   reset() {
     game.round = { n: 1, over: false, winner: -1, t: 0 };
     game.players.forEach((p) => { p.score = 0; });
+    pickMap();
     placeAll();
     W.camY = 0;
     sendT = 0;
@@ -494,6 +539,7 @@ const bombardeo = {
     for (; cn < W.coils.length; cn++) W.coils[cn].visible = false;
     W.lava.visible = B.lava > 0; W.lava.position.y = Math.max(0.01, B.lava);
     W.lavaM.uniforms.uOff.value.set((clock * 0.03) % 1, (clock * 0.02) % 1);
+    game.burnStyle = MAPS[MAP.i].style;                  // cómo se ve el que queda tapado: lava, agua o nieve
     // avisos y cajas cayendo
     // aviso: la sombra de la caja en el piso (cada vez más grande y oscura) y la caja que baja flotando desde arriba
     W.shadows.forEach((s) => (s.visible = false));
@@ -563,10 +609,10 @@ const bombardeo = {
       txt(t, hw / 2, 104, 16, w < 0 ? COL.white : charOf(w).col, 'center', COL.goldShadow);
     }
     if (st === 'play' && !R.over && game.elapsed > LAVA_WARN && game.elapsed < LAVA_AT + 2.5 && ((game.clock * 3) | 0) % 2) {
-      txt('¡EL PISO ES LAVA! ¡SUBÍ!', hw / 2, 64, 8, COL.red, 'center');
+      txt(MAPS[MAP.i].warn, hw / 2, 64, 8, COL.red, 'center');
     }
     const me = game.players[game.me];
-    if (st === 'play' && me && !me.alive && !me.empty && !R.over && game.mode !== 'local') txt(me.burned ? '¡TE QUEMASTE!' : '¡APLASTADO!', hw / 2, 196, 16, COL.red, 'center');
+    if (st === 'play' && me && !me.alive && !me.empty && !R.over && game.mode !== 'local') txt(me.burned ? MAPS[MAP.i].dead : '¡APLASTADO!', hw / 2, 196, 16, COL.red, 'center');
   },
 
   /* ---------- online (el anfitrión manda todo; el invitado solo manda para dónde va y si saltó) ---------- */
@@ -575,7 +621,7 @@ const bombardeo = {
     return {
       ro: [R.n, R.over ? 1 : 0, R.winner, Math.round(R.t * 10) / 10],
       p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.fy || 0), r2(p.ang || 0), p.alive ? 1 : 0, p.onGround ? 1 : 0, p.score, r2(p.vx || 0), r2(p.vz || 0), p.stunT > 0 ? 1 : 0]),
-      h: H.join(','), tt: TT.join(''), lv: r2(B.lava), el: r1(game.elapsed),
+      h: H.join(','), tt: TT.join(''), lv: r2(B.lava), el: r1(game.elapsed), m: MAP.i,
       d: drops.map((o) => [o.id, o.k, r2(o.t), r2(o.warn), o.kind]),
     };
   },
@@ -586,6 +632,7 @@ const bombardeo = {
     for (let k = 0; k < GN * GN; k++) TT[k] = (A.tt && A.tt[k]) || 'n';
     for (let k = 0; k < GN * GN; k++) H[k] = +hs[k] || 0;
     B.lava = A.lv + ((Bs.lv || A.lv) - A.lv) * f;
+    if (A.m !== undefined && A.m !== MAP.i) applyMap(A.m);
     const newRound = ro[0] !== guestRound; guestRound = ro[0];
     game.players.forEach((p, i) => {
       const pa = A.p[i], pb = Bs.p[i];

@@ -236,7 +236,7 @@ function boat(p, x, z, ry) {
   P.anim(g, (t) => { g.position.y = -2.45 + Math.sin(t * 1.3 + x) * 0.08; g.rotation.z = Math.sin(t * 0.9 + z) * 0.05; });
 }
 // Gaviotas: cuerpo, cabeza con pico naranja, cola y alas en dos tramos (forma de "M") que planean y aletean
-function seagulls(p, cx, cy, cz, r, n = 4) {
+export function seagulls(p, cx, cy, cz, r, n = 4) {
   const wm = P.M(0xffffff), gm = P.M(0xb8c0cc), km = P.M(0x1a1a22), bm = P.M(0xffa01a);
   const gs = [];
   for (let i = 0; i < n; i++) {

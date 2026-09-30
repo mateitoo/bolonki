@@ -26,7 +26,8 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   y, si igual no entra, se escribe con letra más chica (en la capa nítida).
 - **Bola Brava:** cada uno defiende su arco; las pelotas salen de las torres. Se juega a 5, 10 o 15 puntos (vidas).
   Cuatro mapas (misma arena, distinto aspecto y una vuelta de juego; `bolas.js` + `world/decorBolas.js`):
-  **Espacio** (la arena flotando en la oscuridad, como siempre), **Circo** (adentro de la carpa, con tribunas llenas,
+  **Espacio** (la arena flotando en el espacio, con galaxias, nebulosas, planetas —uno con anillos—, asteroides,
+  estrellas fugaces y la base de la arena con propulsores), **Circo** (adentro de la carpa, con tribunas llenas,
   reflectores, trapecios, un elefante, un cañón y un aro de fuego; pelotas rayadas rojas y blancas; un **tambor giratorio**
   con una foca en el medio rebota las pelotas y, como gira, las tira de costado), **Playa** (al atardecer, con pelotas
   de playa: cada tanto sopla **viento** para un lado al azar y curva las pelotas; unas flechas en el piso avisan antes
@@ -47,6 +48,9 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   dejás mareado (**pisotón**). Antes de caer se ve la sombra de la caja en el piso y la caja bajando desde arriba.
   A los 25 s el piso es lava y sube cada vez más rápido. Cajas especiales: **resorte**
   (verde, te lanza unas tres cajas de alto) y **explosiva** (roja, al caer vuela la caja de arriba de las pilas de al lado).
+  Tres mapas (`world/decorBomb.js`): **Hangar** (el de siempre, sube la lava), **Puerto** (muelle de madera al
+  atardecer, con grúas, barcos y contenedores; sube la marea) y **Nevada** (refugio en la montaña con telesilla,
+  cajas de hielo; sube la nieve). La animación de "tapado" cambia según el mapa (`game.burnStyle`).
 - **Petardos** (a pie, estilo Bomberman): mapas de 13 x 11 sin simetría, con paredes fijas y cajones al azar, uno en cada esquina. El golpe pone
   un petardo que explota en cruz y hace explotar a otros. Poderes en los cajones: +fuego (arranca en 1), +petardo
   (más raro), +velocidad, botas (empujando un obstáculo lo saltás), escudo (aguanta una explosión), patada (el petardo
@@ -115,6 +119,9 @@ Se entra desde la puerta **FIESTA** del menú principal (sola, local u online).
 
 La Fiesta es un tablero estilo party game (`src/fiesta/board.js`):
 
+  Tres mapas: **Cielo** (el de siempre, slime abajo), **Dulces** (glaseado con granitos sobre galletita, chupetines,
+  bastones de caramelo, cupcakes y un río de chocolate) y **Neón** (baldosas que brillan en una noche synthwave, sol
+  retro, pirámides de neón y una grilla infinita abajo).
 - 2 a 4 jugadores, 5, 10, 15 o 20 turnos. Todos arrancan con 10 monedas.
 - En tu turno tirás el dado (golpe / Enter) y avanzás por un camino de 24 casilleros:
   **azul** +3 monedas · **rojo** −3 · **evento** (lluvia de monedas, ladrón, turbo, cambio de lugar, la copa se muda, mala suerte) ·

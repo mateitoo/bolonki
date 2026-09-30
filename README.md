@@ -118,8 +118,8 @@ Abajo, **ONLINE** y **OPCIONES**.
 Las dos puertas llevan a la **sala** (`src/sala/`), que es la misma pantalla para jugar solo, en la misma compu u online:
 
 - **Elegí tu personaje:** una grilla de retratos (5 por fila, con lugar para 10 o más) donde cada jugador mueve su
-  **marco de color** (J1 azul, J2 rojo, J3 verde, J4 amarillo) con las flechas y confirma con golpe / Enter; con el mouse,
-  un clic marca y otro clic en el mismo confirma. Abajo, una tarjeta finita por jugador (quién es, qué personaje y si ya
+  **marco de color** (J1 azul, J2 rojo, J3 verde, J4 amarillo) con las flechas (o haciendo clic en un retrato) y confirma con la
+  barra espaciadora (o A en el joystick). Abajo, una tarjeta finita por jugador (quién es, qué personaje y si ya
   está listo). Los retratos son del modelo 3D de cada personaje: se sacan al arrancar (`src/render/portraits.js`).
   Cada personaje lo usa uno solo, y no cambia nada del juego (es solo estética). Hay seis: Kiro, Mosh, Bruna y Tank
   (bichos redondos) y Coco (payaso) y Pino (gnomo), con cabeza, torso, brazos y piernas (`src/world/people.js`).
@@ -128,8 +128,8 @@ Las dos puertas llevan a la **sala** (`src/sala/`), que es la misma pantalla par
 - Cuando todos confirmaron aparecen las **opciones**: en Minijuegos, una grilla con las fotos de cada uno; CPU (o sin CPU si son 2 o más),
   puntos/rondas/turnos, **JUGAR ONLINE** (convierte la sala en online e invita amigos) y COMENZAR.
 - Antes de arrancar hay una **presentación**: todos parados en sus podios (se pueden girar arrastrando), con el nombre de
-  cada uno abajo (VOS, J2, el apodo o CPU), su personaje y con qué juega, y arriba qué se juega. Arranca sola a los
-  4 segundos (Enter la saltea). Online la ven todos: la manda el anfitrión.
+  cada uno abajo (VOS, J2, el apodo o CPU), su personaje y con qué juega, y arriba qué se juega. Dura 5 segundos y no se
+  puede saltear. Online la ven todos: la manda el anfitrión.
 - Al terminar una partida, **VOLVER A LA SALA** mantiene a los mismos jugadores y personajes.
 
 Los controles en la partida son relativos a la pantalla: en Bola Brava, los de arriba y abajo se mueven con izquierda/derecha y los de los costados con arriba/abajo.

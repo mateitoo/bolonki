@@ -108,11 +108,10 @@ function moveRow(k, d) {
   if (c < 0 || c >= CHARS.length || heldBy(k).has(c)) { SFX.move(); return; }
   s.ch = c; STAGE.pick[k] = 1; SFX.move(); share(k);
 }
-// elegir con el mouse: un clic marca el personaje, otro clic en el mismo lo confirma
+// con el mouse: un clic mueve el marco a ese personaje (se confirma con espacio)
 function pickChar(k, c) {
   const s = S.seats[k];
-  if (s.locked || c < 0 || c >= CHARS.length) return;
-  if (c === s.ch) { lock(k, true); return; }
+  if (s.locked || c < 0 || c >= CHARS.length || c === s.ch) return;
   if (heldBy(k).has(c)) return;
   s.ch = c; STAGE.pick[k] = 1; SFX.move(); share(k);
 }
@@ -258,15 +257,13 @@ const SALA = {
     } else {
       for (const e of input.events) { if (!here()) return; const a = globalAct(e); if (a) seatAction(myK(), a); }
     }
-    // mouse / táctil: clic en un retrato (marcar / confirmar), en tu tarjeta (listo) o en la barra de abajo
+    // mouse / táctil: clic en un retrato (mueve el marco) o en la barra de abajo
     for (const e of input.events) {
       if (e.a !== 'click' || !here()) continue;
       const act = footerHit(e.x, e.y);
       if (act) { seatAction(myK(), act); continue; }
       const t = tileRects.find((q) => e.x >= q.x && e.x <= q.x + q.w && e.y >= q.y && e.y <= q.y + q.h);
-      if (t) { pickChar(myK(), t.c); continue; }
-      const r = cardRects.find((q) => e.x >= q.x && e.x <= q.x + q.w && e.y >= q.y && e.y <= q.y + q.h);
-      if (r && r.k === myK()) seatAction(r.k, 'ok');
+      if (t) pickChar(myK(), t.c);
     }
   },
   draw(hw) {
@@ -360,8 +357,8 @@ const SALA = {
   footer() {
     const pad = input.device === 'gamepad', mouse = input.device === 'pointer', mine = S.seats[myK()];
     const parts = [];
-    if (!mine.locked && !mouse) parts.push({ key: pad ? 'STICK' : 'FLECHAS', label: 'MOVER', act: null });
-    if (!(mine.locked && net() === 'guest')) parts.push({ key: pad ? 'A' : mouse ? 'CLIC' : 'ENTER', label: mine.locked ? 'SEGUIR' : 'ELEGIR', act: 'ok' });
+    if (!mine.locked) parts.push({ key: pad ? 'STICK' : mouse ? 'CLIC' : 'FLECHAS', label: 'MOVER', act: null });
+    if (!(mine.locked && net() === 'guest')) parts.push({ key: pad ? 'A' : 'ESPACIO', label: mine.locked ? 'SEGUIR' : 'ELEGIR', act: 'ok' });
     parts.push({ key: pad ? 'B' : 'ESC', label: mine.locked ? 'CAMBIAR' : 'VOLVER', act: 'back' });
     return parts;
   },
@@ -520,7 +517,7 @@ function startLocal() {
 }
 
 /* ---------- presentación antes de arrancar: los personajes en sus podios con el nombre de cada uno ---------- */
-const PR = { t0: 0, dur: 3.8, info: null, done: null, skip: true, jumped: 0 };
+const PR = { t0: 0, dur: 5, info: null, done: null, skip: true, jumped: 0 };
 function showPresentation(info, done, skip) {
   Object.assign(PR, { info, done, skip, t0: performance.now(), jumped: 0 });
   if (game.minigame !== 'sala' || game.state !== 'menu') resetMatch('menu', stageSetup());
@@ -557,8 +554,8 @@ const PRESENT = {
     const el = (performance.now() - PR.t0) / 1000;
     // saltito de festejo, uno atrás del otro
     while (PR.jumped < 4 && el > 0.25 + PR.jumped * 0.22) { const k = PR.jumped++; if (STAGE.occ[k] !== 'none') { STAGE.lockT[k] = 1; stagePuff(k, true); } }
-    const skip = PR.skip && el > 0.6 && input.events.some((e) => e.a === 'confirm' || e.a === 'start' || e.a === 'click');
-    if ((el >= PR.dur || skip) && PR.done) { const d = PR.done; PR.done = null; SFX.confirm(); d(); }
+    // (no se puede saltear: dura lo mismo para todos; mientras tanto se puede girar a los personajes arrastrando)
+    if (el >= PR.dur && PR.done) { const d = PR.done; PR.done = null; SFX.confirm(); d(); }
   },
   draw(hw) {
     const info = PR.info; if (!info) return;
@@ -587,7 +584,8 @@ const PRESENT = {
     rect(0, 221, hw, 19, 'rgba(4,6,14,.85)');
     const left = Math.max(1, Math.ceil(PR.dur - el));
     const line = PR.done ? `¡PREPARADOS! · EMPIEZA EN ${left}` : '¡PREPARADOS!';
-    txt(line, hw / 2 - (PR.skip && PR.done && hw >= 380 ? 60 : 0), 227, 8, COL.gold, 'center');
-    if (PR.skip && PR.done && hw >= 380) txt(input.device === 'gamepad' ? 'A: YA' : input.device === 'pointer' ? 'CLIC: YA' : 'ENTER: YA', hw - 12, 227, 8, COL.dim, 'right');
+    const hint = hw >= 420 && input.device !== 'gamepad';
+    txt(line, hint ? 12 : hw / 2, 227, 8, COL.gold, hint ? 'left' : 'center');
+    if (hint) txt('ARRASTRÁ PARA GIRARLOS', hw - 12, 227, 8, COL.dim, 'right');
   },
 };

@@ -784,7 +784,7 @@ function step(dt) {
   const st = game.state;
   if (st === 'count') {
     const before = Math.ceil(game.countT); game.countT -= dt; const after = Math.ceil(game.countT);
-    if (after !== before) { if (after > 0) FX.tick(); else { FX.go(); game.state = 'play'; } }
+    if (after !== before) { if (after > 0) { if (after <= 3) FX.tick(); } else { FX.go(); game.state = 'play'; } }
     return;
   }
   if (st !== 'play' && !demo()) return;
@@ -919,6 +919,7 @@ const petardos = {
   thumbSteps: 1300,
   thumbCam: { pos: new THREE.Vector3(0, 20, 10.5), look: new THREE.Vector3(0, 0, -0.3) },
 
+  rules(K) { return [`CANCHA: ${CANCHAS[S.cancha].name} · ${CANCHAS[S.cancha].extra}`, '¡ROMPÉ CAJONES Y VOLÁ A LOS DEMÁS!', `${K} = PONER PETARDO`, 'EN LOS CAJONES HAY PODERES', 'AL MINUTO EMPIEZA LA MUERTE SÚBITA']; },
   build: buildWorld,
   show(on) { if (W.grp) W.grp.visible = on; },
 

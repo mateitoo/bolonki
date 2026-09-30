@@ -380,7 +380,7 @@ function step(dt) {
   const st = game.state;
   if (st === 'count') {
     const before = Math.ceil(game.countT); game.countT -= dt; const after = Math.ceil(game.countT);
-    if (after !== before) { if (after > 0) FX.tick(); else { FX.go(); FX.snd('whistle'); game.state = 'play'; } }
+    if (after !== before) { if (after > 0) { if (after <= 3) FX.tick(); } else { FX.go(); FX.snd('whistle'); game.state = 'play'; } }
     return;
   }
   if (st !== 'play' && !demo()) return;
@@ -480,6 +480,12 @@ const futbol = {
   thumbSteps: 160,
   thumbCam: { pos: new THREE.Vector3(0, 19, 15), look: new THREE.Vector3(0, -1, 0.5) },
 
+  rules(K) {
+    const r = [], myT = S.team[game.me];
+    if (game.mode !== 'local' && myT >= 0) r.push(`JUGÁS EN EL EQUIPO ${TEAM_NAME[myT]}`);
+    r.push(`¡EL PRIMERO EN METER ${game.target || 3} GOLES GANA!`, `${K} = EMBESTIDA (CONTRA LA PELOTA, PELOTAZO)`, 'SI EMPATAN AL FINAL: GOL DE ORO');
+    return r;
+  },
   build: buildWorld,
   show(on) { if (W.grp) W.grp.visible = on; },
 

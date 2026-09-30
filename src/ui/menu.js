@@ -26,6 +26,7 @@ export const menuOpen = () => stack.length > 0;
 export const topMenu = () => stack[stack.length - 1] || null;
 
 const itemsOf = (e) => (e.def.tabs ? e.def.tabs[e.tab].items : e.def.items || []).filter((it) => !(it.hidden && it.hidden()));
+export const selectedItem = (top) => itemsOf(top)[top.sel];
 const selectable = (it) => it.kind !== 'info' && it.kind !== 'art';
 const L = (it) => (typeof it.label === 'function' ? it.label() : it.label);   // el texto puede cambiar en vivo
 function firstSel(e) { const v = itemsOf(e); return Math.max(0, v.findIndex(selectable)); }

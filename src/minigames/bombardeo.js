@@ -347,7 +347,7 @@ function step(dt) {
   const st = game.state;
   if (st === 'count') {
     const before = Math.ceil(game.countT); game.countT -= dt; const after = Math.ceil(game.countT);
-    if (after !== before) { if (after > 0) FX.tick(); else { FX.go(); game.state = 'play'; } }
+    if (after !== before) { if (after > 0) { if (after <= 3) FX.tick(); } else { FX.go(); game.state = 'play'; } }
     return;
   }
   if (st !== 'play' && !demo()) return;
@@ -458,6 +458,7 @@ const bombardeo = {
   thumbSteps: 1500,
   thumbCam: { pos: new THREE.Vector3(0, 19, 13), look: new THREE.Vector3(0, 0, -0.6) },
 
+  rules(K) { return ['¡QUE NO TE CAIGA UNA CAJA ENCIMA!', `${K} = SALTAR · SUBITE A LAS PILAS`, 'CAYENDO SOBRE OTRO LO DEJÁS MAREADO', 'A LOS 25 S EL PISO ES LAVA Y SUBE', `GANA EL PRIMERO EN GANAR ${game.target || 2} RONDAS`]; },
   build: buildWorld,
   show(on) { if (W.grp) W.grp.visible = on; },
 

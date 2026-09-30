@@ -395,7 +395,7 @@ function step(dt) {
   const st = game.state;
   if (st === 'count') {
     const before = Math.ceil(game.countT); game.countT -= dt; const after = Math.ceil(game.countT);
-    if (after !== before) { if (after > 0) FX.tick(); else { FX.go(); game.state = 'play'; } }
+    if (after !== before) { if (after > 0) { if (after <= 3) FX.tick(); } else { FX.go(); game.state = 'play'; } }
     return;
   }
   if (st !== 'play' && !demo()) return;
@@ -484,6 +484,7 @@ const empujon = {
   thumbSteps: 90,
   thumbCam: { pos: new THREE.Vector3(0, 17, 16), look: new THREE.Vector3(0, -1, -0.5) },
 
+  rules(K) { return [`MAPA: ${MAPS[S.map].name} · ${MAPS[S.map].extra}`, '¡TIRALOS DE LA PLATAFORMA!', `${K} = EMBESTIDA`, 'A LOS 14 S LA PLATAFORMA SE ACHICA', `GANA EL PRIMERO EN GANAR ${game.target || 2} RONDAS`]; },
   build: buildWorld,
   show(on) { if (W.grp) W.grp.visible = on; },
   _S: S,

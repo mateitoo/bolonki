@@ -290,7 +290,7 @@ function step(dt) {
   const st = game.state;
   if (st === 'count') {
     const before = Math.ceil(game.countT); game.countT -= dt; const after = Math.ceil(game.countT);
-    if (after !== before) { if (after > 0) FX.tick(); else { FX.go(); game.state = 'play'; } }
+    if (after !== before) { if (after > 0) { if (after <= 3) FX.tick(); } else { FX.go(); game.state = 'play'; } }
     return;
   }
   if (st !== 'play' && !demo()) return;
@@ -424,6 +424,7 @@ const colina = {
   thumbSteps: 700,
   thumbCam: { pos: new THREE.Vector3(0, 20, 16), look: new THREE.Vector3(0, 0, 0.5) },
 
+  rules(K) { return [`¡QUEDATE SOLO EN LA CIMA! (A ${game.target || 30} PUNTOS)`, `${K} = EMPUJAR · DE ESPALDAS EMPUJA MÁS`, 'AGARRÁ EL PALO: EMPUJA EL DOBLE', 'LA CORONA SE MUDA CADA 20 S · CUIDADO CON LAS OLAS']; },
   build: buildWorld,
   show(on) {
     if (W.grp) W.grp.visible = on;

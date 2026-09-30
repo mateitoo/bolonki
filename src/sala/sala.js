@@ -1,6 +1,6 @@
-// La sala: antes de jugar, cada uno se une y elige personaje en una grilla de retratos (cada jugador
-// mueve su marco de color); después se eligen las opciones (minijuego, CPU, puntos) y, antes de arrancar,
-// una presentación muestra a todos parados en sus podios con su nombre abajo. Es la misma pantalla
+// La sala: primero se elige QUÉ se juega (minijuego o Fiesta, CPU, puntos); después cada uno se une y elige
+// personaje en una grilla de retratos (cada jugador mueve su marco de color) y, cuando están todos listos,
+// una presentación de 3 s muestra a todos parados en sus podios con su nombre abajo, y arranca. Es la misma pantalla
 // para solitario, local y online.
 //
 // Hay cuatro podios (k = 0..3, de izquierda a derecha). En local, el podio k es el jugador J(k+1)
@@ -12,7 +12,7 @@ import { game } from '../state.js';
 import { settings, saveSettings } from '../settings.js';
 import { input } from '../input.js';
 import { SFX } from '../audio.js';
-import { openMenu, replaceMenus, closeMenu, closeAllMenus, topMenu, footerHit } from '../ui/menu.js';
+import { openMenu, replaceMenus, closeMenu, closeAllMenus, topMenu, footerHit, selectedItem } from '../ui/menu.js';
 import { txt, rect, tri, textWidth, COL, ui } from '../ui/draw.js';
 import { mgValues, pointsChoice, botValues, diffValues, mgArt } from '../ui/values.js';
 import { drawThumb } from '../render/thumbStore.js';
@@ -129,8 +129,8 @@ function lock(k, on) {
   if (on && k === 0 && net() !== 'guest') { settings.char = s.ch; saveSettings(); }
   if (on && k === myK() && net() === 'guest') { settings.char = s.ch; saveSettings(); }
   share(k);
-  // todos listos: a las opciones (en local y como anfitrión)
-  if (on && net() !== 'guest' && S.seats.every((q) => !q.joined || q.locked)) openOptions();
+  // todos listos: a jugar (en local; online, el anfitrión arranca cuando están todos, ver SALA.input)
+  if (on && net() === 'off' && S.seats.every((q) => !q.joined || q.locked)) startLocal();
 }
 function join(k) {
   const s = S.seats[k];
@@ -152,9 +152,10 @@ function seatAction(k, a) {
     if (a === 'left' || a === 'right') cycle(k, a === 'left' ? -1 : 1);
     else if (a === 'up' || a === 'down') moveRow(k, a === 'up' ? -1 : 1);
     else if (a === 'ok') lock(k, true);
-    else if (a === 'back') { if (k === myK()) leave(); else unjoin(k); }
+    else if (a === 'back') { if (k !== myK()) unjoin(k); else if (net() === 'guest') leave(); else openOptions(); }   // volver a elegir qué jugar
   } else if (a === 'back') lock(k, false);
-  else if (a === 'ok' && net() !== 'guest' && k === 0 && S.seats.every((q) => !q.joined || q.locked)) openOptions();
+  else if (a === 'ok' && net() === 'off' && k === 0 && S.seats.every((q) => !q.joined || q.locked)) startLocal();
+  else if (a === 'ok' && net() === 'host' && k === 0) { const why = startBlocker(); if (why) showToast(why); else hostPresent(); }
 }
 
 /* ---------- entrar a la sala ---------- */
@@ -176,6 +177,7 @@ export function openSala(kind, keep) {
   } else S.seats.forEach((s) => { s.locked = false; });
   replaceMenus(SALA);
   showStage();
+  openOptions();                                     // primero: qué se juega
 }
 // Sala online: el anfitrión (recién creada o de vuelta de una partida) o un invitado que entró
 export function openSalaOnline(fromGame) {
@@ -184,11 +186,10 @@ export function openSalaOnline(fromGame) {
   S.seats.forEach((s, j) => { s.joined = j === k; s.locked = false; });
   const v = room.slots[room.mySlot];
   S.seats[k].ch = v ? v.ch | 0 : 0;
-  // el anfitrión que vuelve de una partida ya eligió: va directo a las opciones
-  if (fromGame && net() === 'host') S.seats[0].locked = true;
   replaceMenus(SALA);
   showStage();
-  if (fromGame && net() === 'host') openOptions();
+  if (net() === 'host') openOptions();               // el anfitrión elige primero qué se juega; los invitados ya eligen personaje
+  void fromGame;
 }
 // Crear sala online de un tipo (desde el menú ONLINE)
 export function hostSala(kind) {
@@ -204,7 +205,7 @@ function goOnline() {
   if (joinedCount() > 1) { showToast('EN ONLINE JUEGA UNO POR COMPU'); return; }
   hooks.withName(() => {
     createRoom(S.kind === 'fiesta' ? 'fiesta' : 'libre', S.seats[0].ch);
-    S.seats[0].locked = true;
+    S.seats[0].locked = false;
     replaceMenus(SALA); openOptions();
   });
 }
@@ -243,6 +244,8 @@ const SALA = {
   id: 'sala', style: 'custom', dim: 'rgba(0,0,0,0)',
   input() {
     syncStage();
+    // online: cuando el anfitrión ya eligió y están todos listos, arranca solo
+    if (net() === 'host' && S.seats[0].locked && !startBlocker() && here()) { hostPresent(); return; }
     if (net() === 'off') {
       const solo = joinedCount() === 1;
       for (let k = 0; k < 4; k++) {
@@ -358,7 +361,7 @@ const SALA = {
     const pad = input.device === 'gamepad', mouse = input.device === 'pointer', mine = S.seats[myK()];
     const parts = [];
     if (!mine.locked) parts.push({ key: pad ? 'STICK' : mouse ? 'CLIC' : 'FLECHAS', label: 'MOVER', act: null });
-    if (!(mine.locked && net() === 'guest')) parts.push({ key: pad ? 'A' : 'ESPACIO', label: mine.locked ? 'SEGUIR' : 'ELEGIR', act: 'ok' });
+    if (!mine.locked) parts.push({ key: pad ? 'A' : 'ESPACIO', label: 'ELEGIR', act: 'ok' });
     parts.push({ key: pad ? 'B' : 'ESC', label: mine.locked ? 'CAMBIAR' : 'VOLVER', act: 'back' });
     return parts;
   },
@@ -392,8 +395,7 @@ function mgGrid(get, setFn) {
       MINIGAMES.forEach((m) => {
         const on = m.id === get();
         if (on) rect(tx - 3, y + 1, tw + 6, th + 6, sel ? COL.gold : COL.teal);
-        drawThumb(m.id, tx, y + 4, tw, th);
-        if (!on) rect(tx, y + 4, tw, th, 'rgba(4,6,14,.45)');
+        drawThumb(m.id, tx, y + 4, tw, th, !on);
         boxes.push({ id: m.id, x: tx, w: tw });
         tx += tw + gap;
       });
@@ -420,8 +422,8 @@ function localOptions() {
   }
   items.push({
     kind: 'choice', label: 'CPU', hidden: () => joinedCount() >= 4,
-    get values() { return joinedCount() >= 2 ? botValues : diffValues; },
-    get: () => (joinedCount() >= 2 && !settings.localBots ? 'no' : settings.difficulty),
+    get values() { return botValues; },
+    get: () => (!settings.localBots ? 'no' : settings.difficulty),
     set: (v) => {
       if (v === 'no') settings.localBots = false;
       else { settings.localBots = true; settings.difficulty = v; game.difficulty = v; }
@@ -430,7 +432,7 @@ function localOptions() {
   });
   items.push(pointsChoice(curMgLocal, () => pointsFor(curMgLocal()), (v) => { settings[mgById(curMgLocal()).points.key] = v; saveSettings(); }));
   items.push({ kind: 'action', label: 'JUGAR ONLINE', left: true, value: 'INVITAR AMIGOS', valueColor: () => COL.dim, action: () => goOnline() });
-  items.push({ kind: 'action', label: 'COMENZAR', action: () => startLocal() });
+  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', action: () => goChars() });
   return items;
 }
 
@@ -444,11 +446,7 @@ function hostOptions() {
   items.push(pointsChoice(curMgRoom, () => room.opts[mgById(curMgRoom()).points.key], (v) => setRoomOpt(mgById(curMgRoom()).points.key, v)));
   items.push({ kind: 'choice', label: 'SALA', values: [{ v: false, label: 'PRIVADA' }, { v: true, label: 'PÚBLICA' }],
     get: () => room.opts.public, set: (v) => setRoomOpt('public', v) });
-  items.push({ kind: 'action', label: 'COMENZAR', action: () => {
-    const why = startBlocker();
-    if (why) { showToast(why); return; }
-    hostPresent();
-  } });
+  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', action: () => goChars() });
   return items;
 }
 
@@ -459,6 +457,12 @@ function hostHeader(x, y, w, hw) {
   rect(x + 6, y + 24, w - 12, 1, '#1d6e68');
 }
 
+// de las opciones a la grilla de personajes
+function goChars() {
+  if (topMenu() && topMenu().def.id === 'salaOpts') closeMenu();
+  S.seats.forEach((s) => { s.locked = false; });
+  share(myK());
+}
 function openOptions() {
   if (topMenu() && topMenu().def.id === 'salaOpts') return;
   const online = net() === 'host';
@@ -467,17 +471,15 @@ function openOptions() {
     title: S.kind === 'fiesta' ? (online ? 'FIESTA ONLINE' : 'FIESTA') : online ? 'MINIJUEGOS ONLINE' : 'MINIJUEGOS',
     items: online ? hostOptions() : localOptions(),
     headerH: online ? 28 : 0, header: online ? hostHeader : null,
-    // cada frame: el escenario sigue vivo y (en local) alguien más puede sumarse apretando su botón
-    tick() {
-      syncStage();
-      if (net() !== 'off') return;
-      for (let k = 1; k < 4; k++) {
-        if (!S.seats[k].joined && input.pev[PADS[k]].includes('ok')) { closeMenu(); S.seats[0].locked = false; join(k); return; }
-      }
+    tick() { syncStage(); },
+    // en local, los joysticks de J2..J4 no manejan este menú (solo J1, el teclado y el mouse);
+    // Enter o espacio en cualquier fila sigue a elegir personajes (sin tener que bajar hasta el botón)
+    onEvent: (e, top) => {
+      if (net() === 'off' && e.pad !== undefined && e.pad > 0) return true;
+      if ((e.a === 'confirm' || e.a === 'start') && top) { const it = selectedItem(top); if (it && it.kind !== 'action') { SFX.confirm(); goChars(); return true; } }
+      return false;
     },
-    // en local, los joysticks de J2..J4 no manejan este menú (solo J1, el teclado y el mouse)
-    onEvent: (e) => net() === 'off' && e.pad !== undefined && e.pad > 0,
-    onBack() { closeMenu(); lock(myK(), false); },
+    onBack() { leave(); },
   };
   openMenu(def);
   SFX.confirm();
@@ -517,7 +519,7 @@ function startLocal() {
 }
 
 /* ---------- presentación antes de arrancar: los personajes en sus podios con el nombre de cada uno ---------- */
-const PR = { t0: 0, dur: 5, info: null, done: null, skip: true, jumped: 0 };
+const PR = { t0: 0, dur: 3, info: null, done: null, skip: true, jumped: 0 };
 function showPresentation(info, done, skip) {
   Object.assign(PR, { info, done, skip, t0: performance.now(), jumped: 0 });
   if (game.minigame !== 'sala' || game.state !== 'menu') resetMatch('menu', stageSetup());

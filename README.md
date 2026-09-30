@@ -117,6 +117,12 @@ Abajo, **ONLINE** y **OPCIONES**.
 
 Las dos puertas llevan a la **sala** (`src/sala/`), que es la misma pantalla para jugar solo, en la misma compu u online:
 
+- **Orden:** primero se elige **qué se juega** (el minijuego o la Fiesta, CPU y puntos; Enter o espacio en cualquier fila
+  sigue), después **los personajes** y, cuando están todos listos, la presentación y a jugar. Online, el anfitrión elige
+  qué se juega y los invitados ya van eligiendo personaje; cuando están todos listos arranca solo.
+- Al entrar a cada minijuego hay **10 segundos de instrucciones** en un recuadro (cómo se gana y qué botón hace qué,
+  `rules()` de cada minijuego) y después la cuenta 3, 2, 1.
+- Las **fotos de los minijuegos** en los menús se ven nítidas (van en una capa aparte en alta resolución, `thumbStore.js`).
 - **Elegí tu personaje:** una grilla de retratos (5 por fila, con lugar para 10 o más) donde cada jugador mueve su
   **marco de color** (J1 azul, J2 rojo, J3 verde, J4 amarillo) con las flechas (o haciendo clic en un retrato) y confirma con la
   barra espaciadora (o A en el joystick). Abajo, una tarjeta finita por jugador (quién es, qué personaje y si ya
@@ -128,7 +134,7 @@ Las dos puertas llevan a la **sala** (`src/sala/`), que es la misma pantalla par
 - Cuando todos confirmaron aparecen las **opciones**: en Minijuegos, una grilla con las fotos de cada uno; CPU (o sin CPU si son 2 o más),
   puntos/rondas/turnos, **JUGAR ONLINE** (convierte la sala en online e invita amigos) y COMENZAR.
 - Antes de arrancar hay una **presentación**: todos parados en sus podios (se pueden girar arrastrando), con el nombre de
-  cada uno abajo (VOS, J2, el apodo o CPU), su personaje y con qué juega, y arriba qué se juega. Dura 5 segundos y no se
+  cada uno abajo (VOS, J2, el apodo o CPU), su personaje y con qué juega, y arriba qué se juega. Dura 3 segundos y no se
   puede saltear. Online la ven todos: la manda el anfitrión.
 - Al terminar una partida, **VOLVER A LA SALA** mantiene a los mismos jugadores y personajes.
 

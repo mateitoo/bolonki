@@ -11,6 +11,7 @@ import { camera } from './render/psx.js';
 import { room } from './net/room.js';
 import * as THREE from 'three';
 import { mg } from './minigames/registry.js';
+import { beginThumbs, flushThumbs } from './render/thumbStore.js';
 
 let hx = null;
 const toast = { text: '', t: 0 };
@@ -90,6 +91,7 @@ const v3 = new THREE.Vector3();
 function drawNameTags(hw, st) {
   if (game.mode === 'demo') return;
   if (st !== 'play' && st !== 'count' && st !== 'end' && st !== 'paused') return;
+  if (st === 'count' && game.intro && game.countT > 3) return;          // durante las instrucciones no van los nombres
   // en Empujón las naves se mezclan: se marca también la tuya con "VOS"; en el tablero, todos con su nombre
   const board = game.minigame === 'fiesta';
   const m = mg(), tagY = m.tagY || 4.1;
@@ -116,7 +118,41 @@ function drawTitle(hw) {
   txt('PARTY GAME DE ARENA · 4 JUGADORES', hw / 2, 162, 8, COL.teal, 'center');
 }
 
+// Al entrar a un minijuego: las instrucciones en un recuadro, con la cuenta para empezar
+function wrapLine(t, max) {
+  const out = []; let cur = '';
+  for (const w of t.split(' ')) { if ((cur + ' ' + w).trim().length > max && cur) { out.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); }
+  if (cur) out.push(cur);
+  return out;
+}
+function drawIntro(hw, n) {
+  const m = mg(), K = input.device === 'gamepad' ? 'A' : 'ESPACIO';
+  const w = Math.min(hw - 24, 380), x = Math.round(hw / 2 - w / 2), max = Math.floor((w - 16) / 8);
+  const lines = [];
+  (m.rules ? m.rules(K) : [m.desc]).forEach((r, i) => wrapLine(r, max).forEach((l) => lines.push([l, i === 0 ? '#ffb31a' : COL.white])));
+  const meta = [];
+  if (game.setup && game.setup.fiesta) meta.push([game.setup.duel ? '¡DUELO!' : 'MINIJUEGO DE LA FIESTA', game.setup.duel ? '#d8a0ff' : COL.teal]);
+  if (game.players.some((p) => p.ctrl === 'ai' || p.isBot)) meta.push([`CPU: ${DIFFICULTIES[game.difficulty].label}${game.online !== 'off' ? ' · PARTIDA ONLINE' : ''}`, COL.teal]);
+  else if (game.online !== 'off') meta.push(['PARTIDA ONLINE', COL.teal]);
+  if (m.cam.orbit) wrapLine(input.device === 'gamepad' ? 'STICK DERECHO: GIRAR LA CÁMARA' : 'ARRASTRÁ EL MOUSE: GIRAR LA CÁMARA', max).forEach((l) => meta.push([l, COL.dim]));
+  const h = 42 + lines.length * 12 + (meta.length ? 8 + meta.length * 11 : 0) + 20, y = Math.max(54, Math.round(132 - h / 2));
+  rect(x, y, w, h, 'rgba(6,10,22,.92)');
+  rect(x, y, w, 1, '#1d6e68'); rect(x, y + h - 1, w, 1, '#1d6e68'); rect(x, y, 1, h, '#1d6e68'); rect(x + w - 1, y, 1, h, '#1d6e68');
+  rect(x, y, w, 14, '#1d6e68');
+  txt('INSTRUCCIONES', x + w / 2, y + 3, 8, COL.white, 'center');
+  txt(m.name, x + w / 2, y + 20, 16, COL.gold, 'center', COL.goldShadow);
+  lines.forEach(([l, c], i) => txt(l, x + w / 2, y + 42 + i * 12, 8, c, 'center'));
+  if (meta.length) {
+    const my = y + 42 + lines.length * 12 + 4;
+    rect(x + 10, my, w - 20, 1, '#2a3150');
+    meta.forEach(([l, c], i) => txt(l, x + w / 2, my + 5 + i * 11, 8, c, 'center'));
+  }
+  rect(x, y + h - 16, w, 15, 'rgba(29,110,104,.35)');
+  txt(`EMPIEZA EN ${n}`, x + w / 2, y + h - 12, 8, COL.white, 'center');
+}
+
 export function drawHud() {
+  beginThumbs();
   const hw = view.hw, st = game.state;
   ui.clock = game.clock;
   hx.clearRect(0, 0, hw, 240);
@@ -126,7 +162,9 @@ export function drawHud() {
   const blink = ((game.clock * 2.2) | 0) % 2 === 0;
 
   if (st === 'title') drawTitle(hw);
+  else if (st === 'count' && game.intro && game.countT > 3 && game.mode !== 'demo') drawIntro(hw, Math.ceil(game.countT));
   else if (st === 'count') {
+    game.intro = false;
     const n = Math.ceil(game.countT);
     txt(n > 0 ? String(n) : '¡YA!', hw / 2, 100, 32, COL.gold, 'center', COL.goldShadow);
     const bots = game.players.some((p) => p.ctrl === 'ai' || p.isBot);
@@ -150,7 +188,7 @@ export function drawHud() {
     if (game.online !== 'off' || fiestaMg) txt('MIRANDO LA PARTIDA', hw / 2, 212, 8, COL.dim, 'center');
     else if (blink) txt(input.device === 'gamepad' ? 'A: REINTENTAR   START: PAUSA' : 'ENTER: REINTENTAR   ESC: PAUSA', hw / 2, 212, 8, COL.white, 'center');
   }
-  if (!demo) mg().hud(hw, st);
+  if (!demo && !(st === 'count' && game.intro && game.countT > 3)) mg().hud(hw, st);   // durante las instrucciones, solo el recuadro
   // Fiesta: en un duelo en el que no jugás, mirás
   if (fiestaMg && meP && meP.empty && game.mode !== 'local' && (st === 'play' || st === 'count')) txt('MIRANDO EL DUELO', hw / 2, 212, 8, COL.dim, 'center');
   // Fiesta: terminó el minijuego, se ve quién ganó antes de volver al tablero
@@ -186,4 +224,5 @@ export function drawHud() {
     rect(hw / 2 - w / 2, 58, w, 16, COL.panel);
     txt(toast.text, hw / 2, 62, 8, COL.teal, 'center');
   }
+  flushThumbs();                                  // las fotos de los minijuegos, nítidas, en su capa
 }

@@ -15,6 +15,7 @@ body {
 .screen { position: relative; flex: none; background: #000; }
 .screen canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; }
 .screen #hud { image-rendering: pixelated; }
+.screen #hires { image-rendering: auto; pointer-events: none; }   /* fotos de los minijuegos, en alta resolución */
 .screen.scanlines::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background: repeating-linear-gradient(to bottom, rgba(0,0,0,.18) 0 1px, transparent 1px 3px);

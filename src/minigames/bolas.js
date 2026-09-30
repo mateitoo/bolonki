@@ -28,6 +28,11 @@ const bolas = {
   tense: () => game.players.filter((p) => p.alive && !p.empty).length <= 2,   // mano a mano: música más rápida
   thumbSteps: 460,
 
+  rules(K) {
+    const r = ['¡DEFENDÉ TU ARCO: QUE NO TE ENTREN PELOTAS!', `CADA GOL EN CONTRA TE SACA UNA VIDA (TENÉS ${game.target || 5})`, `MOVETE POR TU LADO · ${K} = GOLPE FUERTE`, 'EL ÚLTIMO QUE QUEDA GANA'];
+    if (game.mode === 'local' && game.players.some((p) => p.ctrl === 'local' && p.i % 2 === 1)) r.push('LOS DE LOS COSTADOS SE MUEVEN CON ARRIBA / ABAJO');
+    return r;
+  },
   build() { buildArena(); decorBolas(arenaGroup); buildBalls(); },
   show(on) {
     arenaGroup.visible = on;

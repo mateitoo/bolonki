@@ -38,6 +38,7 @@ export function localSetup(n, bots, points, mgId) {
   return { mode: 'local', mg: mgId || settings.mg, ctrl, pads, names, me: 0, points };
 }
 
+export const INTRO_T = 9.999;
 export function resetMatch(mode, setup) {
   const demo = mode === 'title' || mode === 'menu';
   const cfg = setup || (demo ? demoSetup() : soloSetup());
@@ -59,7 +60,8 @@ export function resetMatch(mode, setup) {
     resetPodVisual(p);
   });
   m.reset(cfg);
-  if (mode === 'count') { game.countT = 3.999; FX.tick(); }
+  // al entrar al juego: 10 s con las instrucciones en un recuadro (hud.js) y después 3, 2, 1
+  if (mode === 'count') { game.countT = INTRO_T; game.intro = true; }
 }
 
 export function podPos(p) {

@@ -9,7 +9,7 @@ import { game } from '../state.js';
 import { updateVisuals } from '../visuals.js';
 import { clearParticles } from '../fx/particles.js';
 
-const TW = 176, TH = 99;
+const TW = 480, TH = 270;          // bastante resolución: en los menús se dibujan nítidas (ver thumbStore.js)
 
 export function makeThumbs() {
   const rt = new THREE.WebGLRenderTarget(TW, TH, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });

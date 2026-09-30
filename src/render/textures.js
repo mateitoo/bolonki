@@ -376,6 +376,11 @@ export const TX = {
     const blob = (cx, cy, r) => { x.fillStyle = '#16161c'; for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) if (Math.abs(xx) + Math.abs(yy) * 1.2 <= r + 0.4) x.fillRect((cx + xx + w) % w, cy + yy, 1, 1); };
     for (let k = 0; k < 5; k++) { blob(k * 6.4 + 1, 5, 2); blob(k * 6.4 + 4, 10, 2); }
   }),
+  oldBall: tex(32, 16, (x, w, h) => {             // pelota vieja de cuero, gastada y con tierra (el potrero)
+    noisy(x, w, h, '#c89a62', 0.2);
+    x.fillStyle = 'rgba(70,40,20,.55)'; for (let k = 0; k < w; k += 8) x.fillRect(k, 0, 1, h); x.fillRect(0, 8, w, 1);   // costuras de los gajos
+    for (let i = 0; i < 26; i++) { x.fillStyle = Math.random() < 0.6 ? 'rgba(80,50,25,.45)' : 'rgba(240,220,180,.35)'; x.fillRect(Math.random() * w, Math.random() * h, rnd(1, 3), rnd(1, 2)); }
+  }),
   // publicidad de los carteles de la cancha: tiras de colores con "letras" de píxeles
   ads: tex(64, 8, (x, w, h) => {
     const cols = [['#ff9a1f', '#3a1200'], ['#1a2a6a', '#ffe14a'], ['#e8e8f0', '#d8262e'], ['#1f8a4a', '#ffffff']];

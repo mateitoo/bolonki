@@ -49,10 +49,11 @@ const MUD = [[-7.2, 4.6], [7.2, -4.6], [0, 5.3], [0, -5.3]], MUD_R = 1.5;       
 const MAPS = [
   { name: 'ESTADIO', decor: (g) => decorFutbol(g, HX, HZ), fog: { col: 0x070a1c, near: 55, far: 130 },
     pitch: [TX.pitch, 0xffffff], lines: 0xf4f6f0, wall: TX.ads, cap: 0x2a2f3c, post: 0xf2f4f8, net: 0xdfe6ee, phys: { acc: 1, fric: 1, bfric: 1 } },
-  { name: 'POTRERO', decor: (g) => decorPotrero(g, HX, HZ), fog: { col: 0x4a2a3a, near: 50, far: 125 }, extra: 'CHARCOS DE BARRO: FRENAN LA PELOTA',
-    pitch: [TX.potrero, 0xffffff], lines: 0xf0e8d0, wall: TX.graffiti, cap: 0x6a5a4a, post: 0xb8bcc4, net: 0xe8e8e0, phys: { acc: 1, fric: 1, bfric: 1 }, mud: true },
-  { name: 'LAGO HELADO', decor: (g) => decorHielo(g, HX, HZ), fog: { col: 0x0a1428, near: 50, far: 125 }, extra: 'HIELO: LAS NAVES PATINAN',
-    pitch: [TX.icePitch, 0xa8d0f0], lines: 0xe8303a, wall: TX.boards, cap: 0x2a5aff, post: 0xe8303a, net: 0xf4f6fa, phys: { acc: 0.62, fric: 0.28, bfric: 0.5 }, gw: 1.75, br: 0.4, bmax: 17 },
+  { name: 'POTRERO', decor: (g) => decorPotrero(g, HX, HZ), fog: { col: 0x4a2a3a, near: 50, far: 125 }, extra: 'BARRO QUE FRENA · LA PELOTA SE PINCHA A LOS 3 GOLPES',
+    pitch: [TX.potrero, 0xffffff], lines: 0xf0e8d0, wall: TX.graffiti, cap: 0x6a5a4a, post: 0xb07a48, postMap: TX.wood, net: 0xd8d0c0, phys: { acc: 1, fric: 1, bfric: 1 }, mud: true,
+    noLines: true, brokenNet: true, ballMap: TX.oldBall, ballFx: 'flat' },
+  { name: 'LAGO HELADO', decor: (g) => decorHielo(g, HX, HZ), fog: { col: 0x0a1428, near: 50, far: 125 }, extra: 'HIELO · LA PELOTA ARRANCA CONGELADA (3 GOLPES LA ROMPEN)',
+    pitch: [TX.icePitch, 0xa8d0f0], lines: 0x3a9aff, wall: TX.boards, cap: 0x2a5aff, post: 0xe8303a, net: 0xf4f6fa, phys: { acc: 0.62, fric: 0.28, bfric: 0.5 }, gw: 1.75, br: 0.4, bmax: 15, ballFx: 'ice' },
 ];
 const mapGw = () => MAPS[S.map].gw || GW0;              // medio ancho del arco en este mapa
 const inMud = (x, z) => MAPS[S.map].mud && MUD.some(([mx, mz]) => Math.hypot(x - mx, z - mz) < MUD_R);
@@ -64,6 +65,7 @@ const S = {
   goalT: 0, goalTeam: -1, scorer: -1, ending: false, freeze: 0,
   team: [-1, -1, -1, -1], pg: [0, 0, 0, 0], touchAt: [-9, -9, -9, -9],   // equipo de cada lugar y goles de cada jugador
   map: 0,
+  bs: { st: 0, hits: 0, t: 0 },     // pelota: 0 normal · 1 congelada · 2 nueva (potrero) · 3 pinchándose · 4 pinchada
 };
 
 /* ---------- mundo ---------- */
@@ -121,7 +123,7 @@ function buildWorld() {
   [[1, 1], [-1, 1], [-1, -1], [1, -1]].forEach(([sx, sz]) => arc(sx * (lx - lc), sz * (lz - lc), lc, Math.atan2(-sz, sx) - Math.PI / 4, Math.PI / 2, 6));
   line(0, 0, lw, lz * 2);                            // mitad de cancha
   arc(0, 0, 2.6, 0, Math.PI * 2, 28);
-  const dot = new THREE.CircleGeometry(0.22, 8); dot.rotateX(-Math.PI / 2); add(dot, lm, 0, Y, 0, grp);
+  const dot = new THREE.CircleGeometry(0.22, 8); dot.rotateX(-Math.PI / 2); W.centerDot = add(dot, lm, 0, Y, 0, grp);
   // áreas
   [-1, 1].forEach((s) => {
     const ax = s * (lx - 2.6);
@@ -148,7 +150,14 @@ function buildWorld() {
     const cm = mat({ map: TX.ads, unlit: true, side: THREE.DoubleSide }); W.M.ad.push(cm);
     add(cyl, cm, sx * (HX - CR), WH / 2, sz * (HZ - CR), grp);
   });
+  W.lines = grp.children.filter((c) => c.material === lm && c !== W.centerDot);
   W.goals = [buildGoal(grp, -1), buildGoal(grp, 1)];
+  // red rota del potrero: se quedan algunos pedazos colgando
+  W.nets = []; W.goals.forEach((g) => g.children.forEach((c) => { if (c.material === W.M.net) { c.userData.keep = Math.random() < 0.18; W.nets.push(c); } }));
+  // cáscara de hielo (lago helado) alrededor de la pelota
+  W.iceM = mat({ map: TX.ice, color: 0xcfeeff, emissive: 0x0a2030 });
+  W.iceShell = add(new THREE.IcosahedronGeometry(BR0 * 1.32, 0), W.iceM, 0, 0, 0, grp);
+  W.ballM = null;
   // pelota y su sombra
   W.ball = add(new THREE.SphereGeometry(BR, 10, 8), mat({ map: TX.football }), 0, BR, 0, grp);
   const sh = new THREE.CircleGeometry(BR * 0.95, 10); sh.rotateX(-Math.PI / 2);
@@ -186,6 +195,10 @@ function applyMap(i) {
   W.M.cap.uniforms.uColor.value.set(m.cap);
   W.M.post.uniforms.uColor.value.set(m.post); W.M.net.uniforms.uColor.value.set(m.net);
   BR = m.br || BR0; BMAX = m.bmax || 21;
+  W.M.post.uniforms.uMap.value = m.postMap || TX.white;
+  W.lines.forEach((l) => { l.visible = !m.noLines; });
+  W.nets.forEach((c) => { c.visible = !m.brokenNet || c.userData.keep; });
+  W.ball.material.uniforms.uMap.value = m.ballMap || TX.football;
   if (W.ball) { W.ball.scale.setScalar(BR / BR0); W.ballSh.scale.setScalar(BR / BR0); }
   if (!S.golden) S.gw = mapGw();
 }
@@ -219,6 +232,8 @@ function kickoff(conceded) {
   }
   game.players.forEach((p) => { if (p.empty) { p.mesh.root.visible = false; p.mesh.sh.visible = false; } });
   Object.assign(S.ball, { x: 0, z: 0, vx: 0, vz: 0, h: 0, vh: 0, last: -1 });
+  const fx = MAPS[S.map].ballFx;
+  S.bs = { st: fx === 'ice' ? 1 : fx === 'flat' ? 2 : 0, hits: 0, t: 0 };                // pelota nueva en cada saque
   S.freeze = FREEZE; S.goalT = 0; S.goalTeam = -1; S.scorer = -1;
 }
 
@@ -410,6 +425,18 @@ function ballWalls(b) {
 
 // Nave contra pelota: la pelota pesa poco. Si la nave viene embistiendo, le da un pelotazo
 // hacia donde iba la nave (mezclado con el lado donde la tocó).
+// cada golpe a la pelota: la congelada se va rompiendo y la del potrero se termina pinchando
+function ballHit(p) {
+  const B = S.bs, b = S.ball;
+  if (B.st !== 1 && B.st !== 2) return;
+  if (game.elapsed - (p.lastBallHit || -9) < 0.35) return;         // un choque cuenta una vez
+  p.lastBallHit = game.elapsed;
+  B.hits++;
+  if (B.st === 1) {
+    FX.sparkle(b.x, 0.6, b.z, P.CYAN, 5); FX.snd('crack');
+    if (B.hits >= 3) { B.st = 0; FX.sparkle(b.x, 0.7, b.z, P.WHITE, 14); FX.sparkle(b.x, 0.7, b.z, P.CYAN, 10); FX.snd('shatter'); }
+  } else if (B.hits >= 3) { B.st = 3; B.t = 0.9; FX.snd('hiss'); }
+}
 function hitBall(p) {
   const b = S.ball, dx = b.x - p.x, dz = b.z - p.z, d = Math.hypot(dx, dz), min = PR + BR;
   if (d >= min || d < 1e-4) return;
@@ -423,6 +450,7 @@ function hitBall(p) {
     p.vx -= (j / mp) * nx; p.vz -= (j / mp) * nz;
     b.vx += (j / mb) * nx; b.vz += (j / mb) * nz;
     if (-rv > 3) FX.snd('thump');
+    if (-rv > 2.5 || p.dashT > 0) ballHit(p);
   }
   if (p.dashT > 0 && !p.kicked) {
     p.kicked = true;
@@ -498,6 +526,7 @@ function step(dt) {
     const hit = ballWalls(b);
     if (hit > 4) FX.bounce();
   }
+  if (S.bs.st === 3) { S.bs.t -= dt; if (S.bs.t <= 0) S.bs.st = 4; }
   // salto (solo se ve: la pelota pica cuando le pegás fuerte)
   b.vh -= 24 * dt; b.h += b.vh * dt;
   if (b.h < 0) { b.h = 0; b.vh = b.vh < -3 ? -b.vh * 0.4 : 0; }
@@ -564,6 +593,17 @@ const futbol = {
     }
     W.lastB = [b.x, b.z];
     W.ball.position.set(b.x, BR + b.h, b.z);
+    const B = S.bs, k0 = BR / BR0;
+    // congelada: una cáscara de hielo que se va achicando con cada golpe
+    W.iceShell.visible = B.st === 1;
+    if (B.st === 1) { W.iceShell.position.copy(W.ball.position); W.iceShell.quaternion.copy(W.ball.quaternion); W.iceShell.scale.setScalar(k0 * (1 - B.hits * 0.08)); W.iceM.uniforms.uColor.value.setHex([0xcfeeff, 0xa8d8f0, 0x88c0e0][Math.min(2, B.hits)]); }
+    // potrero: se pincha (tiembla y larga aire) y queda aplastada
+    if (B.st === 3) {
+      const w = Math.sin(game.clock * 40) * 0.12 * (B.t / 0.9 + 0.3);
+      W.ball.scale.set(k0 * (1 + w), k0 * (1 - w - (1 - B.t / 0.9) * 0.25), k0 * (1 + w));
+      if (Math.random() < 0.5) burst(b.x, BR + 0.3, b.z, { mat: P.WHITE, n: 1, sp: 2.5, up: [1, 2.5], life: [0.15, 0.3], size: 0.6 });
+    } else if (B.st === 4) W.ball.scale.set(k0 * 1.1, k0 * 0.72, k0 * 1.1);
+    else W.ball.scale.setScalar(k0);
     W.ballSh.position.set(b.x, 0.02, b.z); W.ballSh.scale.setScalar(Math.max(0.5, 1 - b.h * 0.25) * BR / BR0);
     // arcos: se estiran en el gol de oro
     W.goals.forEach((g) => { g.scale.z = S.gw / GW0; });
@@ -586,13 +626,9 @@ const futbol = {
 
   onLocalHit(p) { p.wantDash = true; },
 
-  // debajo de cada retrato: solo el color del equipo (los goles ya están en el marcador grande)
-  drawScore(p, x, y) {
-    const t = S.team[p.i];
-    if (p.empty || t < 0) return;
-    rect(x - 12, y + 4, 24, 5, '#000');
-    rect(x - 11, y + 5, 22, 3, TEAM_COL[t]);
-  },
+  // debajo de cada retrato no va nada: los goles están en el marcador grande (y abajo va el nombre, más arriba)
+  noScoreRow: true,
+  drawScore() {},
   hud(hw, st) {
     // marcador y reloj arriba al medio
     const cx = hw / 2;
@@ -633,7 +669,7 @@ const futbol = {
     return {
       b: [r2(b.x), r2(b.z), r2(b.h)],
       s: [S.goals[0], S.goals[1], Math.round(S.t * 10) / 10, S.golden ? 1 : 0, Math.round(S.goalT * 10) / 10, S.goalTeam, S.scorer, S.ending ? 1 : 0, r2(S.gw), Math.round(S.goldT * 10) / 10],
-      tm: S.team, m: S.map,
+      tm: S.team, m: S.map, bs: [S.bs.st, S.bs.hits, Math.round(S.bs.t * 10) / 10],
       p: game.players.map((p) => [r2(p.x), r2(p.z), r2(p.ang || 0), p.dashT > 0 ? 1 : 0, p.score]),
     };
   },
@@ -644,6 +680,7 @@ const futbol = {
     S.goals = [s[0], s[1]]; S.t = s[2]; S.golden = !!s[3]; S.goalT = s[4]; S.goalTeam = s[5]; S.scorer = s[6]; S.ending = !!s[7]; S.gw = s[8]; S.goldT = s[9];
     S.team = B.tm.slice();
     if (B.m !== undefined && B.m !== S.map) applyMap(B.m);
+    if (B.bs) { S.bs.st = B.bs[0]; S.bs.hits = B.bs[1]; S.bs.t = B.bs[2]; }
     game.players.forEach((p, i) => {
       const pa = A.p[i], pb = B.p[i];
       p.score = pb[4]; p.dashT = pb[3] ? 0.1 : 0;

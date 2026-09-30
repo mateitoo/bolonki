@@ -4,14 +4,14 @@ import { DIFFICULTIES } from './config.js';
 import { charOf } from './chars.js';
 import { game } from './state.js';
 import { view } from './display.js';
-import { ui, txt, rect, tri, COL, PX } from './ui/draw.js';
+import { ui, txt, rect, tri, COL, PX, textWidth } from './ui/draw.js';
 import { drawMenu, menuOpen, topMenu } from './ui/menu.js';
 import { input } from './input.js';
 import { camera } from './render/psx.js';
 import { room } from './net/room.js';
 import * as THREE from 'three';
 import { mg } from './minigames/registry.js';
-import { beginThumbs, flushThumbs } from './render/thumbStore.js';
+import { beginThumbs, flushThumbs, hiTxt } from './render/thumbStore.js';
 
 let hx = null;
 const toast = { text: '', t: 0 };
@@ -70,17 +70,33 @@ function personFace(model, x, y, alive) {
 
 function drawScores(hw, st) {
   // como el original: dos retratos a la izquierda y dos a la derecha, pegados a los bordes
-  const pos = [[12, 0], [50, 2], [hw - 74, 1], [hw - 36, 3]];
+  // abajo de cada uno, quién es: VOS, CPU o el nombre del jugador. Si hay nombres largos se separan más los retratos
+  // y, si igual no entran, se escriben con letra más chica
+  const m = mg();
+  const tags = game.players.map((p, i) => {
+    if (p.empty) return '';
+    const bot = p.ctrl === 'ai' || (p.ctrl === 'net' && p.isBot);
+    if (game.mode === 'local') return bot ? 'CPU' : p.name || `J${i + 1}`;
+    return i === game.me ? 'VOS' : bot ? 'CPU' : (p.name || 'JUG').toUpperCase();
+  });
+  const maxW = Math.max(24, ...tags.map((t) => (t ? textWidth(t, 8) : 0)));
+  const sp = Math.round(Math.max(38, Math.min(62, maxW + 6)));
+  const pos = [[12, 0], [12 + sp, 2], [hw - 36 - sp, 1], [hw - 36, 3]];
+  const ny = m.noScoreRow ? 31 : 48;
   for (const [x, i] of pos) {
     face(i, x, 3);
     const p = game.players[i];
-    mg().drawScore(p, x + 12, 29);
-    // quién maneja cada lugar
-    const bot = p.ctrl === 'ai' || (p.ctrl === 'net' && p.isBot);
-    const tag = game.mode === 'local' ? (p.empty ? '' : bot ? 'CPU' : p.name)
-      : i === game.me ? 'VOS' : p.empty ? '' : bot ? 'CPU' : 'JUG';
+    m.drawScore(p, x + 12, 29);
+    const tag = tags[i]; if (!tag) continue;
+    const bot = tag === 'CPU';
     const mine = game.mode === 'local' ? !bot && !p.empty : i === game.me;
-    if (tag) txt(tag, x + 12, 48, 8, mine ? charOf(i).col : COL.dim, 'center');
+    const col = mine ? charOf(i).col : COL.dim, w = textWidth(tag, 8), room = sp - 4;
+    if (w <= room) { txt(tag, x + 12, ny, 8, col, 'center'); continue; }
+    let size = Math.max(4, (8 * room) / w), t = tag;
+    while (t.length > 3 && (textWidth(t, 8) * size) / 8 > room) t = t.slice(0, -1);
+    if (t !== tag) t = t.slice(0, -1) + '.';
+    hiTxt(t, x + 12.5, ny + 1.5, size, 'rgba(0,0,0,.8)', 'center');
+    hiTxt(t, x + 12, ny + 1, size, col, 'center');
   }
 }
 

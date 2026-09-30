@@ -82,6 +82,8 @@ export const SFX = {
   crack() { noise(0.12, 0.12, 1800); beep(180, 90, 0.08, 'square', 0.05); },
   collapse() { noise(0.9, 0.2, 900); beep(120, 40, 0.6, 'sawtooth', 0.07); noise(0.4, 0.12, 2400, 0.25); },
   crab() { [0, 0.07, 0.14, 0.21].forEach((d) => beep(1500, 1300, 0.03, 'square', 0.025, d)); },
+  hiss() { noise(0.9, 0.08, 7000); beep(900, 300, 0.8, 'triangle', 0.02); },
+  shatter() { noise(0.3, 0.14, 5000); [1800, 2400, 2100].forEach((f, k) => beep(f, f * 0.7, 0.08, 'square', 0.03, k * 0.04)); },
   boing() { beep(180, 900, 0.22, 'triangle', 0.08); beep(360, 1400, 0.16, 'square', 0.025, 0.02); },
   jump() { beep(260, 720, 0.12, 'square', 0.035); },
   land() { const n = performance.now(); if (n - lastSlam < 40) return; beep(140, 90, 0.05, 'square', 0.03); },

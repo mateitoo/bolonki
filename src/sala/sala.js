@@ -384,7 +384,7 @@ const curMgRoom = () => (room.opts.mode === 'fiesta' ? 'fiesta' : room.opts.mg);
 // Fila con las fotos de todos los minijuegos: izquierda/derecha elige, clic en una foto la elige
 function mgGrid(get, setFn) {
   let boxes = [];
-  const H = 63;
+  const H = 50;
   return {
     kind: 'choice', label: 'MINIJUEGO', h: H, get values() { return mgValues(); }, get, set: setFn,
     drawRow(x, y, w, hw, sel) {
@@ -434,7 +434,7 @@ function localOptions() {
   });
   items.push(pointsChoice(curMgLocal, () => pointsFor(curMgLocal()), (v) => { settings[mgById(curMgLocal()).points.key] = v; saveSettings(); }));
   items.push({ kind: 'action', label: 'JUGAR ONLINE', left: true, value: 'INVITAR AMIGOS', valueColor: () => COL.dim, action: () => goOnline() });
-  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', button: true, h: 22, action: () => goChars() });
+  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', button: true, h: 20, action: () => goChars() });
   return items;
 }
 
@@ -454,7 +454,7 @@ function hostOptions() {
   items.push(pointsChoice(curMgRoom, () => room.opts[mgById(curMgRoom()).points.key], (v) => setRoomOpt(mgById(curMgRoom()).points.key, v)));
   items.push({ kind: 'choice', label: 'SALA', values: [{ v: false, label: 'PRIVADA' }, { v: true, label: 'PÚBLICA' }],
     get: () => room.opts.public, set: (v) => setRoomOpt('public', v) });
-  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', button: true, h: 22, action: () => goChars() });
+  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', button: true, h: 20, action: () => goChars() });
   return items;
 }
 

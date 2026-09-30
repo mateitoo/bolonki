@@ -174,6 +174,7 @@ function drawBig(top, hw) {
 }
 
 // Ventana: lista simple o con solapas
+export const FOOT_Y = 226;             // barra de abajo (teclas): arranca acá y llega hasta el fondo (240)
 function drawPanel(top, hw) {
   const def = top.def;
   const tabs = def.tabs;
@@ -187,7 +188,7 @@ function drawPanel(top, hw) {
   const tabsH = tabs ? 20 : 0;
   const headH = def.headerH || 0;
   const h = titleH + headH + tabsH + (def.body ? def.bodyH : rowsH) + 10;
-  const x = Math.round((hw - w) / 2), y = Math.round(Math.max(20, (221 - h) / 2 + (def.offsetY || 0)));
+  const x = Math.round((hw - w) / 2), y = Math.round(Math.max(def.minY || 20, (FOOT_Y - h) / 2 + (def.offsetY || 0)));
   panel(x, y, w, h);
   const title = typeof def.title === 'function' ? def.title() : def.title;
   if (title) txt(title, hw / 2, y + 9, textWidth(title, 16) > w - 16 ? 8 : 16, def.titleColor || COL.gold, 'center', COL.goldShadow);
@@ -260,21 +261,23 @@ export function keyCap(label, x, y, align) {
 
 // Barra de botones al pie (cambia según teclado, joystick o mouse)
 function drawFooter(top, hw, custom) {
-  rect(0, 221, hw, 19, 'rgba(4,6,14,.85)');
+  rect(0, FOOT_Y, hw, 240 - FOOT_Y, 'rgba(4,6,14,.85)');
   const pad = input.device === 'gamepad';
   const parts = custom || [
     { key: pad ? 'A' : input.device === 'pointer' ? 'CLIC' : 'ENTER', label: (top.def.okLabel && top.def.okLabel(top)) || 'ACEPTAR', act: 'ok' },
   ];
   if (!custom && top.def.tabs) parts.push({ key: pad ? 'LB RB' : 'Q E', label: 'SOLAPA', act: 'tabNext' });
   if (!custom) parts.push({ key: pad ? 'B' : 'ESC', label: 'VOLVER', act: 'back' });
-  const widths = parts.map((p) => textWidth(p.key, 8) + 8 + 6 + textWidth(p.label, 8));
-  const total = widths.reduce((a, b) => a + b, 0) + (parts.length - 1) * 18;
+  const widths = parts.map((p) => textWidth(p.key, 8) + 6 + 5 + textWidth(p.label, 8));
+  const total = widths.reduce((a, b) => a + b, 0) + (parts.length - 1) * 14;
   let x = hw / 2 - total / 2;
   parts.forEach((p, i) => {
-    const kw = keyCap(p.key, x, 227, 'left');
-    txt(p.label, x + kw + 6, 227, 8, COL.dim);
-    footRects.push({ act: p.act, x, y: 221, w: widths[i], h: 19 });
-    x += widths[i] + 18;
+    const kw = textWidth(p.key, 8) + 6;                 // tapita chiquita (la barra es finita)
+    rect(x, FOOT_Y + 2, kw, 10, '#1d2338');
+    txt(p.key, x + 3, FOOT_Y + 3, 8, COL.white);
+    txt(p.label, x + kw + 5, FOOT_Y + 3, 8, COL.dim);
+    footRects.push({ act: p.act, x, y: FOOT_Y, w: widths[i], h: 240 - FOOT_Y });
+    x += widths[i] + 14;
   });
 }
 

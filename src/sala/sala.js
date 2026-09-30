@@ -229,6 +229,22 @@ function chip(label, x, y, k) {
   rect(x, y, w, 10, k >= 0 ? PCOL[k] : '#2a3150'); txt(label, x + 2, y + 1, 8, k >= 0 ? PINK[k] : COL.text);
   return w;
 }
+// chip chico (J1, CPU): letra más chica y nítida
+function chipSmall(label, x, y, k) {
+  const fs = 6, w = Math.round((textWidth(label, 8) * fs) / 8) + 4;
+  rect(x, y, w, 8, k >= 0 ? PCOL[k] : '#2a3150');
+  hiTxt(label, x + 2, y + 1, fs, k >= 0 ? PINK[k] : COL.text);
+  return w;
+}
+// animaciones de cada tarjeta: cuándo cambió de personaje y cuándo eligió
+const CARD = [0, 1, 2, 3].map(() => ({ c: -2, chT: -9, locked: false, lockT: -9 }));
+function cardAnim(k, c, locked) {
+  const A = CARD[k], now = ui.clock || 0;
+  if (A.c !== c) { if (A.c !== -2) A.chT = now; A.c = c; }
+  if (locked && !A.locked) A.lockT = now;
+  A.locked = locked;
+  return A;
+}
 function tick(x, y) {                                            // tilde de "listo" (la fuente no la trae)
   rect(x - 1, y - 1, 10, 9, '#0b1020');
   [[0, 3], [1, 4], [2, 5], [3, 4], [4, 3], [5, 2], [6, 1], [7, 0]].forEach(([a, b]) => rect(x + a, y + b, 1, 2, '#39d98a'));
@@ -326,8 +342,10 @@ const SALA = {
       } else frame(x, y, G.T, G.T, '#2a3150', 1);
       tileRects.push({ c: i, x, y, w: G.T, h: G.T });
     }
-    // tarjetas de los jugadores (finitas)
-    const cw = Math.floor((hw - 24 - 3 * 6) / 4), cy = 168, ch = 46, wide = cw >= 96;
+    // tarjetas de los jugadores: retrato (se mueve un poco; salta al cambiar de personaje o al elegir), chip chico
+    // con el número y quién es, y abajo el nombre del personaje y el estado
+    const cw = Math.floor((hw - 24 - 3 * 6) / 4), cy = 164, ch = 58, wide = cw >= 96;
+    const now = ui.clock || 0;
     fs.forEach((f, k) => {
       const x = 12 + k * (cw + 6), human = f.occ === 'human';
       const c = human ? f.ch : f.occ === 'cpu' ? game.chars[PODIUM_SLOT[k]] : -1;
@@ -335,27 +353,36 @@ const SALA = {
       rect(x, cy, cw, ch, human ? 'rgba(6,10,22,.94)' : 'rgba(6,10,22,.6)');
       if (human) frame(x, cy, cw, ch, PCOL[k], 2);
       else for (let d = 0; d < cw; d += 4) { rect(x + d, cy, 2, 1, '#2a3150'); rect(x + d, cy + ch - 1, 2, 1, '#2a3150'); }
-      const P = wide ? 38 : 20, px = x + 4, py = cy + 4;
-      if (chr) { drawPortrait(c, px, py, P, P, !human); frame(px, py, P, P, '#0b1020', 1); }
-      const tx = chr ? px + P + 5 : x + 5;
-      // J1 + nombre
-      const cw2 = chip(human ? `J${k + 1}` : f.occ === 'cpu' ? 'CPU' : `J${k + 1}`, tx, cy + 5, human ? k : -1);
-      const who = whoLabel(f, k);
-      const edge = x + cw - 4;                                              // borde derecho de la tarjeta
-      if (human && who && who !== `J${k + 1}`) fitTxt(who, tx + cw2 + 3, cy + 6, edge - (tx + cw2 + 3), COL.text, 'left', hiTxt);
-      if (net() === 'host' && human && !f.mine && !f.away && f.ping) txt(`${f.ping}`, x + cw - 4, cy + 6, 8, pingColor(f.ping), 'right');
-      // personaje
-      const ly = wide ? cy + 19 : cy + 27, lx = wide ? tx : x + 5;
+      const A = cardAnim(k, c, human && f.locked);
+      const P = wide ? 46 : 26, px = x + 4, py = cy + 4;
+      if (chr) {
+        // animación: respira de a poquito; al cambiar, crece y vuelve; al elegir, salta
+        const pop = Math.max(0, 1 - (now - A.chT) / 0.28), hop = Math.max(0, 1 - (now - A.lockT) / 0.45);
+        const bob = human ? Math.round(Math.sin(now * 3 + k) * 1) : 0;
+        const g = Math.round(pop * 4), jy = -Math.round(Math.sin(hop * Math.PI) * 5);
+        rect(px, py, P, P, '#0b1020');
+        drawPortrait(c, px - g, py - g + bob + jy, P + g * 2, P + g * 2, !human);
+        rect(px, py + P, P, 1, '#0b1020');
+        if (hop > 0.6) rect(px, py, P, P, `rgba(255,255,255,${((hop - 0.6) / 0.4) * 0.5})`);
+        frame(px, py, P, P, human ? PCOL[k] : '#0b1020', 1);
+      }
+      const tx = chr ? px + P + 4 : x + 5, edge = x + cw - 4;
+      // chip chico (J1 / CPU) y al lado quién es
+      const who = whoLabel(f, k), label = human ? `J${k + 1}` : f.occ === 'cpu' ? 'CPU' : `J${k + 1}`;
+      const cw2 = chipSmall(label, tx, cy + 5, human ? k : -1);
+      if (human && who && who !== label) fitTxt(who, tx + cw2 + 3, cy + 5, edge - (tx + cw2 + 3), COL.text, 'left', hiTxt);
+      if (net() === 'host' && human && !f.mine && !f.away && f.ping) txt(`${f.ping}`, edge, cy + 5, 8, pingColor(f.ping), 'right');
+      // personaje y estado: a la derecha del retrato (ancho) o abajo (angosto)
+      const lx = wide ? tx : x + 5, ly = wide ? cy + 19 : cy + 34, sy = wide ? cy + 33 : cy + 45;
       if (chr) fitTxt(chr.name, lx, ly, edge - lx, human ? chr.col : COL.dim, 'left', hiTxt);
-      // estado
       let st = '', sc = COL.dim;
       if (human) {
         if (f.away) { st = 'SE CORTÓ'; sc = COL.red; }
         else if (f.locked) { st = f.host && net() === 'guest' ? 'ANFITRIÓN' : '¡LISTO!'; sc = COL.gold; }
-        else { st = wide ? 'ELIGIENDO…' : 'ELIGE…'; sc = COL.teal; }
+        else { st = 'ELIGE…'; sc = COL.teal; }
       } else if (net() === 'off' && k > 0) { st = joinHint(k); sc = input.pads > k || k === 1 ? COL.text : COL.dim; }
-      else if (f.occ === 'cpu') st = DIFFICULTIES[net() === 'off' ? settings.difficulty : room.opts.difficulty].label.slice(0, wide ? 10 : 8);
-      if (st) fitTxt(st, lx, wide ? cy + 32 : cy + 37, edge - lx, sc, 'left', hiTxt);
+      else if (f.occ === 'cpu') st = DIFFICULTIES[net() === 'off' ? settings.difficulty : room.opts.difficulty].label;
+      if (st) fitTxt(st, lx, sy, edge - lx, sc, 'left', hiTxt);
       cardRects.push({ k, x, y: cy, w: cw, h: ch });
     });
   },
@@ -522,7 +549,7 @@ function startLocal() {
         occ, slot, ch: setup.chars[slot], k: q.k,
         name: occ === 'cpu' ? 'CPU' : solo ? 'VOS' : `J${q.k + 1}`,
         how: occ === 'cpu' ? DIFFICULTIES[settings.difficulty].label : solo ? '' : HOW[q.k],
-        short: occ === 'cpu' ? DIFFICULTIES[settings.difficulty].label.slice(0, 8) : solo ? '' : ['TECLADO', 'WASD', 'JOY 3', 'JOY 4'][q.k],
+        short: occ === 'cpu' ? DIFFICULTIES[settings.difficulty].label : solo ? '' : ['TECLADO', 'WASD', 'JOY 3', 'JOY 4'][q.k],
       };
     }),
   };
@@ -588,10 +615,10 @@ const PRESENT = {
       rect(x, y, w, h, 'rgba(6,10,22,.94)');
       frame(x, y, w, h, human ? PCOL[k] : '#2a3150', human ? 2 : 1);
       const name = f.slot === mySlot ? 'VOS' : f.name;
-      txt(name, x + w / 2, y + 5, 8, human ? COL.white : COL.dim, 'center');
-      if (ch) txt(ch.name, x + w / 2, y + 17, 8, ch.col, 'center');
-      const how = f.how && f.how.length * 8 > w - 4 ? (f.short || f.how) : f.how;
-      if (how) txt(how.slice(0, Math.floor((w - 4) / 8)), x + w / 2, y + 29, 8, COL.dim, 'center');
+      fitTxt(name || '', x + w / 2, y + 5, w - 6, human ? COL.white : COL.dim, 'center', hiTxt);
+      if (ch) fitTxt(ch.name, x + w / 2, y + 17, w - 6, ch.col, 'center', hiTxt);
+      const how = f.how && textWidth(f.how, 8) > w - 6 && f.short ? f.short : f.how;
+      if (how) fitTxt(how, x + w / 2, y + 29, w - 6, COL.dim, 'center', hiTxt);
     });
     // abajo: ¡preparados!
     rect(0, 221, hw, 19, 'rgba(4,6,14,.85)');

@@ -18,6 +18,9 @@ const VS = `
 uniform vec2 uRes; uniform float uSnap; uniform vec3 uLightDir; uniform vec3 uAmb; uniform vec3 uLCol;
 uniform float uFogNear; uniform float uFogFar; uniform float uUnlit;
 varying vec3 vUvw; varying vec3 vLight; varying float vFog; varying vec3 vIC;
+#ifdef XRAY
+varying vec2 vWxz;
+#endif
 void main(){
   // instancias (multitudes, flores, copos): cada una con su matriz y su color
 #ifdef USE_INSTANCING
@@ -29,6 +32,9 @@ void main(){
   vIC=instanceColor;
 #else
   vIC=vec3(1.0);
+#endif
+#ifdef XRAY
+  vWxz=(modelMatrix*lp).xz;
 #endif
   vec4 mv=modelViewMatrix*lp;
   vec4 p=projectionMatrix*mv;
@@ -49,7 +55,15 @@ uniform sampler2D uMap; uniform vec3 uColor; uniform vec3 uEmissive; uniform vec
 varying vec3 vUvw; varying vec3 vLight; varying float vFog; varying vec3 vIC;
 float b2(vec2 p){return mod(2.0*p.x+3.0*p.y,4.0);}
 float bayer(vec2 f){vec2 p=mod(floor(f),4.0);return (4.0*b2(mod(p,2.0))+b2(floor(p/2.0)))/16.0;}
+#ifdef XRAY
+// "rayos X": agujeros tramados (como la transparencia de la PS1) donde hay alguien tapado abajo
+uniform vec3 uHoles[4]; uniform float uGhost; varying vec2 vWxz;
+#endif
 void main(){
+#ifdef XRAY
+  if(bayer(gl_FragCoord.xy)<uGhost) discard;          // todo el piso medio transparente
+  for(int i=0;i<4;i++){ if(uHoles[i].z>0.0){ float d=distance(vWxz,uHoles[i].xy)/uHoles[i].z; float k=clamp((1.0-d)*3.0,0.0,0.8); if(bayer(gl_FragCoord.xy)<k) discard; } }
+#endif
   vec2 uv=vUvw.xy/vUvw.z + uOff;
   vec3 t=texture2D(uMap,uv).rgb;
   vec3 c=t*uColor*vIC*vLight + uEmissive;
@@ -70,7 +84,8 @@ export function mat(o = {}) {
       uEmissive: { value: new THREE.Color(o.emissive !== undefined ? o.emissive : 0x000000) },
       uUnlit: { value: o.unlit ? 1 : 0 },
       uOff: { value: new THREE.Vector2(0, 0) },
-    }),
+    }, o.xray ? { uHoles: { value: [0, 1, 2, 3].map(() => new THREE.Vector3()) }, uGhost: { value: 0 } } : {}),
+    defines: o.xray ? { XRAY: 1 } : {},
     vertexShader: VS, fragmentShader: FS, side: o.side || THREE.FrontSide,
   });
 }

@@ -8,7 +8,7 @@ import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
-import { scene, mat, add, scaleUV } from '../render/psx.js';
+import { scene, camera, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { input } from '../input.js';
 import { FX } from '../game/fx.js';
@@ -31,7 +31,7 @@ const MAPS = [
   { name: 'DULCES', decor: decorDulces, fog: { col: 0xffd8f0, near: 42, far: 100 }, top: 'frosting', side: 'wafer', cols: [0xffb0d8, 0xb0e8ff, 0xfff0a0, 0xc8ffb0], bottom: 'CHOCOLATE', fall: P.DEBRIS },
   { name: 'NEÓN', decor: decorNeon, fog: { col: 0x14062a, near: 45, far: 110 }, top: 'neonTop', side: 'neonSide', cols: [0xff3aa8, 0x3af0ff, 0xffe03a, 0x9a5aff], bottom: 'VACÍO', fall: P.CYAN, glow: true },
 ];
-const PR = 0.45, CHAR_SCALE = 0.86;
+const PR = 0.45, CHAR_SCALE = 0.98;
 const ACC = 55, MAXV = 5.4, FRICTION = 14, GRAV = 24;
 const WARN_T = 0.55, FALL_T = 1.4;                               // lo que tarda en caerse una baldosa pisada
 const GRAB_R = 1.3, GRAB_T = 1.8, GRAB_CD = 1.1, WHIFF_CD = 0.45, THROW = 8.5, THROW_UP = 4.2, HOLD_SLOW = 0.62;
@@ -63,7 +63,7 @@ function cellAt(x, z) {
 
 /* ---------- estado ---------- */
 // st de cada baldosa: 0 entera · 1 temblando (se va a caer) · 2 cayéndose · 3 ya no está
-const S = { st: FLOORS.map(() => new Uint8Array(NT)), t: FLOORS.map(() => new Float32Array(NT)), crumbleT: 0, camY: 0, map: 0 };
+const S = { st: FLOORS.map(() => new Uint8Array(NT)), t: FLOORS.map(() => new Float32Array(NT)), crumbleT: 0, camY: 0, map: 0, fx: 0, fz: 0, zoom: 1 };
 
 /* ---------- mundo ---------- */
 const W = { grp: null, body: [], cap: [], dirty: [true, true, true], seen: null, slimeM: null, tilt: FLOORS.map(() => new Float32Array(NT * 2)) };
@@ -76,7 +76,7 @@ function buildWorld() {
   const capG = new THREE.CylinderGeometry(TR * 0.8, TR * 0.8, 0.06, 6); capG.translate(0, 0.02, 0);
   FLOORS.forEach((fy, f) => {
     const col = new THREE.Color(FLOOR_COL[f]);
-    const bm = mat({ map: TX.hexSide, color: col.clone().multiplyScalar(0.8).getHex() }), cm = mat({ map: TX.hexTop, color: FLOOR_COL[f] });
+    const bm = mat({ map: TX.hexSide, color: col.clone().multiplyScalar(0.8).getHex(), xray: true }), cm = mat({ map: TX.hexTop, color: FLOOR_COL[f], xray: true });
     const body = new THREE.InstancedMesh(bodyG, bm, NT), cap = new THREE.InstancedMesh(capG, cm, NT);
     for (let k = 0; k < NT; k++) { body.setColorAt(k, WHITE); cap.setColorAt(k, WHITE); W.tilt[f][k * 2] = rnd(-1, 1); W.tilt[f][k * 2 + 1] = rnd(-1, 1); }
     body.position.y = fy; cap.position.y = fy;
@@ -96,6 +96,26 @@ function applyMap(i) {
     W.body[f].material.uniforms.uMap.value = TX[m.side]; W.body[f].material.uniforms.uColor.value.copy(col).multiplyScalar(m.glow ? 1 : 0.8);
     W.cap[f].material.uniforms.uMap.value = TX[m.top]; W.cap[f].material.uniforms.uColor.value.copy(col);
     W.cap[f].material.uniforms.uUnlit.value = m.glow ? 1 : 0; W.body[f].material.uniforms.uUnlit.value = m.glow ? 1 : 0;
+  });
+}
+// Los pisos de arriba tapan a los que cayeron: se les abre un agujero tramado justo en la línea
+// entre la cámara y cada personaje que está más abajo (donde el piso de arriba lo taparía).
+function xray() {
+  const c = camera.position;
+  FLOORS.forEach((fy, f) => {
+    const holes = W.cap[f].material.uniforms.uHoles.value, holesB = W.body[f].material.uniforms.uHoles.value;
+    // los pisos que quedaron muy arriba de la cámara (cuando seguís a alguien que cayó) se ven medio transparentes
+    const ghost = clamp((fy - S.camY - 7) / 5, 0, 0.65);
+    W.cap[f].material.uniforms.uGhost.value = ghost; W.body[f].material.uniforms.uGhost.value = ghost;
+    game.players.forEach((p, i) => {
+      const h = holes[i], hb = holesB[i];
+      h.set(0, 0, 0);
+      if (i < 4 && !p.empty && (p.alive || p.fy > SLIME_Y + 1) && p.fy < fy - 1.2 && c.y > fy + 0.5) {
+        const k = (fy - p.fy) / (c.y - p.fy);
+        h.set(p.x + (c.x - p.x) * k, p.z + (c.z - p.z) * k, 2.9);
+      }
+      hb.copy(h);
+    });
   });
 }
 function pickMap() {
@@ -417,7 +437,7 @@ const hexagonos = {
     game.elimOrder = []; game.elapsed = 0;
     pickMap();
     placeAll();
-    S.camY = 0;
+    S.camY = 0; S.fx = 0; S.fz = 0; S.zoom = 1;
     sendT = 0;
   },
   step,
@@ -428,9 +448,19 @@ const hexagonos = {
     if (W.slimeM) W.slimeM.uniforms.uOff.value.set(MAPS[S.map].glow ? 0 : (clock * 0.03) % 1, MAPS[S.map].glow ? (clock * 0.25) % 1 : (clock * 0.02) % 1);
     // cámara: baja siguiendo a los que quedan (al piso promedio donde están)
     const alive = game.players.filter((p) => p.alive && !p.empty);
-    const target = alive.length ? alive.reduce((a, p) => a + Math.max(FLOORS[p.floor], p.fy), 0) / alive.length : S.camY;
+    const solo = alive.filter((p) => p.ctrl === 'local');
+    const follow = solo.length === 1 && game.mode !== 'demo' ? solo : alive;      // jugando solo (o en red): tu piso
+    const target = follow.length ? follow.reduce((a, p) => a + Math.max(FLOORS[p.floor], p.fy), 0) / follow.length : S.camY;
     S.camY += (clamp(target, FLOORS[FLOORS.length - 1], 0) - S.camY) * Math.min(1, dt * 1.6);
-    hexagonos.cam.pos.y = CAM_Y0 + S.camY; hexagonos.cam.look.y = S.camY;
+    // si hay un solo jugador de carne y hueso, la cámara se acerca un poco y lo sigue (sin perder el tablero)
+    const locals = alive.filter((p) => p.ctrl === 'local');
+    const one = locals.length === 1 && game.mode !== 'demo' ? locals[0] : null;
+    const kf = Math.min(1, dt * 2);
+    S.fx += ((one ? one.x * 0.35 : 0) - S.fx) * kf; S.fz += ((one ? one.z * 0.3 : 0) - S.fz) * kf;
+    S.zoom += ((one ? 0.84 : 1) - S.zoom) * kf;
+    hexagonos.cam.look.set(S.fx, S.camY, 2.2 + S.fz);
+    hexagonos.cam.pos.set(S.fx, S.camY + CAM_Y0 * S.zoom, 2.2 + S.fz + 20.3 * S.zoom);
+    xray();
     for (const p of game.players) {
       const me = p.mesh;
       if (p.empty) { me.root.visible = false; me.sh.visible = false; continue; }

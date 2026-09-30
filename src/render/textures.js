@@ -549,5 +549,57 @@ export const TX = {
     x.fillStyle = 'rgba(0,0,0,.4)'; [[4, 18, 8, 7], [20, 6, 6, 6]].forEach(([a, b, c, d]) => { x.fillRect(a, b, c, 1); x.fillRect(a, b + d - 1, c, 1); });
   }),
   tights: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#2a2a3a', 0.08); x.fillStyle = '#ffd24a'; x.fillRect(0, 0, 3, h); x.fillRect(13, 0, 3, h); }),
+
+  wizardFace: tex(128, 64, (x, w, h) => {         // BERTO: mago viejito, cejas y bigote blancos
+    noisy(x, w, h, '#f0c8a8', 0.03);
+    x.fillStyle = 'rgba(140,70,50,.15)'; x.fillRect(64, 0, 64, h);
+    x.fillStyle = '#ffffff'; x.fillRect(18, 23, 10, 3); x.fillRect(36, 23, 10, 3);                       // cejas tupidas
+    x.fillStyle = '#2a2a3a'; x.fillRect(22, 28, 3, 3); x.fillRect(39, 28, 3, 3);
+    x.fillStyle = 'rgba(220,120,110,.35)'; x.fillRect(17, 34, 5, 3); x.fillRect(42, 34, 5, 3);
+    x.fillStyle = '#e8a890'; x.fillRect(29, 30, 6, 6);                                                  // nariz
+  }),
+  grannyFace: tex(128, 64, (x, w, h) => {         // TITA: abuela con anteojos redondos, rouge y sonrisa
+    noisy(x, w, h, '#f2cfb4', 0.03);
+    x.fillStyle = 'rgba(150,90,70,.15)'; x.fillRect(64, 0, 64, h);
+    x.strokeStyle = '#8a5a2a'; x.lineWidth = 1.5;
+    [[24, 30], [40, 30]].forEach(([ex, ey]) => { x.beginPath(); x.arc(ex, ey, 5, 0, 7); x.stroke(); x.fillStyle = '#2a2a3a'; x.fillRect(ex - 1, ey - 1, 2, 2); });
+    x.beginPath(); x.moveTo(29, 30); x.lineTo(35, 30); x.stroke();
+    x.fillStyle = 'rgba(255,110,130,.45)'; x.beginPath(); x.arc(17, 37, 3.5, 0, 7); x.arc(47, 37, 3.5, 0, 7); x.fill();
+    x.strokeStyle = '#c83a5a'; x.lineWidth = 2; x.beginPath(); x.moveTo(26, 42); x.quadraticCurveTo(32, 47, 38, 42); x.stroke();
+    x.strokeStyle = 'rgba(150,100,80,.4)'; x.lineWidth = 1; x.beginPath(); x.moveTo(15, 42); x.lineTo(18, 44); x.moveTo(49, 42); x.lineTo(46, 44); x.stroke();
+  }),
+  robotFace: tex(128, 64, (x, w, h) => {          // LATITA: robot de lata con pantalla, remaches y boca de parlante
+    x.fillStyle = '#b8c0c8'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < w; i += 8) { x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(i, 0, 1, h); }
+    x.fillStyle = '#1a2a2a'; x.fillRect(14, 22, 36, 14);
+    x.fillStyle = '#6ff6ff'; x.fillRect(18, 25, 8, 8); x.fillRect(38, 25, 8, 8);
+    x.fillStyle = '#ffffff'; x.fillRect(19, 26, 2, 2); x.fillRect(39, 26, 2, 2);
+    x.fillStyle = '#5a6068'; for (let k = 0; k < 5; k++) x.fillRect(22 + k * 4, 41, 2, 6);
+    x.fillStyle = '#7a8088'; [[10, 12], [54, 12], [10, 50], [54, 50]].forEach(([a, b]) => { x.beginPath(); x.arc(a, b, 1.6, 0, 7); x.fill(); });
+    x.fillStyle = 'rgba(200,120,40,.35)'; x.fillRect(46, 44, 5, 3); x.fillRect(90, 20, 4, 6);             // óxido
+  }),
+  kidFace: tex(128, 64, (x, w, h) => {            // COSMO: nene astronauta, pecoso y con dientito
+    noisy(x, w, h, '#e8b890', 0.03);
+    x.fillStyle = '#6a3a1a'; x.fillRect(0, 0, w, 16); x.fillRect(64, 0, 64, 34);                         // flequillo y pelo de atrás
+    x.fillStyle = '#6a3a1a'; x.beginPath(); x.moveTo(16, 16); x.lineTo(24, 22); x.lineTo(30, 16); x.lineTo(38, 21); x.lineTo(46, 16); x.fill();
+    x.fillStyle = '#ffffff'; x.fillRect(20, 26, 8, 7); x.fillRect(36, 26, 8, 7);
+    x.fillStyle = '#2a5a9a'; x.fillRect(23, 28, 4, 4); x.fillRect(39, 28, 4, 4);
+    x.fillStyle = '#111'; x.fillRect(24, 29, 2, 2); x.fillRect(40, 29, 2, 2);
+    x.fillStyle = '#b8704a'; [[18, 36], [21, 37], [44, 36], [47, 37]].forEach(([a, b]) => x.fillRect(a, b, 1, 1));
+    x.fillStyle = '#9a2a2a'; x.beginPath(); x.moveTo(26, 40); x.quadraticCurveTo(32, 46, 38, 40); x.fill();
+    x.fillStyle = '#ffffff'; x.fillRect(30, 40, 3, 2);
+  }),
+  starRobe: tex(32, 32, (x, w, h) => {            // túnica azul de mago con estrellas y lunas
+    noisy(x, w, h, '#2a3a9a', 0.06);
+    x.fillStyle = '#ffd24a';
+    [[5, 5], [20, 10], [10, 20], [26, 26], [16, 28]].forEach(([a, b]) => { x.fillRect(a, b - 1, 1, 3); x.fillRect(a - 1, b, 3, 1); });
+    x.beginPath(); x.arc(24, 18, 2.5, 0, 7); x.fill(); x.fillStyle = '#2a3a9a'; x.beginPath(); x.arc(25, 17, 2.2, 0, 7); x.fill();
+  }),
+  flowered: tex(32, 32, (x, w, h) => {            // batón floreado de la abuela
+    noisy(x, w, h, '#b8d8f0', 0.05);
+    for (let i = 0; i < 9; i++) { const cx = rnd(2, 30), cy = rnd(2, 30), c = ['#ff7aa8', '#ffd24a', '#ffffff'][i % 3]; x.fillStyle = c; x.fillRect(cx - 1, cy, 3, 1); x.fillRect(cx, cy - 1, 1, 3); x.fillStyle = '#e85a8a'; x.fillRect(cx, cy, 1, 1); }
+  }),
+  tin: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#b8c0c8', 0.12); x.fillStyle = 'rgba(0,0,0,.18)'; x.fillRect(0, 7, w, 1); x.fillStyle = '#7a8088'; x.fillRect(2, 2, 1, 1); x.fillRect(13, 2, 1, 1); x.fillRect(2, 13, 1, 1); x.fillRect(13, 13, 1, 1); }),
+  suit: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#f0f0f4', 0.08); x.fillStyle = 'rgba(0,0,0,.1)'; x.fillRect(0, 5, w, 1); x.fillRect(0, 11, w, 1); }),
 };
 setWhiteTexture(TX.white);

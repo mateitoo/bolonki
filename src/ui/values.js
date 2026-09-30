@@ -1,9 +1,9 @@
 // Listas de valores que usan varios menús (en un módulo aparte para evitar imports circulares).
 import { DIFFICULTIES, DIFF_ORDER } from '../config.js';
 import { MINIGAMES, mgById } from '../minigames/registry.js';
-import { COL, ui, txt, tri, rect, textWidth } from './draw.js';
+import { COL, ui, txt, tri, rect, textWidth, fitTxt } from './draw.js';
 import { SFX } from '../audio.js';
-import { drawThumb } from '../render/thumbStore.js';
+import { drawThumb, hiTxt } from '../render/thumbStore.js';
 
 export const yesNo = [{ v: true, label: 'SÍ' }, { v: false, label: 'NO' }];
 export const diffValues = DIFF_ORDER.map((d) => ({ v: d, label: DIFFICULTIES[d].label }));
@@ -47,9 +47,12 @@ export const mapChoice = (getMg, getV, setV) => {
       }
       const cur = it.values.find((q) => q.v === v) || it.values[0];
       const vx = x + w - 14, label = cur.label, lw = textWidth(label, 8);
-      if (!multi()) txt(label, vx - 8, my, 8, COL.dim, 'right');
-      else if (sel) { tri(vx - 3, my, 'r', COL.gold); tri(vx - lw - 16, my, 'l', COL.gold); txt(label, vx - 8, my, 8, COL.gold, 'right'); }
-      else txt(label, vx - 8, my, 8, COL.text, 'right');
+      // el nombre va entre la foto y el borde: si no entra, con letra más chica
+      const room = Math.min(vx - 8 - (tx + tw + 14), lw * 0.75);             // todos un poco más chicos (y parejos)
+      const nw = Math.min(lw, room);
+      if (!multi()) fitTxt(label, vx - 8, my, room, COL.dim, 'right', hiTxt);
+      else if (sel) { tri(vx - 3, my, 'r', COL.gold); tri(vx - nw - 16, my, 'l', COL.gold); fitTxt(label, vx - 8, my, room, COL.gold, 'right', hiTxt); }
+      else fitTxt(label, vx - 8, my, room, COL.text, 'right', hiTxt);
     },
     clickAt(px) {                                  // clic: a la izquierda de la foto va para atrás, a la derecha para adelante
       if (!multi()) return;

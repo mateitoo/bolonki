@@ -30,7 +30,8 @@ import * as THREE from 'three';
 const PADS = ['p1', 'p2', 'p3', 'p4'];
 // color de cada jugador (J1 azul, J2 rojo, J3 verde, J4 amarillo): el marco en la grilla y su tarjeta
 const PCOL = ['#3f9bff', '#ff4a4a', '#39d98a', '#ffd23a'], PINK = ['#04101f', '#1f0404', '#04200f', '#241c00'];
-const COLS = 5;                                                   // retratos por fila
+// retratos por fila: 5 (hasta 10 personajes) o 7 (hasta 14), así entran en dos filas y quedan grandes
+const COLS = CHARS.length > 10 ? 7 : 5;
 const nSlots = () => Math.max(10, Math.ceil(CHARS.length / COLS) * COLS);
 const S = {
   kind: 'fiesta',                                     // 'fiesta' | 'libre' (minijuegos sueltos)
@@ -314,7 +315,7 @@ const SALA = {
       const taken = f && f.locked;
       drawPortrait(i, x, y, G.T, G.T, taken && k !== k0);
       rect(x, y + G.T - 11, G.T, 11, 'rgba(4,6,14,.78)');
-      txt(CHARS[i].name, x + G.T / 2, y + G.T - 10, 8, CHARS[i].col, 'center');
+      fitTxt(CHARS[i].name, x + G.T / 2, y + G.T - 10, G.T - 3, CHARS[i].col, 'center', hiTxt);
       if (f) {
         // marco del jugador (titila mientras elige; fijo cuando ya está listo)
         const on = f.locked || blink || (net() !== 'off' && k !== k0);

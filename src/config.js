@@ -43,6 +43,10 @@ export const CHARS = [
   { name: 'RANULFO', col: '#5ac83a', dark: '#1a4a12', acc: 'frog', model: 'frog', errMul: 0.97, spdMul: 0.99 },
   { name: 'TRISTÁN', col: '#8a9ad8', dark: '#262a4a', acc: 'sadclown', model: 'sadclown', errMul: 1.06, spdMul: 0.98 },
   { name: 'TORNADO', col: '#c040e0', dark: '#3a0a4a', acc: 'wrestler', model: 'wrestler', errMul: 1.0, spdMul: 1.04 },
+  { name: 'BERTO', col: '#4a6aff', dark: '#141c5a', acc: 'wizard', model: 'wizard', errMul: 0.96, spdMul: 0.98 },
+  { name: 'TITA', col: '#ff8ac0', dark: '#5a1a3a', acc: 'granny', model: 'granny', errMul: 1.03, spdMul: 0.97 },
+  { name: 'LATITA', col: '#a8b8c8', dark: '#2a3440', acc: 'robot', model: 'robot', errMul: 0.94, spdMul: 1.0 },
+  { name: 'COSMO', col: '#ff8a2a', dark: '#5a2a0a', acc: 'astronaut', model: 'astronaut', errMul: 1.0, spdMul: 1.03 },
 ];
 
 // Dificultad de la CPU.

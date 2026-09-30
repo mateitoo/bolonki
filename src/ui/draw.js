@@ -116,7 +116,7 @@ export function fitTxt(s, x, y, maxW, col, align, hiTxt) {
   s = String(s);
   const w = textWidth(s, 8);
   if (w <= maxW || !hiTxt) { txt(s, x, y, 8, col, align); return; }
-  const size = Math.max(5, (8 * maxW) / w);
+  const size = Math.max(4, (8 * maxW) / w);
   let t = s;
   while (t.length > 2 && (textWidth(t, 8) * size) / 8 > maxW) t = t.slice(0, -1);
   if (t !== s) t = t.slice(0, -1) + '.';

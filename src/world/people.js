@@ -245,4 +245,143 @@ export function buildWrestler(rider, M) {
   return { ...lp, armL, armR };
 }
 
-export const PEOPLE = { clown: buildClown, gnome: buildGnome, skeleton: buildSkeleton, frog: buildFrog, sadclown: buildSadClown, wrestler: buildWrestler };
+/* ---------- BERTO: mago viejito con barba larga, túnica de estrellas y varita ---------- */
+export function buildWizard(rider, M) {
+  const skin = M({ color: 0xf0c8a8 }), face = M({ map: TX.wizardFace }), beard = M({ color: 0xf4f4f8 });
+  const robe = M({ map: TX.starRobe }), trim = M({ color: 0xffd24a }), hat = M({ map: TX.starRobe }), belt = M({ color: 0x8a3a1a });
+  const wand = M({ color: 0x5a3a1a }), tip = M({ color: 0xfff27a, unlit: true }), shoe = M({ color: 0x6a2a8a });
+  // túnica larga que se abre abajo
+  add(box(0.84, 0.7, 0.58), robe, 0, 0.06, 0, rider);
+  add(new THREE.CylinderGeometry(0.46, 0.58, 0.44, 10), robe, 0, -0.44, 0, rider);
+  add(new THREE.CylinderGeometry(0.585, 0.585, 0.06, 10), trim, 0, -0.66, 0, rider);
+  add(box(0.88, 0.08, 0.62), belt, 0, -0.2, 0, rider);
+  // cabeza, barba larga en punta, bigote y sombrero de ala con punta caída
+  add(new THREE.SphereGeometry(0.38, 12, 9), face, 0, 0.84, 0.02, rider).scale.set(1, 1.05, 0.95);
+  const bd = add(new THREE.ConeGeometry(0.3, 0.8, 8), beard, 0, 0.36, 0.28, rider); bd.rotation.x = Math.PI + 0.25; bd.scale.set(1, 1, 0.6);
+  [-1, 1].forEach((sx) => { const m = add(new THREE.ConeGeometry(0.07, 0.3, 5), beard, sx * 0.12, 0.72, 0.36, rider); m.rotation.z = sx * 1.9; });
+  add(new THREE.CylinderGeometry(0.62, 0.62, 0.05, 14), hat, 0, 1.14, 0, rider);
+  const cone = new THREE.Group(); cone.position.set(0, 1.14, 0); rider.add(cone);
+  add(new THREE.ConeGeometry(0.36, 0.7, 10), hat, 0, 0.35, 0, cone);
+  const tipG = new THREE.Group(); tipG.position.set(0, 0.68, 0); tipG.rotation.z = -0.9; cone.add(tipG);
+  add(new THREE.ConeGeometry(0.13, 0.4, 8), hat, 0, 0.18, 0, tipG);
+  add(new THREE.SphereGeometry(0.07, 5, 4), trim, 0, 0.4, 0, tipG);
+  add(new THREE.CylinderGeometry(0.37, 0.37, 0.07, 10), trim, 0, 1.2, 0, rider);
+  // brazos con mangas anchas; en la mano derecha, la varita con la punta que brilla
+  const o = { sw: 0.3, sl: 0.5, sd: 0.32, hw: 0.18, hh: 0.18, cuff: trim };
+  const armL = arm(rider, -0.56, 0.34, robe, skin, o), armR = arm(rider, 0.56, 0.34, robe, skin, o);
+  add(new THREE.CylinderGeometry(0.025, 0.03, 0.55, 5), wand, 0, -0.62, 0.22, armR).rotation.x = 1.2;
+  add(new THREE.SphereGeometry(0.06, 5, 4), tip, 0, -0.52, 0.47, armR);
+  // piernas cortas (casi tapadas) y zapatos violetas en punta
+  const lp = legPair(rider, 0.16, (g) => {
+    add(box(0.24, 0.4, 0.26), robe, 0, -0.2, 0, g);
+    add(box(0.26, 0.14, 0.44), shoe, 0, -0.64, 0.06, g);
+    const pt = add(new THREE.ConeGeometry(0.08, 0.22, 4), shoe, 0, -0.58, 0.34, g); pt.rotation.x = Math.PI / 2 - 0.5;
+  });
+  return { ...lp, armL, armR };
+}
+
+/* ---------- TITA: abuela con ruleros, batón floreado, cartera y pantuflas ---------- */
+export function buildGranny(rider, M) {
+  const skin = M({ color: 0xf2cfb4 }), face = M({ map: TX.grannyFace }), hair = M({ color: 0xc8c8d8 }), roller = M({ color: 0xff7aa8 });
+  const dress = M({ map: TX.flowered }), apron = M({ color: 0xffffff }), bag = M({ color: 0x8a2a4a }), clasp = M({ color: 0xffd24a });
+  const stock = M({ color: 0xe8c8b0 }), slipper = M({ color: 0xff9ac8 }), pom = M({ color: 0xffffff });
+  // batón y delantal
+  add(box(0.88, 0.72, 0.62), dress, 0, 0.08, 0, rider);
+  add(new THREE.CylinderGeometry(0.48, 0.56, 0.42, 10), dress, 0, -0.44, 0, rider);
+  add(box(0.52, 0.62, 0.04), apron, 0, -0.24, 0.32, rider);
+  add(box(0.2, 0.14, 0.03), M({ color: 0xff7aa8 }), 0, -0.3, 0.35, rider);                      // bolsillo
+  add(new THREE.CylinderGeometry(0.14, 0.16, 0.12, 8), skin, 0, 0.5, 0, rider);
+  // cabeza, pelo gris con rodete y ruleros de colores
+  add(new THREE.SphereGeometry(0.38, 12, 9), face, 0, 0.86, 0.02, rider).scale.set(1, 1.05, 0.95);
+  add(new THREE.SphereGeometry(0.4, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.55), hair, 0, 0.88, -0.03, rider).scale.set(1.03, 1.05, 1);
+  add(new THREE.SphereGeometry(0.16, 8, 6), hair, 0, 1.1, -0.34, rider);
+  [[-0.2, 1.2, 0.1], [0, 1.26, 0.05], [0.2, 1.2, 0.1], [-0.3, 1.08, -0.1], [0.3, 1.08, -0.1]].forEach(([a, b, c], k) => {
+    const r = add(new THREE.CylinderGeometry(0.07, 0.07, 0.2, 8), k % 2 ? roller : M({ color: 0x7ac8ff }), a, b, c, rider); r.rotation.z = Math.PI / 2;
+  });
+  // brazos: manga corta y la cartera colgada del brazo izquierdo
+  const o = { sw: 0.28, sl: 0.24, sd: 0.3, hw: 0.17, hh: 0.2, cuff: dress };
+  const armL = arm(rider, -0.57, 0.36, dress, skin, o), armR = arm(rider, 0.57, 0.36, dress, skin, o);
+  [armL, armR].forEach((g) => add(box(0.18, 0.28, 0.2), skin, 0, -0.35, 0, g));
+  add(box(0.32, 0.26, 0.12), bag, -0.04, -0.62, 0.12, armL);
+  add(new THREE.TorusGeometry(0.1, 0.02, 4, 8, Math.PI), bag, -0.04, -0.49, 0.12, armL);
+  add(box(0.08, 0.04, 0.03), clasp, -0.04, -0.5, 0.19, armL);
+  // medias y pantuflas con pompón
+  const lp = legPair(rider, 0.17, (g) => {
+    add(box(0.2, 0.46, 0.22), stock, 0, -0.26, 0, g);
+    add(box(0.28, 0.14, 0.42), slipper, 0, -0.64, 0.06, g);
+    add(new THREE.SphereGeometry(0.08, 6, 4), pom, 0, -0.56, 0.24, g);
+  });
+  return { ...lp, armL, armR };
+}
+
+/* ---------- LATITA: robot hecho con latas, con antena y resorte ---------- */
+export function buildRobot(rider, M) {
+  const tin = M({ map: TX.tin }), tinD = M({ map: TX.tin, color: 0x9098a0 }), face = M({ map: TX.robotFace });
+  const red = M({ color: 0xe8303a }), light = M({ color: 0xff3a3a, unlit: true }), dial = M({ color: 0xffd24a }), spring = M({ color: 0x7a8088 });
+  // cuerpo: una lata grande con panel de botones
+  add(new THREE.CylinderGeometry(0.46, 0.46, 0.9, 12), tin, 0, 0.02, 0, rider);
+  [0.44, -0.4].forEach((y) => add(new THREE.CylinderGeometry(0.48, 0.48, 0.05, 12), tinD, 0, y, 0, rider));
+  add(box(0.4, 0.3, 0.04), M({ color: 0x2a3a3a }), 0, 0.1, 0.46, rider);
+  [[-0.1, 0.16, 0xff3a3a], [0.02, 0.16, 0x39d98a], [0.14, 0.16, 0xffd24a]].forEach(([a, b, c]) => add(new THREE.SphereGeometry(0.04, 5, 4), M({ color: c, unlit: true }), a, b, 0.48, rider));
+  add(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 8), dial, 0.06, 0.02, 0.48, rider).rotation.x = Math.PI / 2;
+  add(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 8), dial, -0.1, 0.02, 0.48, rider).rotation.x = Math.PI / 2;
+  // llave de cuerda atrás
+  add(new THREE.CylinderGeometry(0.04, 0.04, 0.3, 5), dial, 0, 0.1, -0.6, rider).rotation.x = Math.PI / 2;
+  const key = add(box(0.3, 0.16, 0.04), dial, 0, 0.1, -0.76, rider); key.userData.spin = true;
+  // cuello de resorte y cabeza: otra lata con la cara
+  for (let k = 0; k < 3; k++) add(new THREE.TorusGeometry(0.1, 0.025, 4, 8), spring, 0, 0.52 + k * 0.05, 0, rider).rotation.x = Math.PI / 2;
+  add(new THREE.CylinderGeometry(0.36, 0.36, 0.52, 12), face, 0, 0.9, 0, rider).rotation.y = Math.PI / 2;
+  add(new THREE.CylinderGeometry(0.38, 0.38, 0.05, 12), tinD, 0, 1.17, 0, rider);
+  add(new THREE.CylinderGeometry(0.02, 0.02, 0.35, 4), spring, 0.14, 1.36, 0, rider);
+  add(new THREE.SphereGeometry(0.06, 6, 4), light, 0.14, 1.55, 0, rider);
+  [-1, 1].forEach((sx) => add(new THREE.CylinderGeometry(0.08, 0.08, 0.1, 8), red, sx * 0.39, 0.9, 0, rider).rotation.z = Math.PI / 2);   // "orejas"
+  // brazos de tubo con pinzas
+  const tubeArm = (x) => {
+    const g = new THREE.Group(); g.position.set(x, 0.3, 0); rider.add(g);
+    add(new THREE.SphereGeometry(0.1, 6, 4), tinD, 0, 0, 0, g);
+    add(new THREE.CylinderGeometry(0.07, 0.07, 0.5, 6), tin, 0, -0.28, 0, g);
+    [-1, 1].forEach((s) => { const c = add(box(0.05, 0.16, 0.08), red, s * 0.06, -0.6, 0.02, g); c.rotation.z = s * 0.3; });
+    g.rotation.z = Math.sign(x) * 0.12;
+    return g;
+  };
+  const armL = tubeArm(-0.54), armR = tubeArm(0.54);
+  // piernas de lata y pies planos
+  const lp = legPair(rider, 0.2, (g) => {
+    add(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 6), tinD, 0, -0.26, 0, g);
+    add(box(0.3, 0.12, 0.42), red, 0, -0.64, 0.06, g);
+  });
+  return { ...lp, armL, armR };
+}
+
+/* ---------- COSMO: nene astronauta con escafandra de pecera y mochila ---------- */
+export function buildAstronaut(rider, M) {
+  const suit = M({ map: TX.suit }), face = M({ map: TX.kidFace }), glass = M({ color: 0xbfe8ff, side: THREE.BackSide, emissive: 0x0a1a2a });
+  const orange = M({ color: 0xff8a2a }), grey = M({ color: 0x7a8088 }), flag = M({ color: 0x3a7aff }), light = M({ color: 0x39d98a, unlit: true });
+  // traje inflado con panel y parche
+  add(box(0.9, 0.78, 0.66), suit, 0, 0.08, 0, rider);
+  add(box(0.94, 0.12, 0.7), orange, 0, -0.34, 0, rider);
+  add(box(0.34, 0.24, 0.04), grey, 0, 0.14, 0.34, rider);
+  [[-0.08, 0.18, 0xff3a3a], [0.08, 0.18, 0x39d98a], [0, 0.08, 0xffd24a]].forEach(([a, b, c]) => add(box(0.06, 0.06, 0.02), M({ color: c, unlit: true }), a, b, 0.37, rider));
+  add(box(0.16, 0.1, 0.02), flag, -0.3, 0.3, 0.34, rider);
+  // mochila con tanques
+  add(box(0.7, 0.66, 0.26), M({ color: 0xd8d8e0 }), 0, 0.1, -0.44, rider);
+  [-0.18, 0.18].forEach((px) => add(new THREE.CylinderGeometry(0.1, 0.1, 0.56, 8), orange, px, 0.1, -0.6, rider));
+  // anillo del cuello, la cabeza de nene y la escafandra de vidrio (se ve de adentro)
+  add(new THREE.CylinderGeometry(0.34, 0.36, 0.1, 12), grey, 0, 0.52, 0, rider);
+  add(new THREE.SphereGeometry(0.32, 12, 9), face, 0, 0.84, 0.02, rider);
+  add(new THREE.SphereGeometry(0.52, 14, 10), glass, 0, 0.88, 0, rider);
+  add(new THREE.SphereGeometry(0.06, 5, 4), light, 0.3, 1.3, 0, rider);
+  add(new THREE.CylinderGeometry(0.015, 0.015, 0.2, 4), grey, 0.3, 1.2, 0, rider);
+  // brazos inflados con guantes naranjas
+  const o = { sw: 0.3, sl: 0.5, sd: 0.32, hw: 0.22, hh: 0.2, cuff: orange };
+  const armL = arm(rider, -0.6, 0.38, suit, orange, o), armR = arm(rider, 0.6, 0.38, suit, orange, o);
+  // piernas infladas y botas grises
+  const lp = legPair(rider, 0.21, (g) => {
+    add(box(0.32, 0.42, 0.34), suit, 0, -0.2, 0, g);
+    add(box(0.36, 0.26, 0.46), grey, 0, -0.6, 0.04, g);
+    add(box(0.38, 0.05, 0.48), orange, 0, -0.48, 0.04, g);
+  });
+  return { ...lp, armL, armR };
+}
+
+export const PEOPLE = { clown: buildClown, gnome: buildGnome, skeleton: buildSkeleton, frog: buildFrog, sadclown: buildSadClown, wrestler: buildWrestler, wizard: buildWizard, granny: buildGranny, robot: buildRobot, astronaut: buildAstronaut };

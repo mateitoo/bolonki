@@ -117,13 +117,19 @@ Abajo, **ONLINE** y **OPCIONES**.
 
 Las dos puertas llevan a la **sala** (`src/sala/`), que es la misma pantalla para jugar solo, en la misma compu u online:
 
-- Cuatro podios en un escenario; cada jugador **elige su personaje** (izquierda/derecha) y confirma (golpe / Enter).
+- **Elegí tu personaje:** una grilla de retratos (5 por fila, con lugar para 10 o más) donde cada jugador mueve su
+  **marco de color** (J1 azul, J2 rojo, J3 verde, J4 amarillo) con las flechas y confirma con golpe / Enter; con el mouse,
+  un clic marca y otro clic en el mismo confirma. Abajo, una tarjeta finita por jugador (quién es, qué personaje y si ya
+  está listo). Los retratos son del modelo 3D de cada personaje: se sacan al arrancar (`src/render/portraits.js`).
   Cada personaje lo usa uno solo, y no cambia nada del juego (es solo estética). Hay seis: Kiro, Mosh, Bruna y Tank
   (bichos redondos) y Coco (payaso) y Pino (gnomo), con cabeza, torso, brazos y piernas (`src/world/people.js`).
 - **Local:** J1 usa flechas + espacio/enter (o joystick 1). Los demás se suman apretando su botón:
   J2 con **E** (WASD para elegir, **Q** para salir) o joystick 2, J3 y J4 con **A** en los joysticks 3 y 4. Los podios libres son CPU.
 - Cuando todos confirmaron aparecen las **opciones**: en Minijuegos, una grilla con las fotos de cada uno; CPU (o sin CPU si son 2 o más),
   puntos/rondas/turnos, **JUGAR ONLINE** (convierte la sala en online e invita amigos) y COMENZAR.
+- Antes de arrancar hay una **presentación**: todos parados en sus podios (se pueden girar arrastrando), con el nombre de
+  cada uno abajo (VOS, J2, el apodo o CPU), su personaje y con qué juega, y arriba qué se juega. Arranca sola a los
+  4 segundos (Enter la saltea). Online la ven todos: la manda el anfitrión.
 - Al terminar una partida, **VOLVER A LA SALA** mantiene a los mismos jugadores y personajes.
 
 Los controles en la partida son relativos a la pantalla: en Bola Brava, los de arriba y abajo se mueven con izquierda/derecha y los de los costados con arriba/abajo.
@@ -217,7 +223,8 @@ src/
   fiesta/board.js    modo Fiesta: tablero, dado, casilleros, copa, duelos y minijuegos sorteados
   multiplayer.js     menú ONLINE (crear sala, unirse, salas públicas, apodo), pausa y fin online
   sala/sala.js       la sala: unirse, elegir personaje, opciones y arrancar (solo, local y online)
-  sala/stage.js      escenario 3D de la sala (cuatro podios)
+  sala/stage.js      escenario 3D de la sala (cuatro podios; se usa en la presentación)
+  render/portraits.js retratos 3D de cada personaje para la grilla
   chars.js           qué personaje usa cada lugar (se elige en la sala)
   ui/mainMenu.js     menú principal con las dos puertas
   net/room.js        conexión PeerJS: código, lugares, listo, ping, votos, reconexión y salas públicas
@@ -235,7 +242,7 @@ src/
 
 - **Dificultad de la CPU:** `DIFFICULTIES` en `src/config.js` (velocidad, error, reacción, anticipación y uso del golpe fuerte).
 - **Pelotas (velocidad, cantidad):** `BALL` en `src/config.js`.
-- **Nuevo personaje:** sumarlo a `CHARS` en `src/config.js` (nombre, colores y accesorio). Si es un bicho redondo con un accesorio nuevo, se arma en `buildBlob` (`src/world/pods.js`); si es con ropa, se agrega un armador en `src/world/people.js` (`model` en `CHARS`) y su retrato en `personFace` (`src/hud.js`). Aparece solo en la sala.
+- **Nuevo personaje:** sumarlo a `CHARS` en `src/config.js` (nombre, colores y accesorio). Si es un bicho redondo con un accesorio nuevo, se arma en `buildBlob` (`src/world/pods.js`); si es con ropa, se agrega un armador en `src/world/people.js` (`model` en `CHARS`) y su retrato en `personFace` (`src/hud.js`). Aparece solo en la sala (la grilla tiene lugar para 10; con más, suma filas).
 - **Nueva animación de derrota:** crear un archivo en `src/deaths/` con `{ id, name, dur, start, update }` y sumarlo a `src/deaths/index.js`. El selector se llena solo.
 
 Personajes, nombres y arte son originales.

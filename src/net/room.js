@@ -14,7 +14,7 @@ import { settings } from '../settings.js';
 import { mgById } from '../minigames/registry.js';
 import { CHARS } from '../config.js';
 
-export const NET_VERSION = 8;          // v3: modo Fiesta · v4: personajes en la sala · v5: 6 personajes · v6: tienda en la Fiesta · v7: Futbolonki y Rey de la colina · v8: mapas de Empujón
+export const NET_VERSION = 9;          // v3: modo Fiesta · v4: personajes en la sala · v5: 6 personajes · v6: tienda en la Fiesta · v7: Futbolonki y Rey de la colina · v8: mapas de Empujón · v9: presentación antes de jugar
 export const MAX_PLAYERS = 4;
 export const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const JOIN_ORDER = [2, 1, 3];          // el primer invitado va enfrente del anfitrión
@@ -41,7 +41,7 @@ export const room = {
 
 // El juego registra acá qué hacer con cada cosa que pasa en la red
 const handlers = {
-  onChange() {}, onStart() {}, onSnap() {}, onToLobby() {}, onClosed() {},
+  onChange() {}, onStart() {}, onSnap() {}, onToLobby() {}, onClosed() {}, onPresent() {},
   onGuestLeft() {}, onGuestAway() {}, onGuestBack() {}, onVotes() {}, onReconnecting() {}, onReconnected() {},
 };
 export function setRoomHandlers(h) { Object.assign(handlers, h); }
@@ -417,6 +417,7 @@ function guestOnData(m) {
     }
     case 'ping': if (room.hostConn && room.hostConn.open) { try { room.hostConn.send({ t: 'pong', ts: m.ts }); } catch (e) { /* nada */ } } break;
     case 'votes': room.votes = m.v || []; changed(); break;
+    case 'present': handlers.onPresent(m); break;
     case 'start': room.inGame = true; room.votes = []; handlers.onStart(m); break;
     case 's': if (m.pg) room.myPing = m.pg[room.mySlot] || room.myPing; handlers.onSnap(m); break;
     case 'toLobby': room.inGame = false; room.votes = []; handlers.onToLobby(); break;

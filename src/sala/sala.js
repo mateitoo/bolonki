@@ -1,5 +1,7 @@
-// La sala: antes de jugar, cada uno se une y elige personaje; después se eligen las opciones
-// (minijuego, CPU, puntos) y se arranca. Es la misma pantalla para solitario, local y online.
+// La sala: antes de jugar, cada uno se une y elige personaje en una grilla de retratos (cada jugador
+// mueve su marco de color); después se eligen las opciones (minijuego, CPU, puntos) y, antes de arrancar,
+// una presentación muestra a todos parados en sus podios con su nombre abajo. Es la misma pantalla
+// para solitario, local y online.
 //
 // Hay cuatro podios (k = 0..3, de izquierda a derecha). En local, el podio k es el jugador J(k+1)
 // con sus controles (J1 flechas o joystick 1, J2 WASD o joystick 2, J3 y J4 joysticks 3 y 4).
@@ -15,16 +17,21 @@ import { txt, rect, tri, textWidth, COL, ui } from '../ui/draw.js';
 import { mgValues, pointsChoice, botValues, diffValues, mgArt } from '../ui/values.js';
 import { drawThumb } from '../render/thumbStore.js';
 import { camera } from '../render/psx.js';
+import { drawPortrait } from '../render/portraits.js';
 import { MINIGAMES, mgById } from '../minigames/registry.js';
 import { resetMatch, pointsFor } from '../game/match.js';
 import { applyChars, fillChars } from '../chars.js';
 import { STAGE, PODIUM_SLOT, PODIUM_X, stagePuff } from './stage.js';
-import { room, createRoom, leaveRoom, setRoomOpt, startBlocker, humanCount, setHostChar, sendChar, MAX_PLAYERS } from '../net/room.js';
+import { room, createRoom, leaveRoom, setRoomOpt, startBlocker, humanCount, setHostChar, sendChar, MAX_PLAYERS, broadcast, setRoomHandlers } from '../net/room.js';
 import { hostStart } from '../net/online.js';
 import { showToast, pingColor } from '../hud.js';
 import * as THREE from 'three';
 
 const PADS = ['p1', 'p2', 'p3', 'p4'];
+// color de cada jugador (J1 azul, J2 rojo, J3 verde, J4 amarillo): el marco en la grilla y su tarjeta
+const PCOL = ['#3f9bff', '#ff4a4a', '#39d98a', '#ffd23a'], PINK = ['#04101f', '#1f0404', '#04200f', '#241c00'];
+const COLS = 5;                                                   // retratos por fila
+const nSlots = () => Math.max(10, Math.ceil(CHARS.length / COLS) * COLS);
 const S = {
   kind: 'fiesta',                                     // 'fiesta' | 'libre' (minijuegos sueltos)
   seats: [0, 1, 2, 3].map((k) => ({ joined: k === 0, ch: k, locked: false })),
@@ -95,6 +102,20 @@ function cycle(k, d) {
   s.ch = c; STAGE.pick[k] = 1; SFX.move(); stagePuff(k, false);
   share(k);
 }
+// arriba / abajo en la grilla (de a una fila); si ahí no hay personaje o lo tiene otro, no se mueve
+function moveRow(k, d) {
+  const s = S.seats[k], c = s.ch + d * COLS;
+  if (c < 0 || c >= CHARS.length || heldBy(k).has(c)) { SFX.move(); return; }
+  s.ch = c; STAGE.pick[k] = 1; SFX.move(); share(k);
+}
+// elegir con el mouse: un clic marca el personaje, otro clic en el mismo lo confirma
+function pickChar(k, c) {
+  const s = S.seats[k];
+  if (s.locked || c < 0 || c >= CHARS.length) return;
+  if (c === s.ch) { lock(k, true); return; }
+  if (heldBy(k).has(c)) return;
+  s.ch = c; STAGE.pick[k] = 1; SFX.move(); share(k);
+}
 function share(k) {
   const s = S.seats[k];
   if (net() === 'host' && k === 0) setHostChar(s.ch);
@@ -130,6 +151,7 @@ function seatAction(k, a) {
   if (!s.joined) { if (a === 'ok' && k > 0 && net() === 'off') join(k); return; }
   if (!s.locked) {
     if (a === 'left' || a === 'right') cycle(k, a === 'left' ? -1 : 1);
+    else if (a === 'up' || a === 'down') moveRow(k, a === 'up' ? -1 : 1);
     else if (a === 'ok') lock(k, true);
     else if (a === 'back') { if (k === myK()) leave(); else unjoin(k); }
   } else if (a === 'back') lock(k, false);
@@ -188,17 +210,34 @@ function goOnline() {
   });
 }
 
-/* ---------- pantalla de elegir personaje ---------- */
-const v3 = new THREE.Vector3();
-let cardRects = [];
-function cardBox(hw, k) {
-  v3.set(PODIUM_X[k], 0.3, 0.4).project(camera);
-  const cx = Math.round((v3.x + 1) / 2 * hw), cw = Math.min(100, Math.floor(hw / 4) - 6);
-  return { x: Math.max(2, Math.min(hw - 2 - cw, cx - cw / 2)), y: 170, w: cw, h: 46, cx };
-}
+/* ---------- pantalla de elegir personaje: grilla de retratos ---------- */
+let tileRects = [], cardRects = [];
 function joinHint(k) {
   if (k === 1) return input.pads >= 2 ? 'E / JOY2' : 'APRETÁ E';
   return `JOY${k + 1}: A`;
+}
+// cuadrícula: 5 por fila, tan grande como entre (en pantalla ancha, unos 58 px por retrato)
+function gridGeom(hw, top, bottom) {
+  const n = nSlots(), rows = n / COLS, gap = 6;
+  const T = Math.max(30, Math.min(58, Math.floor((hw - 24 - (COLS - 1) * gap) / COLS), Math.floor((bottom - top - (rows - 1) * gap) / rows)));
+  const W = COLS * T + (COLS - 1) * gap;
+  return { n, rows, gap, T, x0: Math.round(hw / 2 - W / 2), y0: top };
+}
+function chip(label, x, y, k) {
+  const w = textWidth(label, 8) + 4;
+  rect(x, y, w, 10, k >= 0 ? PCOL[k] : '#2a3150'); txt(label, x + 2, y + 1, 8, k >= 0 ? PINK[k] : COL.text);
+  return w;
+}
+function tick(x, y) {                                            // tilde de "listo" (la fuente no la trae)
+  rect(x - 1, y - 1, 10, 9, '#0b1020');
+  [[0, 3], [1, 4], [2, 5], [3, 4], [4, 3], [5, 2], [6, 1], [7, 0]].forEach(([a, b]) => rect(x + a, y + b, 1, 2, '#39d98a'));
+}
+function frame(x, y, w, h, col, t = 1) { rect(x, y, w, t, col); rect(x, y + h - t, w, t, col); rect(x, y, t, h, col); rect(x + w - t, y, t, h, col); }
+// quién es (para la tarjeta y la presentación)
+function whoLabel(f, k) {
+  if (f.occ !== 'human') return f.occ === 'cpu' ? 'CPU' : '';
+  if (net() !== 'off') return k === myK() ? 'VOS' : (f.name || 'JUG').slice(0, 8);
+  return joinedCount() === 1 && k === 0 ? 'VOS' : `J${k + 1}`;
 }
 
 const SALA = {
@@ -219,87 +258,110 @@ const SALA = {
     } else {
       for (const e of input.events) { if (!here()) return; const a = globalAct(e); if (a) seatAction(myK(), a); }
     }
-    // mouse / táctil: flechas y tarjeta del jugador de esta compu, y la barra de abajo
+    // mouse / táctil: clic en un retrato (marcar / confirmar), en tu tarjeta (listo) o en la barra de abajo
     for (const e of input.events) {
       if (e.a !== 'click' || !here()) continue;
       const act = footerHit(e.x, e.y);
       if (act) { seatAction(myK(), act); continue; }
+      const t = tileRects.find((q) => e.x >= q.x && e.x <= q.x + q.w && e.y >= q.y && e.y <= q.y + q.h);
+      if (t) { pickChar(myK(), t.c); continue; }
       const r = cardRects.find((q) => e.x >= q.x && e.x <= q.x + q.w && e.y >= q.y && e.y <= q.y + q.h);
-      if (!r || r.k !== myK()) continue;
-      const s = S.seats[r.k];
-      if (!s.locked && e.x < r.x + r.w * 0.3) seatAction(r.k, 'left');
-      else if (!s.locked && e.x > r.x + r.w * 0.7) seatAction(r.k, 'right');
-      else seatAction(r.k, 'ok');
+      if (r && r.k === myK()) seatAction(r.k, 'ok');
     }
   },
   draw(hw) {
-    cardRects = [];
+    tileRects = []; cardRects = [];
     const fs = infos(), k0 = myK(), blink = ((ui.clock * 2.4) | 0) % 2 === 0;
+    rect(0, 0, hw, 240, 'rgba(8,11,24,.93)');             // fondo (el escenario queda apenas atrás)
     // título
-    rect(0, 0, hw, 42, 'rgba(4,6,14,.55)');
-    txt(S.kind === 'fiesta' ? 'FIESTA' : 'MINIJUEGOS', 12, 8, 16, COL.gold, 'left', COL.goldShadow);
+    txt(net() !== 'off' && hw < 430 ? 'PERSONAJES' : 'ELEGÍ TU PERSONAJE', 12, 7, 16, COL.gold, 'left', COL.goldShadow);
     const me = S.seats[k0];
-    const sub = net() === 'guest' && me.locked ? 'ESPERANDO AL ANFITRIÓN' : me.locked && net() !== 'guest' ? 'ESPERANDO A LOS DEMÁS' : 'ELEGÍ TU PERSONAJE';
-    txt(sub, 12, 28, 8, COL.teal);
-    if (input.device !== 'gamepad') txt(input.device === 'pointer' ? 'ARRASTRÁ UN PERSONAJE PARA GIRARLO' : 'CON EL MOUSE PODÉS GIRARLOS', 12, 40, 8, COL.dim);
+    const sub = net() === 'guest' && me.locked ? 'ESPERANDO AL ANFITRIÓN' : me.locked && net() !== 'guest' ? 'ESPERANDO A LOS DEMÁS'
+      : S.kind === 'fiesta' ? 'FIESTA' : 'MINIJUEGOS';
+    txt(sub, 12, 26, 8, COL.teal);
     // online: código de la sala y cómo viene
     if (net() !== 'off') {
       const code = room.code || '····';
-      txt('SALA', hw - 12 - textWidth(code, 16) - 8, 12, 8, COL.dim, 'right');
-      txt(code, hw - 12, 8, 16, COL.gold, 'right', COL.goldShadow);
+      txt('SALA', hw - 12 - textWidth(code, 16) - 8, 11, 8, COL.dim, 'right');
+      txt(code, hw - 12, 7, 16, COL.gold, 'right', COL.goldShadow);
       const st = room.status === 'error' ? room.error : room.status === 'reconnecting' ? 'RECONECTANDO...'
         : net() === 'host' ? (room.status === 'ready' ? `${humanCount()}/${MAX_PLAYERS} · COMPARTÍ EL CÓDIGO` : 'CREANDO SALA...')
         : `${room.myPing || '--'} MS`;
-      txt(st, hw - 12, 28, 8, net() === 'guest' ? pingColor(room.myPing || 0) : room.status === 'error' ? COL.red : COL.dim, 'right');
+      txt(st, hw - 12, 26, 8, net() === 'guest' ? pingColor(room.myPing || 0) : room.status === 'error' ? COL.red : COL.dim, 'right');
     }
+    let top = 40;
     // invitado: qué se va a jugar (lo elige el anfitrión)
     if (net() === 'guest') {
       const mgId = room.opts.mode === 'fiesta' ? 'fiesta' : room.opts.mg, m = mgById(mgId);
       const bots = room.opts.bots ? DIFFICULTIES[room.opts.difficulty].label : 'SIN CPU';
-      const line = `${m.name} · ${m.points.label} ${room.opts[m.points.key] || '-'} · ${bots}`;
-      rect(0, 46, hw, 14, 'rgba(4,6,14,.55)');
-      txt(line, hw / 2, 49, 8, COL.text, 'center');
+      txt(`${m.name} · ${m.points.label} ${room.opts[m.points.key] || '-'} · ${bots}`, hw / 2, 38, 8, COL.text, 'center');
+      top = 50;
     }
-    // tarjetas abajo de cada podio
-    fs.forEach((f, k) => {
-      const b = cardBox(hw, k), s = S.seats[k];
-      const ch = f.occ === 'human' ? CHARS[f.ch] : f.occ === 'cpu' ? CHARS[game.chars[PODIUM_SLOT[k]]] : null;
-      const human = f.occ === 'human', mine = human && f.mine && (net() !== 'off' ? k === k0 : true);
-      rect(b.x, b.y, b.w, b.h, human ? 'rgba(6,10,22,.9)' : 'rgba(6,10,22,.6)');
-      const bc = human && ch ? ch.col : '#2a3150';
-      rect(b.x, b.y, b.w, 1, bc); rect(b.x, b.y + b.h - 1, b.w, 1, bc); rect(b.x, b.y, 1, b.h, bc); rect(b.x + b.w - 1, b.y, 1, b.h, bc);
-      // quién es
-      let who = f.name || '';
-      if (net() !== 'off' && k === k0) who = 'VOS';
-      else if (net() === 'off' && joinedCount() === 1 && k === 0) who = 'VOS';
-      txt(who, b.cx, b.y + 4, 8, human && ch ? ch.col : COL.dim, 'center');
-      // personaje con flechas mientras elige
-      if (ch) {
-        const nameCol = !human ? COL.dim : f.locked ? COL.gold : COL.white;
-        txt(ch.name, b.cx, b.y + 17, 8, nameCol, 'center');
-        if (human && !f.locked && (net() === 'off' || k === k0)) {
-          const tw = textWidth(ch.name, 8);
-          tri(b.cx - tw / 2 - 10, b.y + 17, 'l', COL.teal); tri(b.cx + tw / 2 + 5, b.y + 17, 'r', COL.teal);
-        }
+    // quién tiene cada personaje (jugadores, con su número)
+    const owner = {};
+    fs.forEach((f, k) => { if (f.occ === 'human') owner[f.ch] = k; });
+    // la grilla
+    const G = gridGeom(hw, top, 160);
+    for (let i = 0; i < G.n; i++) {
+      const x = G.x0 + (i % COLS) * (G.T + G.gap), y = G.y0 + ((i / COLS) | 0) * (G.T + G.gap);
+      if (i >= CHARS.length) {                             // lugar para un personaje que todavía no está
+        rect(x, y, G.T, G.T, '#0d1226');
+        for (let d = 0; d < G.T; d += 4) { rect(x + d, y, 2, 1, '#2a3150'); rect(x + d, y + G.T - 1, 2, 1, '#2a3150'); rect(x, y + d, 1, 2, '#2a3150'); rect(x + G.T - 1, y + d, 1, 2, '#2a3150'); }
+        txt('?', x + G.T / 2, y + G.T / 2 - 8, 16, '#3a4260', 'center');
+        continue;
       }
+      const k = owner[i], f = k !== undefined ? fs[k] : null;
+      const taken = f && f.locked;
+      drawPortrait(i, x, y, G.T, G.T, taken && k !== k0);
+      rect(x, y + G.T - 11, G.T, 11, 'rgba(4,6,14,.78)');
+      txt(CHARS[i].name, x + G.T / 2, y + G.T - 10, 8, CHARS[i].col, 'center');
+      if (f) {
+        // marco del jugador (titila mientras elige; fijo cuando ya está listo)
+        const on = f.locked || blink || (net() !== 'off' && k !== k0);
+        frame(x - 3, y - 3, G.T + 6, G.T + 6, '#0b1020', 1);
+        if (on) { frame(x - 2, y - 2, G.T + 4, G.T + 4, PCOL[k], 2); }
+        chip(`J${k + 1}`, x - 2, y - 2, k);
+        if (f.locked) tick(x + G.T - 11, y + 3);
+      } else frame(x, y, G.T, G.T, '#2a3150', 1);
+      tileRects.push({ c: i, x, y, w: G.T, h: G.T });
+    }
+    // tarjetas de los jugadores (finitas)
+    const cw = Math.floor((hw - 24 - 3 * 6) / 4), cy = 168, ch = 46, wide = cw >= 96;
+    fs.forEach((f, k) => {
+      const x = 12 + k * (cw + 6), human = f.occ === 'human';
+      const c = human ? f.ch : f.occ === 'cpu' ? game.chars[PODIUM_SLOT[k]] : -1;
+      const chr = c >= 0 ? CHARS[c] : null;
+      rect(x, cy, cw, ch, human ? 'rgba(6,10,22,.94)' : 'rgba(6,10,22,.6)');
+      if (human) frame(x, cy, cw, ch, PCOL[k], 2);
+      else for (let d = 0; d < cw; d += 4) { rect(x + d, cy, 2, 1, '#2a3150'); rect(x + d, cy + ch - 1, 2, 1, '#2a3150'); }
+      const P = wide ? 38 : 20, px = x + 4, py = cy + 4;
+      if (chr) { drawPortrait(c, px, py, P, P, !human); frame(px, py, P, P, '#0b1020', 1); }
+      const tx = chr ? px + P + 5 : x + 5;
+      // J1 + nombre
+      const cw2 = chip(human ? `J${k + 1}` : f.occ === 'cpu' ? 'CPU' : `J${k + 1}`, tx, cy + 5, human ? k : -1);
+      const who = whoLabel(f, k);
+      if (human && who && who !== `J${k + 1}`) txt(who, tx + cw2 + 3, cy + 6, 8, COL.text);
+      if (net() === 'host' && human && !f.mine && !f.away && f.ping) txt(`${f.ping}`, x + cw - 4, cy + 6, 8, pingColor(f.ping), 'right');
+      // personaje
+      const ly = wide ? cy + 19 : cy + 27, lx = wide ? tx : x + 5;
+      if (chr) txt(chr.name, lx, ly, 8, human ? chr.col : COL.dim);
       // estado
       let st = '', sc = COL.dim;
       if (human) {
         if (f.away) { st = 'SE CORTÓ'; sc = COL.red; }
-        else if (f.locked) { st = f.host && net() === 'guest' ? 'ANFITRIÓN' : 'LISTO'; sc = '#39d98a'; }
-        else { st = mine || net() === 'off' ? (blink ? 'ELEGÍ' : '') : 'ELIGIENDO'; sc = COL.teal; }
-        if (net() === 'host' && !f.mine && !f.away && f.ping) { txt(`${f.ping}`, b.x + b.w - 3, b.y + 4, 8, pingColor(f.ping), 'right'); }
+        else if (f.locked) { st = f.host && net() === 'guest' ? 'ANFITRIÓN' : '¡LISTO!'; sc = COL.gold; }
+        else { st = wide ? 'ELIGIENDO…' : 'ELIGE…'; sc = COL.teal; }
       } else if (net() === 'off' && k > 0) { st = joinHint(k); sc = input.pads > k || k === 1 ? COL.text : COL.dim; }
-      else if (f.occ === 'cpu') st = DIFFICULTIES[net() === 'off' ? settings.difficulty : room.opts.difficulty].label.slice(0, 10);
-      txt(st, b.cx, b.y + 31, 8, sc, 'center');
-      cardRects.push({ k, x: b.x, y: b.y, w: b.w, h: b.h });
+      else if (f.occ === 'cpu') st = DIFFICULTIES[net() === 'off' ? settings.difficulty : room.opts.difficulty].label.slice(0, wide ? 10 : 8);
+      if (st) txt(st, lx, wide ? cy + 32 : cy + 37, 8, sc);
+      cardRects.push({ k, x, y: cy, w: cw, h: ch });
     });
   },
   footer() {
-    const pad = input.device === 'gamepad', mine = S.seats[myK()];
+    const pad = input.device === 'gamepad', mouse = input.device === 'pointer', mine = S.seats[myK()];
     const parts = [];
-    if (!mine.locked) parts.push({ key: pad ? 'STICK' : input.device === 'pointer' ? 'FLECHITAS' : 'FLECHAS', label: 'ELEGIR', act: null });
-    if (!(mine.locked && net() === 'guest')) parts.push({ key: pad ? 'A' : input.device === 'pointer' ? 'CLIC' : 'ENTER', label: mine.locked ? 'SEGUIR' : 'LISTO', act: 'ok' });
+    if (!mine.locked && !mouse) parts.push({ key: pad ? 'STICK' : 'FLECHAS', label: 'MOVER', act: null });
+    if (!(mine.locked && net() === 'guest')) parts.push({ key: pad ? 'A' : mouse ? 'CLIC' : 'ENTER', label: mine.locked ? 'SEGUIR' : 'ELEGIR', act: 'ok' });
     parts.push({ key: pad ? 'B' : 'ESC', label: mine.locked ? 'CAMBIAR' : 'VOLVER', act: 'back' });
     return parts;
   },
@@ -308,7 +370,7 @@ const SALA = {
 const here = () => !!topMenu() && topMenu().def === SALA;
 // eventos generales -> acción de la sala
 function globalAct(e) {
-  if (e.a === 'left' || e.a === 'right') return e.a;
+  if (e.a === 'left' || e.a === 'right' || e.a === 'up' || e.a === 'down') return e.a;
   if (e.a === 'confirm' || e.a === 'start') return 'ok';
   if (e.a === 'back') return 'back';
   return null;
@@ -388,7 +450,7 @@ function hostOptions() {
   items.push({ kind: 'action', label: 'COMENZAR', action: () => {
     const why = startBlocker();
     if (why) { showToast(why); return; }
-    closeAllMenus(); hostStart();
+    hostPresent();
   } });
   return items;
 }
@@ -438,5 +500,94 @@ function startLocal() {
     else if (bots) ctrl[slot] = 'ai';
   });
   const setup = { mode: solo ? 'solo' : 'local', ctrl, pads, names, me: 0, chars: fillChars(chars) };
-  hooks.startLocal(S.kind, setup);
+  // presentación: cada uno en su podio con su nombre abajo, y después arranca
+  const HOW = ['FLECHAS/JOY1', 'WASD/JOY2', 'JOYSTICK 3', 'JOYSTICK 4'];
+  const m = mgById(S.kind === 'fiesta' ? 'fiesta' : settings.mg);
+  const info = {
+    title: m.name, desc: m.desc,
+    sub: S.kind === 'fiesta' ? `FIESTA · ${settings.turns} TURNOS` : `${m.points.label} ${pointsFor(m.id)}`,
+    seats: seats.map((q) => {
+      const slot = PODIUM_SLOT[q.k], occ = ctrl[slot] === 'local' ? 'human' : ctrl[slot] === 'ai' ? 'cpu' : 'none';
+      return {
+        occ, slot, ch: setup.chars[slot], k: q.k,
+        name: occ === 'cpu' ? 'CPU' : solo ? 'VOS' : `J${q.k + 1}`,
+        how: occ === 'cpu' ? DIFFICULTIES[settings.difficulty].label : solo ? '' : HOW[q.k],
+        short: occ === 'cpu' ? DIFFICULTIES[settings.difficulty].label.slice(0, 8) : solo ? '' : ['TECLADO', 'WASD', 'JOY 3', 'JOY 4'][q.k],
+      };
+    }),
+  };
+  showPresentation(info, () => hooks.startLocal(S.kind, setup), true);
 }
+
+/* ---------- presentación antes de arrancar: los personajes en sus podios con el nombre de cada uno ---------- */
+const PR = { t0: 0, dur: 3.8, info: null, done: null, skip: true, jumped: 0 };
+function showPresentation(info, done, skip) {
+  Object.assign(PR, { info, done, skip, t0: performance.now(), jumped: 0 });
+  if (game.minigame !== 'sala' || game.state !== 'menu') resetMatch('menu', stageSetup());
+  game.state = 'menu';
+  const chars = [-1, -1, -1, -1];
+  info.seats.forEach((f, k) => { STAGE.occ[k] = f.occ; STAGE.locked[k] = true; STAGE.lockT[k] = 0; if (f.ch >= 0) chars[PODIUM_SLOT[k]] = f.ch; });
+  applyChars(fillChars(chars));
+  replaceMenus(PRESENT);
+  SFX.bonus();
+}
+// online: el anfitrión muestra la presentación a todos y después arranca
+function hostPresent() {
+  const names = room.slots.map((v) => (v.kind === 'empty' ? null : v.name));
+  const chars = fillChars(room.slots.map((v) => (v.kind === 'empty' ? -1 : v.ch)));
+  const m = mgById(curMgRoom());
+  const info = {
+    title: m.name, desc: m.desc,
+    sub: room.opts.mode === 'fiesta' ? `FIESTA ONLINE · ${room.opts.turns} TURNOS` : `ONLINE · ${m.points.label} ${room.opts[m.points.key]}`,
+    seats: [0, 1, 2, 3].map((k) => {
+      const slot = PODIUM_SLOT[k], v = room.slots[slot];
+      const occ = !v ? 'none' : v.kind === 'empty' ? (room.opts.bots ? 'cpu' : 'none') : 'human';
+      return { occ, slot, k, ch: chars[slot], name: occ === 'cpu' ? 'CPU' : (names[slot] || '').slice(0, 10),
+        how: occ === 'cpu' ? DIFFICULTIES[room.opts.difficulty].label : v && v.kind === 'host' ? 'ANFITRIÓN' : 'ONLINE' };
+    }),
+  };
+  broadcast({ t: 'present', info });
+  showPresentation(info, () => { closeAllMenus(); hostStart(); }, true);
+}
+setRoomHandlers({ onPresent(m) { if (m && m.info) showPresentation(m.info, null, false); } });
+
+const PRESENT = {
+  id: 'present', style: 'custom', dim: 'rgba(0,0,0,0)',
+  input() {
+    const el = (performance.now() - PR.t0) / 1000;
+    // saltito de festejo, uno atrás del otro
+    while (PR.jumped < 4 && el > 0.25 + PR.jumped * 0.22) { const k = PR.jumped++; if (STAGE.occ[k] !== 'none') { STAGE.lockT[k] = 1; stagePuff(k, true); } }
+    const skip = PR.skip && el > 0.6 && input.events.some((e) => e.a === 'confirm' || e.a === 'start' || e.a === 'click');
+    if ((el >= PR.dur || skip) && PR.done) { const d = PR.done; PR.done = null; SFX.confirm(); d(); }
+  },
+  draw(hw) {
+    const info = PR.info; if (!info) return;
+    const el = (performance.now() - PR.t0) / 1000;
+    // arriba: qué se juega
+    rect(0, 0, hw, 40, 'rgba(4,6,14,.82)'); rect(0, 40, hw, 1, '#1d6e68');
+    txt(info.sub, 12, 6, 8, COL.teal);
+    txt(info.title, 12, 18, 16, COL.gold, 'left', COL.goldShadow);
+    if (hw >= 380) txt(info.desc, hw - 12, 18, 8, COL.text, 'right');
+    // abajo de cada podio: quién es, con qué personaje y cómo juega
+    const mySlot = net() === 'guest' ? room.mySlot : net() === 'host' ? 0 : -1;
+    info.seats.forEach((f, k) => {
+      if (f.occ === 'none') return;
+      const v = new THREE.Vector3(PODIUM_X[k], 0.3, 0.4).project(camera);
+      const cx = Math.round((v.x + 1) / 2 * hw), w = Math.min(104, Math.floor(hw / 4) - 6), x = Math.max(2, Math.min(hw - 2 - w, cx - w / 2)), y = 172, h = 40;
+      const human = f.occ === 'human', ch = CHARS[f.ch];
+      rect(x, y, w, h, 'rgba(6,10,22,.94)');
+      frame(x, y, w, h, human ? PCOL[k] : '#2a3150', human ? 2 : 1);
+      const name = f.slot === mySlot ? 'VOS' : f.name;
+      txt(name, x + w / 2, y + 5, 8, human ? COL.white : COL.dim, 'center');
+      if (ch) txt(ch.name, x + w / 2, y + 17, 8, ch.col, 'center');
+      const how = f.how && f.how.length * 8 > w - 4 ? (f.short || f.how) : f.how;
+      if (how) txt(how.slice(0, Math.floor((w - 4) / 8)), x + w / 2, y + 29, 8, COL.dim, 'center');
+    });
+    // abajo: ¡preparados!
+    rect(0, 221, hw, 19, 'rgba(4,6,14,.85)');
+    const left = Math.max(1, Math.ceil(PR.dur - el));
+    const line = PR.done ? `¡PREPARADOS! · EMPIEZA EN ${left}` : '¡PREPARADOS!';
+    txt(line, hw / 2 - (PR.skip && PR.done && hw >= 380 ? 60 : 0), 227, 8, COL.gold, 'center');
+    if (PR.skip && PR.done && hw >= 380) txt(input.device === 'gamepad' ? 'A: YA' : input.device === 'pointer' ? 'CLIC: YA' : 'ENTER: YA', hw - 12, 227, 8, COL.dim, 'right');
+  },
+};

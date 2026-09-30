@@ -7,7 +7,7 @@ import { buildArena, arenaGroup, arenaMats } from '../world/arena.js';
 import { R, CORN } from '../config.js';
 import { P as PART } from '../fx/particles.js';
 import { decorBolas } from '../world/decor.js';
-import { decorFeria, decorPlaya, decorTerraza, carousel, column, rubble, crab } from '../world/decorBolas.js';
+import { decorCirco, decorPlaya, decorTerraza, carousel, column, rubble, crab } from '../world/decorBolas.js';
 import { TX } from '../render/textures.js';
 import { mat } from '../render/psx.js';
 import { buildBalls, removeBall } from '../world/balls.js';
@@ -25,7 +25,7 @@ let sendT = 0;
 
 /* ---------- mapas ----------
    La arena es siempre la misma (mismo tamaño, torres y arcos); cada mapa cambia el aspecto y le suma una vuelta:
-   FERIA: calesita en el medio que rebota las pelotas y las tira de costado (gira) · PLAYA: ráfagas de viento que
+   CIRCO: tambor giratorio en el medio (con una foca) que rebota las pelotas y las tira de costado · PLAYA: ráfagas de viento que
    curvan las pelotas (las flechas del piso avisan para dónde) y un cangrejo que cada tanto sale de una torre y cruza
    (las pelotas le rebotan) · TERRAZA: una columna en el medio que se va rajando a pelotazos; cuando se rompe deja
    montoncitos de escombros que rebotan las pelotas hasta el final de la partida. */
@@ -34,8 +34,8 @@ const COL_R = 1.15, COL_HP = 12, MOUND_R = 0.7, CRAB_R = 0.85, CRAB_SP = 3.2;
 const MAPS = [
   { name: 'ESPACIO', build: (g) => decorBolas(g), fog: { col: 0x04060b, near: 40, far: 80 },
     floor: [TX.floor, 0xe8eef0], outer: [TX.outer, 0xffffff, 1], rim: TX.rim, tower: [TX.tower, 0xffffff], ring: 0x35f0ff, cap: [TX.bronze, 0xffffff], ball: 'chrome' },
-  { name: 'FERIA', build: (g) => decorFeria(g), fog: { col: 0x1a0c26, near: 42, far: 105 }, rule: 'LA CALESITA DESVÍA LAS PELOTAS',
-    floor: [TX.carnival, 0xffffff], outer: [TX.dirt, 0x9a8a78, 1], rim: TX.fairFence, tower: [TX.circus, 0xffffff], ring: 0xffd24a, cap: [TX.circus, 0xffffff], ball: 'chrome', carousel: true },
+  { name: 'CIRCO', build: (g) => decorCirco(g), fog: { col: 0x2a0a14, near: 45, far: 110 }, rule: 'EL TAMBOR DEL MEDIO GIRA Y DESVÍA LAS PELOTAS',
+    floor: [TX.carnival, 0xffffff], outer: [TX.sand, 0xc88a58, 1], rim: TX.fairFence, tower: [TX.circus, 0xffffff], ring: 0xffd24a, cap: [TX.circus, 0xffffff], ball: 'circus', carousel: true },
   { name: 'PLAYA', build: (g) => decorPlaya(g), fog: { col: 0xd8807a, near: 55, far: 150 }, rule: 'VIENTO (MIRÁ LAS FLECHAS) Y UN CANGREJO QUE CRUZA',
     floor: [TX.beachFloor, 0xffffff], outer: [TX.sand, 0xffffff, 0.58], rim: TX.beachRim, tower: [TX.lifeguard, 0xffffff], ring: 0xffffff, cap: [TX.cloth, 0xe83a3a], ball: 'beach', wind: true, crab: true },
   { name: 'TERRAZA', build: (g) => decorTerraza(g), fog: { col: 0x0c1030, near: 45, far: 110 }, rule: 'LA COLUMNA SE ROMPE A PELOTAZOS Y DEJA ESCOMBROS',
@@ -54,7 +54,7 @@ const chevGeo = () => {
 };
 function buildMaps() {
   MG.groups = MAPS.map((m) => { const g = new THREE.Group(); g.visible = false; arenaGroup.add(g); m.build(g); return g; });
-  // calesita (FERIA)
+  // tambor giratorio (CIRCO)
   MG.car = carousel(MG.groups[1], CAR_R);
   // columna y escombros (TERRAZA)
   MG.col = column(MG.groups[3], COL_R);
@@ -86,8 +86,8 @@ function applyMap(i) {
   arenaMats.towerRing.uniforms.uColor.value.set(m.ring);
   setM(arenaMats.cap, m.cap[0], m.cap[1]); setM(arenaMats.capRim, m.cap[0], new THREE.Color(m.cap[1]).multiplyScalar(0.7).getHex());
   game.balls.forEach((b) => {
-    if (!b.chromeM) { b.chromeM = b.m; b.beachM = mat({ map: TX.beachBall }); }
-    b.m = m.ball === 'beach' ? b.beachM : b.chromeM; b.mesh.material = b.m;
+    if (!b.chromeM) { b.chromeM = b.m; b.beachM = mat({ map: TX.beachBall }); b.circusM = mat({ map: TX.circusBall }); }
+    b.m = m.ball === 'beach' ? b.beachM : m.ball === 'circus' ? b.circusM : b.chromeM; b.mesh.material = b.m;
   });
   arenaMods.wind = null; S.wst = 0; S.wT = 7;
   S.hp = COL_HP; S.mounds = []; S.colHitT = 0; MG.moundT = [];
@@ -333,7 +333,8 @@ function mapVisuals(dt, clock) {
   }
   if (m.carousel && MG.car) {
     MG.car.rot.rotation.y = -clock * (CAR_SPIN / CAR_R) * 0.35;
-    MG.car.rot.children.forEach((h) => { if (h.userData.ph !== undefined) h.position.y = 0.85 + Math.sin(clock * 4 + h.userData.ph * 1.7) * 0.18; });
+    MG.car.seal.rotation.z = Math.sin(clock * 2.2) * 0.08;                       // la foca hace equilibrio
+    MG.car.ball.rotation.y = clock * 5; MG.car.ball.position.x = Math.sin(clock * 2.2) * 0.06;
   }
   if (m.wind && MG.wind) {
     const show = S.wst === 1 ? ((clock * 8) | 0) % 2 === 0 : S.wst === 2;

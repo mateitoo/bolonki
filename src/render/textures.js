@@ -420,6 +420,10 @@ export const TX = {
   beachRim: tex(32, 16, (x, w, h) => {            // borde de la playa: tablas de madera gastada
     noisy(x, w, h, '#b8905a', 0.25); x.fillStyle = '#7a5a34'; for (let i = 0; i < w; i += 8) x.fillRect(i, 0, 1, h); x.fillRect(0, 15, w, 1);
   }),
+  circusBall: tex(32, 8, (x, w, h) => {          // pelota de circo: gajos rojos y blancos
+    for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#ffffff' : '#e8202a'; x.fillRect(i * 4, 0, 4, h); }
+    x.fillStyle = '#ffd24a'; x.fillRect(0, 0, w, 1); x.fillRect(0, h - 1, w, 1);
+  }),
   beachBall: tex(32, 8, (x, w, h) => {            // pelota de playa: gajos de colores (a lo largo de la vuelta)
     ['#ff3a3a', '#ffffff', '#3a7aff', '#ffe03a', '#ffffff', '#2ec46a'].forEach((c, i) => { x.fillStyle = c; x.fillRect(Math.round((i * w) / 6), 0, Math.ceil(w / 6), h); });
     x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, 1); x.fillRect(0, h - 1, w, 1);

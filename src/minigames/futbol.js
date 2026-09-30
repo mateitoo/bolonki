@@ -30,8 +30,9 @@ const POD_SCALE = 0.575;         // un 15% más chicas que antes
 const ACC = 22, MAXV = 7.4, FRICTION = 2.2;
 const DASH_V = 15, DASH_T = 0.22, DASH_CD = 1.0;
 const BOUNCE = 0.85, DASH_PUSH = 3.2, DASH_MASS = 2.2;
-const BR = 0.58, BMASS = 0.42;               // pelota
-const BFRIC = 0.75, BMAX = 21, WALL_B = 0.78, KICK = 4.5;
+const BR0 = 0.58, BMASS = 0.42;              // pelota (en el hielo es más chica: ver MAPS)
+let BR = BR0;
+const BFRIC = 0.75; let BMAX = 21; const WALL_B = 0.78, KICK = 4.5;
 const MATCH_T = 120, GOAL_PAUSE = 2.8, END_PAUSE = 2.2, FREEZE = 0.8;
 const TEAM_COL = ['#35a0ff', '#ff5a4a'], TEAM_HEX = [0x35a0ff, 0xff5a4a], TEAM_NAME = ['AZUL', 'ROJO'];
 
@@ -51,8 +52,9 @@ const MAPS = [
   { name: 'POTRERO', decor: (g) => decorPotrero(g, HX, HZ), fog: { col: 0x4a2a3a, near: 50, far: 125 }, extra: 'CHARCOS DE BARRO: FRENAN LA PELOTA',
     pitch: [TX.potrero, 0xffffff], lines: 0xf0e8d0, wall: TX.graffiti, cap: 0x6a5a4a, post: 0xb8bcc4, net: 0xe8e8e0, phys: { acc: 1, fric: 1, bfric: 1 }, mud: true },
   { name: 'LAGO HELADO', decor: (g) => decorHielo(g, HX, HZ), fog: { col: 0x0a1428, near: 50, far: 125 }, extra: 'HIELO: LAS NAVES PATINAN',
-    pitch: [TX.icePitch, 0xa8d0f0], lines: 0xe8303a, wall: TX.boards, cap: 0x2a5aff, post: 0xe8303a, net: 0xf4f6fa, phys: { acc: 0.62, fric: 0.28, bfric: 0.35 } },
+    pitch: [TX.icePitch, 0xa8d0f0], lines: 0xe8303a, wall: TX.boards, cap: 0x2a5aff, post: 0xe8303a, net: 0xf4f6fa, phys: { acc: 0.62, fric: 0.28, bfric: 0.5 }, gw: 1.75, br: 0.4, bmax: 17 },
 ];
+const mapGw = () => MAPS[S.map].gw || GW0;              // medio ancho del arco en este mapa
 const inMud = (x, z) => MAPS[S.map].mud && MUD.some(([mx, mz]) => Math.hypot(x - mx, z - mz) < MUD_R);
 
 /* ---------- estado del partido ---------- */
@@ -183,6 +185,9 @@ function applyMap(i) {
   W.M.ad.forEach((a) => { a.uniforms.uMap.value = m.wall; });
   W.M.cap.uniforms.uColor.value.set(m.cap);
   W.M.post.uniforms.uColor.value.set(m.post); W.M.net.uniforms.uColor.value.set(m.net);
+  BR = m.br || BR0; BMAX = m.bmax || 21;
+  if (W.ball) { W.ball.scale.setScalar(BR / BR0); W.ballSh.scale.setScalar(BR / BR0); }
+  if (!S.golden) S.gw = mapGw();
 }
 function pickMap() {
   if (game.online === 'guest') { applyMap(S.map); return; }
@@ -219,7 +224,7 @@ function kickoff(conceded) {
 
 function newMatch() {
   assignTeams();
-  S.goals = [0, 0]; S.pg = [0, 0, 0, 0]; S.touchAt = [-9, -9, -9, -9]; S.t = matchT(); S.golden = false; S.goldT = 0; S.gw = GW0; S.ending = false;
+  S.goals = [0, 0]; S.pg = [0, 0, 0, 0]; S.touchAt = [-9, -9, -9, -9]; S.t = matchT(); S.golden = false; S.goldT = 0; S.gw = mapGw(); S.ending = false;
   game.players.forEach((p) => { p.score = 0; });
   game.elapsed = 0; game.elimOrder = [];
   game.round = { n: 1, over: false, winner: -1, t: 0 };
@@ -457,7 +462,7 @@ function step(dt) {
     }
   } else {
     S.goldT += dt;
-    S.gw = GW0 + Math.min(HZ - CR - GW0 - 0.2, Math.max(0, S.goldT - 8) * 0.05);   // en el gol de oro los arcos se agrandan de a poco
+    S.gw = mapGw() + Math.min(HZ - CR - mapGw() - 0.2, Math.max(0, S.goldT - 8) * 0.05);   // en el gol de oro los arcos se agrandan de a poco
   }
   if (S.freeze > 0) S.freeze -= dt;
 
@@ -559,7 +564,7 @@ const futbol = {
     }
     W.lastB = [b.x, b.z];
     W.ball.position.set(b.x, BR + b.h, b.z);
-    W.ballSh.position.set(b.x, 0.02, b.z); W.ballSh.scale.setScalar(Math.max(0.5, 1 - b.h * 0.25));
+    W.ballSh.position.set(b.x, 0.02, b.z); W.ballSh.scale.setScalar(Math.max(0.5, 1 - b.h * 0.25) * BR / BR0);
     // arcos: se estiran en el gol de oro
     W.goals.forEach((g) => { g.scale.z = S.gw / GW0; });
     const z0 = S.gw + POST, z1 = HZ - CR;

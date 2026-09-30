@@ -1,4 +1,4 @@
-// Decorado de los mapas nuevos de Bola Brava (FERIA, PLAYA, TERRAZA). La arena es la misma (piso de 20×20 con
+// Decorado de los mapas nuevos de Bola Brava (CIRCO, PLAYA, TERRAZA; la FERIA quedó sin usar). La arena es la misma (piso de 20×20 con
 // torres en las esquinas); cada mapa cambia las texturas de la arena (bolas.js), el piso de afuera y todo esto
 // de alrededor. El suelo de afuera está a y = -2.2 (ver world/arena.js).
 import * as THREE from 'three';
@@ -94,6 +94,106 @@ export function decorFeria(g) {
   [[-16, -24], [16, -24], [-26, -12], [26, 12], [-16, 26], [16, 26]].forEach(([x, z]) => P.lamp(g, x, Y, z, 3.4, 0xffd27a));
   P.scatter(g, 0, Y + 0.01, 0, 44, 44, 160, 0xff5fa2, 0.14, [16, 16]);     // papelitos
   P.scatter(g, 0, Y + 0.01, 0, 44, 44, 160, 0xffe14a, 0.14, [16, 16]);
+}
+
+
+/* =====================================================================
+   CIRCO: adentro de la carpa, con tribunas llenas, reflectores y números de circo alrededor de la pista
+   ===================================================================== */
+function pedestal(p, x, z, h = 0.9, r = 0.9) {                // tamborcito de circo con estrella arriba
+  const g = grp(p, x, Y, z);
+  add(new THREE.CylinderGeometry(r, r * 1.05, h, 12), P.M(0xffffff, { map: TX.circus }), 0, h / 2, 0, g);
+  add(new THREE.CylinderGeometry(r + 0.06, r + 0.06, 0.1, 12), P.M(0xffd24a, { unlit: true }), 0, h, 0, g);
+  P.floorStar(g, 0, h + 0.06, 0, r * 0.7, 0x3a7aff);
+  return g;
+}
+function bigBall(p, x, z, r = 1.1) {                          // pelota de circo rayada
+  const b = add(new THREE.SphereGeometry(r, 12, 8), P.M(0xffffff, { map: TX.circusBall }), x, Y + r, z, p);
+  P.anim(b, (t) => { b.rotation.y = t * 0.6 + x; });
+  return b;
+}
+function elephant(p, x, z, ry) {                              // elefante parado arriba de un tambor
+  const pd = pedestal(p, x, z, 1.0, 1.4); pd.rotation.y = ry;
+  const g = grp(pd, 0, 1.05, 0), gm = P.M(0x9aa0b0), dk = P.M(0x6a7080);
+  const b = add(new THREE.SphereGeometry(1, 10, 7), gm, 0, 1.3, 0, g); b.scale.set(0.85, 0.8, 1.25);
+  const hd = add(new THREE.SphereGeometry(0.62, 8, 6), gm, 0, 1.75, 1.05, g);
+  [-1, 1].forEach((sd) => { const e = add(new THREE.CircleGeometry(0.55, 8), P.M(0xc8a0b0, { side: THREE.DoubleSide }), sd * 0.55, 1.8, 0.9, g); e.rotation.y = sd * 1.1; });
+  const trunk = grp(hd, 0, -0.2, 0.5);
+  for (let k = 0; k < 4; k++) add(new THREE.CylinderGeometry(0.16 - k * 0.025, 0.18 - k * 0.025, 0.4, 6), dk, 0, -k * 0.3, k * 0.08, trunk).rotation.x = 0.3;
+  [[-0.45, 0.6], [0.45, 0.6], [-0.45, -0.6], [0.45, -0.6]].forEach(([a, c]) => add(new THREE.CylinderGeometry(0.24, 0.26, 0.9, 6), gm, a, 0.45, c, g));
+  add(box(0.9, 0.08, 1.1), P.M(0xe8303a, { map: TX.cloth }), 0, 2.02, 0, g);                 // mantita
+  add(new THREE.ConeGeometry(0.2, 0.45, 6), P.M(0xffd24a), 0, 2.42, 1.05, g);                  // gorrito
+  P.anim(g, (t) => { trunk.rotation.x = Math.sin(t * 1.2) * 0.4; });
+}
+function cannon(p, x, z, ry) {
+  const g = grp(p, x, Y, z, ry);
+  [-0.7, 0.7].forEach((sx) => { const w = add(new THREE.CylinderGeometry(0.7, 0.7, 0.2, 12), P.M(0xe8303a, { map: TX.wood }), sx, 0.7, 0, g); w.rotation.z = Math.PI / 2; });
+  const b = add(new THREE.CylinderGeometry(0.55, 0.75, 3.2, 12), P.M(0x3a7aff, { map: TX.metal }), 0, 1.6, 0.4, g); b.rotation.x = -0.9;
+  add(new THREE.TorusGeometry(0.6, 0.1, 4, 12), P.M(0xffd24a), 0, 2.6, 1.35, g).rotation.x = -0.9 + Math.PI / 2;
+}
+function fireHoop(p, x, z, ry) {                              // aro con fuego sobre un soporte
+  const g = grp(p, x, Y, z, ry);
+  add(new THREE.CylinderGeometry(0.08, 0.1, 1.6, 5), P.M(0x8a8f98, { map: TX.metal }), 0, 0.8, 0, g);
+  add(new THREE.TorusGeometry(1.1, 0.1, 5, 16), P.M(0xffd24a), 0, 2.7, 0, g);
+  const fl = [];
+  for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; fl.push(add(new THREE.ConeGeometry(0.16, 0.5, 4), P.M(k % 2 ? 0xff7a1a : 0xffd24a, { unlit: true }), Math.cos(a) * 1.1, 2.7 + Math.sin(a) * 1.1, 0, g)); }
+  P.anim(g, (t) => fl.forEach((f, k) => { f.scale.y = 0.7 + Math.abs(Math.sin(t * 9 + k)) * 0.6; }));
+}
+function trapeze(p, x, z, h = 16) {
+  const g = grp(p, x, Y + h, z), rm = P.M(0xd8c8a0);
+  const sw = grp(g);
+  [-0.8, 0.8].forEach((sx) => add(box(0.05, 6, 0.05), rm, sx, -3, 0, sw));
+  add(new THREE.CylinderGeometry(0.06, 0.06, 1.7, 5), P.M(0xffd24a), 0, -6, 0, sw).rotation.z = Math.PI / 2;
+  const ph = rnd(0, 6);
+  P.anim(g, (t) => { sw.rotation.x = Math.sin(t * 1.1 + ph) * 0.5; });
+}
+function spotlight(p, x, z, tx, tz, col, ph) {                // reflector colgado con su haz de luz que barre la pista
+  const g = grp(p, x, 18, z);
+  add(new THREE.CylinderGeometry(0.5, 0.7, 1.1, 8), P.M(0x2a2d36, { map: TX.metal }), 0, 0, 0, g);
+  const beamG = new THREE.ConeGeometry(4.2, 20, 12, 1, true); beamG.translate(0, -10, 0);
+  const beam = new THREE.Mesh(beamG, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+  g.add(beam);
+  const base = new THREE.Vector3(tx, Y, tz), cur = new THREE.Vector3();
+  P.anim(g, (t) => {
+    cur.set(base.x + Math.sin(t * 0.4 + ph) * 7, 18 - 20, base.z + Math.cos(t * 0.33 + ph) * 7);
+    const dx = cur.x - x, dz = cur.z - z, dy = -20;
+    beam.rotation.set(0, 0, 0); beam.lookAt(g.position.x + dx, g.position.y + dy, g.position.z + dz); beam.rotateX(Math.PI / 2);
+  });
+}
+export function decorCirco(g) {
+  P.sky(g, [[0, '#1a0610'], [0.4, '#3a0a1a'], [0.5, '#5a1a2a'], [1, '#12060a']], { r: 110 });
+  // la carpa: pared rayada alrededor y el techo en punta (alto, así no tapa la cámara)
+  const R = 38;
+  const wall = scaleUV(new THREE.CylinderGeometry(R, R, 18, 32, 1, true), 16, 1);
+  add(wall, P.M(0xffffff, { map: TX.circus, side: THREE.DoubleSide }), 0, Y + 9, 0, g);
+  const roof = scaleUV(new THREE.ConeGeometry(R, 26, 32, 1, true), 16, 1);
+  add(roof, P.M(0xd0c0c0, { map: TX.circus, side: THREE.DoubleSide }), 0, Y + 18 + 13, 0, g);
+  // mástiles con guirnaldas
+  const poles = [[-26, -26], [26, -26], [26, 26], [-26, 26]];
+  poles.forEach(([x, z]) => { add(new THREE.CylinderGeometry(0.35, 0.45, 36, 8), P.M(0xffffff, { map: TX.stripes }), x, Y + 18, z, g); });
+  for (let k = 0; k < 4; k++) { const [x1, z1] = poles[k], [x2, z2] = poles[(k + 1) % 4]; P.bunting(g, x1, 14, z1, x2, 14, z2, 18); }
+  // tribunas llenas mirando a la pista (una por lado)
+  [[0, -19.5, 0], [19.5, 0, Math.PI / 2], [0, 19.5, Math.PI], [-19.5, 0, -Math.PI / 2]].forEach(([x, z, a]) => {
+    const st = P.stands(g, x, Y, z, a, 22, 5, 1.2, 0.8);
+    void st;
+  });
+  // pista: borde redondo rojo y dorado alrededor de la arena
+  const curb = new THREE.TorusGeometry(16.2, 0.45, 4, 40); curb.rotateX(Math.PI / 2);
+  add(curb, P.M(0xe8303a), 0, Y + 0.35, 0, g);
+  const curbTop = new THREE.TorusGeometry(16.2, 0.2, 3, 40); curbTop.rotateX(Math.PI / 2);
+  add(curbTop, P.M(0xffd24a, { unlit: true }), 0, Y + 0.8, 0, g);
+  // números de circo en las esquinas de la pista
+  elephant(g, -15, -11.5, 0.6);
+  cannon(g, 14.5, -11, -0.7);
+  fireHoop(g, 13, 13.5, -0.7);
+  pedestal(g, -14, 12.5); bigBall(g, -12.2, 14.5, 1.0); bigBall(g, 15.5, 8, 0.8);
+  pedestal(g, 11, -14.5, 0.7, 0.7); pedestal(g, -11.5, 14.8, 0.6, 0.6);
+  // arriba: trapecios y reflectores que barren la pista
+  trapeze(g, -6, -4, 17); trapeze(g, 6, 4, 17);
+  spotlight(g, -18, -18, 0, 0, 0xfff0b0, 0); spotlight(g, 18, -18, 0, 0, 0xffb0d0, 2); spotlight(g, 18, 18, 0, 0, 0xb0e0ff, 4); spotlight(g, -18, 18, 0, 0, 0xfff0b0, 5);
+  P.balloons(g, -16, 3, -2, 3, 5); P.balloons(g, 16, 3, 2, 3, 5);
+  P.scatter(g, 0, Y + 0.01, 0, 30, 30, 200, 0xffe14a, 0.12, [15, 15]);        // papel picado
+  P.scatter(g, 0, Y + 0.01, 0, 30, 30, 200, 0xff5fa2, 0.12, [15, 15]);
 }
 
 /* =====================================================================
@@ -327,25 +427,25 @@ export function decorTerraza(g) {
 }
 
 /* ---------- piezas de juego (van en cada mapa, las maneja bolas.js) ---------- */
-// Calesita en el medio de la FERIA: rebota las pelotas y, como gira, las tira de costado
+// Tambor giratorio en el medio del CIRCO (con una foca que hace equilibrio con una pelota): rebota las pelotas
+// y, como gira, las tira de costado
 export function carousel(p, r) {
   const g = grp(p, 0, 0, 0);
   const rot = grp(g);
-  add(new THREE.CylinderGeometry(r, r + 0.1, 0.45, 16), P.M(0xffffff, { map: TX.circus }), 0, 0.22, 0, rot);
-  add(new THREE.CylinderGeometry(r * 0.3, r * 0.3, 1.6, 8), P.M(0xffe07a, { map: TX.metal }), 0, 1.1, 0, rot);
-  const cols = [0xff5a7a, 0xffffff, 0x4a8cff, 0xffe14a, 0x39d98a, 0xb07aff];
-  for (let k = 0; k < 6; k++) {
-    const a = (k / 6) * Math.PI * 2, x = Math.sin(a) * r * 0.72, z = Math.cos(a) * r * 0.72;
-    add(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 4), P.M(0xffe07a, { unlit: true }), x, 1.1, z, rot);
-    const h = grp(rot, x, 0.85, z, a + Math.PI / 2);                       // caballito
-    add(box(0.26, 0.3, 0.65), P.M(cols[k]), 0, 0, 0, h);
-    add(box(0.2, 0.34, 0.2), P.M(cols[k]), 0, 0.22, 0.3, h).rotation.x = -0.4;
-    h.userData.ph = k;
-  }
-  const roof = new THREE.ConeGeometry(r + 0.3, 0.7, 12);
-  add(roof, P.M(0xffffff, { map: TX.circus }), 0, 2.15, 0, rot);
-  add(new THREE.SphereGeometry(0.2, 6, 4), P.M(0xffe07a, { unlit: true }), 0, 2.6, 0, rot);
-  return { g, rot };
+  add(scaleUV(new THREE.CylinderGeometry(r, r + 0.08, 0.8, 18), 3, 1), P.M(0xffffff, { map: TX.circus }), 0, 0.4, 0, rot);
+  add(new THREE.CylinderGeometry(r + 0.08, r + 0.08, 0.12, 18), P.M(0xffd24a, { unlit: true }), 0, 0.82, 0, rot);
+  for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2; add(new THREE.SphereGeometry(0.09, 5, 4), P.M(k % 2 ? 0xffffff : 0xffe07a, { unlit: true }), Math.sin(a) * (r + 0.1), 0.62, Math.cos(a) * (r + 0.1), rot); }
+  P.floorStar(rot, 0, 0.9, 0, r * 0.75, 0x3a7aff);
+  // foca
+  const seal = grp(rot, 0, 0.88, 0), sm = P.M(0x5a6878), km = P.M(0x111111);
+  const body = add(new THREE.SphereGeometry(0.42, 10, 7), sm, 0, 0.42, -0.1, seal); body.scale.set(0.9, 1.15, 1.2);
+  add(new THREE.SphereGeometry(0.28, 8, 6), sm, 0, 0.95, 0.12, seal);
+  add(new THREE.SphereGeometry(0.08, 5, 4), km, 0, 0.93, 0.4, seal);
+  [-0.1, 0.1].forEach((x) => add(new THREE.SphereGeometry(0.045, 4, 3), km, x, 1.05, 0.33, seal));
+  [-1, 1].forEach((sd) => { const f = add(box(0.35, 0.06, 0.2), sm, sd * 0.4, 0.35, 0.1, seal); f.rotation.z = sd * -0.5; });
+  const ball = add(new THREE.SphereGeometry(0.3, 10, 7), P.M(0xffffff, { map: TX.circusBall }), 0, 1.48, 0.28, seal);
+  ball.userData.ph = -1;
+  return { g, rot, seal, ball };
 }
 // Columna del medio de la TERRAZA: se va rajando con cada pelotazo (etapas) hasta romperse
 export function column(p, r) {

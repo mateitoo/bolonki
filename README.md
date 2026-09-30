@@ -24,8 +24,9 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
 
 - **Bola Brava:** cada uno defiende su arco; las pelotas salen de las torres. Se juega a 5, 10 o 15 puntos (vidas).
   Cuatro mapas (misma arena, distinto aspecto y una vuelta de juego; `bolas.js` + `world/decorBolas.js`):
-  **Espacio** (la arena flotando en la oscuridad, como siempre), **Feria** (parque de diversiones de noche: una
-  **calesita** en el medio rebota las pelotas y, como gira, las tira de costado), **Playa** (al atardecer, con pelotas
+  **Espacio** (la arena flotando en la oscuridad, como siempre), **Circo** (adentro de la carpa, con tribunas llenas,
+  reflectores, trapecios, un elefante, un cañón y un aro de fuego; pelotas rayadas rojas y blancas; un **tambor giratorio**
+  con una foca en el medio rebota las pelotas y, como gira, las tira de costado), **Playa** (al atardecer, con pelotas
   de playa: cada tanto sopla **viento** para un lado al azar y curva las pelotas; unas flechas en el piso avisan antes
   y mientras sopla; además cada tanto un **cangrejo** sale de una torre, cruza de costado y se mete en otra, y las
   pelotas le rebotan) y **Terraza** (azotea del barrio con la ciudad abajo: una **columna** en el medio que se va
@@ -63,7 +64,7 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   Tres mapas (misma cancha; `world/decorFutbol.js`): **Estadio** (el de siempre), **Potrero** (canchita de tierra del
   barrio al atardecer, con alambrado, casas, autos y un perro dando vueltas; cuatro **charcos de barro** —simétricos
   respecto del medio— frenan la pelota y a las naves) y **Lago helado** (pista de hielo en el bosque nevado de noche,
-  con aurora y nieve que cae; las naves **patinan** y la pelota corre más).
+  con aurora y nieve que cae; las naves **patinan**, la pelota es más chica y los arcos más angostos).
 - **Rey de la colina** (a pie): una isla de costa irregular con tres colinas distintas (el Morro, con ruinas arriba; la Mesa,
   ancha y con bandera; y el Peñón, chico y pegado al agua), un puente colgante entre el Morro y la Mesa, un muelle que sale
   al mar (a veces el palo aparece en la punta) y palmeras, rocas, un bote y barriles que estorban. La corona flota sobre la cima

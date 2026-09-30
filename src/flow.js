@@ -7,7 +7,7 @@ import { game } from './state.js';
 import { settings, saveSettings, IS_DESKTOP } from './settings.js';
 import { input, has, freezeControls } from './input.js';
 import { applyDisplay, enterFullscreen, exitFullscreen, isFullscreen } from './display.js';
-import { SFX, setVolume } from './audio.js';
+import { SFX, setVolume, setMuted } from './audio.js';
 import { resetMatch, eliminate, deathsRunning, soloSetup, demoSetup, pointsFor, placement } from './game/match.js';
 import { localHit } from './game/controls.js';
 import { mg, MINIGAMES } from './minigames/registry.js';
@@ -35,6 +35,7 @@ export const MAIN = doorsMenu({
     { label: 'OPCIONES', action: () => openMenu(OPTIONS) },
   ],
   corner: { label: 'SALIR', action: () => quit() },
+  sound: { on: () => !settings.muted, toggle: () => { settings.muted = !settings.muted; saveSettings(); setMuted(settings.muted); } },
   onBack: () => goTitle(),
 });
 
@@ -230,7 +231,7 @@ function mgToggleItems() {
   }));
 }
 export function initFlow() {
-  setVolume(settings.sfx / 10); game.difficulty = settings.difficulty;
+  setVolume(settings.sfx / 10); setMuted(settings.muted); game.difficulty = settings.difficulty;
   setSalaHooks({ startLocal: startFromSala, toMain: () => goMainMenu() });
   initMultiplayer();
 }

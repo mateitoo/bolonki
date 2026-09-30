@@ -123,8 +123,11 @@ Las dos puertas llevan a la **sala** (`src/sala/`), que es la misma pantalla par
 - **Mapa:** abajo de la descripción del minijuego está la fila **MAPA** (ALEATORIO primero). Los minijuegos con varios
   mapas los declaran en `maps` (Empujón: GLACIAR/VOLCÁN; Petardos: PATIO/FÁBRICA/DESIERTO/NIEVE); con uno fijo se juega
   ese en todas las rondas (`fixedMap()` del registro). En la Fiesta siempre es aleatorio. Los de un solo mapa muestran
-  su nombre (`mapName`). Se guarda por minijuego en `settings.maps` / `room.opts.maps`.
-- **ELEGIR PERSONAJES** es un botón dorado (`button: true` en el menú) y el pie dice "ENTER ELEGIR PERSONAJES".
+  su nombre (`mapName`). Se guarda por minijuego en `settings.maps` / `room.opts.maps`. La fila muestra la foto del
+  mapa (`thumbs.js` saca una por mapa, `id:0`, `id:1`…); en ALEATORIO las fotos van rotando.
+- **ELEGIR PERSONAJES** es un botón dorado sin brillo (`button: true` en el menú) y el pie dice "ENTER ELEGIR PERSONAJES".
+- En el menú principal, **SALIR** va chiquito abajo a la izquierda y el **botón de sonido** abajo a la derecha
+  (silencia efectos y música; `settings.muted`).
 - Al entrar a cada minijuego hay **10 segundos de instrucciones** en un recuadro (cómo se gana y qué botón hace qué,
   `rules()` de cada minijuego) y después la cuenta 3, 2, 1.
 - Las **fotos de los minijuegos** en los menús se ven nítidas (van en una capa aparte en alta resolución, `thumbStore.js`).

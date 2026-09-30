@@ -8,7 +8,7 @@ export function ensureAudio() {
   if (!ac) {
     try {
       ac = new (window.AudioContext || window.webkitAudioContext)();
-      master = ac.createGain(); master.gain.value = volume; master.connect(ac.destination);
+      master = ac.createGain(); master.gain.value = muted ? 0 : volume; master.connect(ac.destination);
       noiseBuf = ac.createBuffer(1, ac.sampleRate * 1.2, ac.sampleRate);
       const d = noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -19,7 +19,10 @@ export function ensureAudio() {
 export function setSound(on) { soundOn = on; }
 // para la música (music.js): el contexto de audio y el ruido blanco compartido
 export const getAudio = () => ({ ac, noiseBuf });
-export function setVolume(v) { volume = v; if (master) master.gain.value = v; }
+let muted = false;
+export function setVolume(v) { volume = v; if (master) master.gain.value = muted ? 0 : v; }
+// botón de sonido del menú: silencia todo (efectos acá; la música mira settings.muted)
+export function setMuted(m) { muted = !!m; if (master) master.gain.value = muted ? 0 : volume; }
 
 function beep(f1, f2, dur, type, vol, delay) {
   if (!ac || !soundOn) return;

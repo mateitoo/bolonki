@@ -186,7 +186,7 @@ export function updateMusic() {
   setupBus(A);
   const t = A.ac.currentTime;
   // volumen (Opciones) y "agachada" en pausa o con un menú abierto durante la partida
-  const vol = ((settings.music === undefined ? 6 : settings.music) / 10) * 0.45;
+  const vol = settings.muted ? 0 : ((settings.music === undefined ? 6 : settings.music) / 10) * 0.45;
   if (vol !== lastVol) { bus.gain.setTargetAtTime(vol, t, 0.05); lastVol = vol; }
   const playing = game.state === 'play' || game.state === 'count';
   const duck = game.state === 'paused' || (playing && menuOpen()) ? 0.3 : 1;

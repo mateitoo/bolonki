@@ -1,14 +1,14 @@
 // Menú principal: dos "puertas" grandes (FIESTA y MINIJUEGOS), abajo una fila chica (ONLINE, OPCIONES)
-// y SALIR en la esquina. Se maneja con flechas/stick, ENTER/A y el mouse.
+// SALIR en la esquina de abajo a la izquierda y el botón de sonido en la de abajo a la derecha. Se maneja con flechas/stick, ENTER/A y el mouse.
 import { input } from '../input.js';
 import { SFX } from '../audio.js';
 import { ui, txt, rect, tri, textWidth, COL } from './draw.js';
 import { drawThumb } from '../render/thumbStore.js';
 
 // doors: [{ label, sub, thumb: () => id, action }] · row: [{ label, action }] · corner: { label, action }
-export function doorsMenu({ doors, row, corner, onBack }) {
+export function doorsMenu({ doors, row, corner, sound, onBack }) {
   // orden de selección: puertas, fila, esquina
-  const all = [...doors.map((d) => ({ ...d, type: 'door' })), ...row.map((r) => ({ ...r, type: 'row' })), { ...corner, type: 'corner' }];
+  const all = [...doors.map((d) => ({ ...d, type: 'door' })), ...row.map((r) => ({ ...r, type: 'row' })), { ...corner, type: 'corner' }, { type: 'sound', action: () => sound.toggle() }];
   const nD = doors.length, nR = row.length;
   let rects = [];
 
@@ -18,6 +18,7 @@ export function doorsMenu({ doors, row, corner, onBack }) {
     if (a === 'up') {
       if (it.type === 'door') go(top, s > 0 ? s - 1 : nD + nR);
       else if (it.type === 'row') go(top, nD - 1);
+      else if (it.type === 'sound') go(top, nD + nR - 1);
       else go(top, nD);
     } else if (a === 'down') {
       if (it.type === 'door') go(top, s < nD - 1 ? s + 1 : nD);
@@ -25,9 +26,10 @@ export function doorsMenu({ doors, row, corner, onBack }) {
       else go(top, 0);
     } else if (a === 'left' || a === 'right') {
       if (it.type === 'row') go(top, nD + ((s - nD + (a === 'left' ? -1 : 1) + nR) % nR));
+      else if (it.type === 'corner' || it.type === 'sound') go(top, it.type === 'corner' ? nD + nR + 1 : nD + nR);
     }
   }
-  const run = (it) => { SFX.confirm(); it.action(); };
+  const run = (it) => { it.action(); SFX.confirm(); };
 
   return {
     id: 'main', style: 'custom',
@@ -79,12 +81,21 @@ export function doorsMenu({ doors, row, corner, onBack }) {
         rects.push({ i, x: rx, y: ry, w: widths[k], h: 17 });
         rx += widths[k] + 12;
       });
-      // esquina (SALIR)
-      const ci = nD + nR, sel = top.sel === ci, cx = 12, cy = 222, cw = textWidth(corner.label, 8) + 22;
-      rect(cx, cy - 4, cw, 15, sel ? 'rgba(255,90,90,.18)' : 'rgba(6,10,22,.7)');
-      if (sel) tri(cx + 4, cy, 'r', COL.red);
-      txt(corner.label, cx + 14, cy, 8, sel ? COL.red : COL.dim);
-      rects.push({ i: ci, x: cx, y: cy - 4, w: cw, h: 15 });
+      // esquina de abajo a la izquierda: SALIR (chiquito)
+      const ci = nD + nR, sel = top.sel === ci, cx = 6, cy = 226, cw = textWidth(corner.label, 8) + 8;
+      rect(cx, cy - 3, cw, 12, sel ? 'rgba(255,90,90,.22)' : 'rgba(6,10,22,.7)');
+      if (sel) rect(cx, cy + 8, cw, 1, COL.red);
+      txt(corner.label, cx + 4, cy - 1, 8, sel ? COL.red : COL.dim);
+      rects.push({ i: ci, x: cx, y: cy - 3, w: cw, h: 12 });
+      // esquina de abajo a la derecha: sonido (parlante; con ondas si suena, con una X si está muteado)
+      const si = ci + 1, ssel = top.sel === si, on = sound.on(), sw = 20, sx = hw - 6 - sw, sy = cy - 3;
+      rect(sx, sy, sw, 12, ssel ? 'rgba(45,224,200,.2)' : 'rgba(6,10,22,.7)');
+      if (ssel) rect(sx, sy + 11, sw, 1, COL.teal);
+      const c = ssel ? COL.white : on ? COL.text : COL.dim, px = sx + 4, py = sy + 3;
+      rect(px, py + 2, 2, 3, c); rect(px + 2, py + 1, 1, 5, c); rect(px + 3, py, 1, 7, c);   // parlante
+      if (on) { rect(px + 6, py + 2, 1, 3, c); rect(px + 8, py + 1, 1, 5, c); rect(px + 10, py, 1, 7, c); }
+      else { for (let k = 0; k < 5; k++) { rect(px + 6 + k, py + 1 + k, 1, 1, COL.red); rect(px + 10 - k, py + 1 + k, 1, 1, COL.red); } }
+      rects.push({ i: si, x: sx, y: sy, w: sw, h: 12 });
     },
   };
 }

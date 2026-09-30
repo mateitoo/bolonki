@@ -15,10 +15,16 @@ export function makeThumbs() {
   const rt = new THREE.WebGLRenderTarget(TW, TH, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
   const px = new Uint8Array(TW * TH * 4);
   const saveRes = U.uRes.value.clone(), saveAspect = camera.aspect;
+  // una foto por minijuego y, los que tienen varios mapas, una más por cada mapa (id:0, id:1…)
+  const jobs = [];
   for (const m of SCENES) {
     if (m.noThumb) continue;
+    jobs.push({ m, key: m.id, map: -1 });
+    if (m.maps && m.maps.length > 1) m.maps.forEach((n, i) => jobs.push({ m, key: `${m.id}:${i}`, map: i }));
+  }
+  for (const { m, key, map } of jobs) {
     try {
-      resetMatch('menu', demoSetup(m.id));
+      resetMatch('menu', Object.assign(demoSetup(m.id), map >= 0 ? { forceMap: map } : {}));
       if (m.thumbPrep) m.thumbPrep();
       for (let k = 0; k < (m.thumbSteps || 150); k++) m.step(1 / 120);
       game.shake = 0;
@@ -35,7 +41,7 @@ export function makeThumbs() {
       const ctx = cv.getContext('2d'), img = ctx.createImageData(TW, TH);
       for (let y = 0; y < TH; y++) img.data.set(px.subarray((TH - 1 - y) * TW * 4, (TH - y) * TW * 4), y * TW * 4);
       ctx.putImageData(img, 0, 0);
-      thumbs[m.id] = cv;
+      thumbs[key] = cv;
     } catch (e) { renderer.setRenderTarget(null); }
   }
   U.uRes.value.copy(saveRes); camera.aspect = saveAspect; camera.updateProjectionMatrix();

@@ -384,7 +384,7 @@ const curMgRoom = () => (room.opts.mode === 'fiesta' ? 'fiesta' : room.opts.mg);
 // Fila con las fotos de todos los minijuegos: izquierda/derecha elige, clic en una foto la elige
 function mgGrid(get, setFn) {
   let boxes = [];
-  const H = 64;
+  const H = 63;
   return {
     kind: 'choice', label: 'MINIJUEGO', h: H, get values() { return mgValues(); }, get, set: setFn,
     drawRow(x, y, w, hw, sel) {
@@ -401,8 +401,8 @@ function mgGrid(get, setFn) {
       });
       if (sel) { tri(x + 10, y + 4 + th / 2 - 4, 'l', COL.gold); tri(x + w - 14, y + 4 + th / 2 - 4, 'r', COL.gold); }
       const m = mgById(get());
-      txt(m.name, hw / 2, y + th + 11, 8, sel ? COL.gold : COL.white, 'center');
-      txt(m.desc, hw / 2, y + th + 23, 8, COL.teal, 'center');
+      txt(m.name, hw / 2, y + th + 9, 8, sel ? COL.gold : COL.white, 'center');
+      txt(m.desc, hw / 2, y + th + 19, 8, COL.teal, 'center');
     },
     clickAt(px) {
       const b = boxes.find((q) => px >= q.x - 3 && px <= q.x + q.w + 3);

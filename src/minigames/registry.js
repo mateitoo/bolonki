@@ -30,6 +30,7 @@ export const mg = () => mgById(game.minigame);
 // Mapa fijo que eligieron en el menú (índice), o -1 si es aleatorio (y siempre en la Fiesta)
 export function fixedMap(n) {
   const cfg = game.setup;
+  if (cfg && Number.isInteger(cfg.forceMap) && cfg.forceMap < n) return cfg.forceMap;   // fotos de cada mapa
   if (!cfg || cfg.fiesta || cfg.mode === 'demo') return -1;
   const v = cfg.map;
   return Number.isInteger(v) && v >= 0 && v < n ? v : -1;

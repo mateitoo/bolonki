@@ -222,13 +222,11 @@ function drawPanel(top, hw) {
       rects.push({ i, x: x + 4, y: iy - 3, w: w - 8, h: hOf(it) });
       iy += hOf(it); return;
     }
-    if (it.button) {                          // botón grande para seguir (dorado, con flechitas que se mueven)
+    if (it.button) {                          // botón para seguir (dorado, sin brillo; las flechitas se mueven cuando está elegido)
       const on = i === top.sel, H = hOf(it), label = L(it);
       const bw = Math.min(w - 24, textWidth(label, 8) + 52), bx = Math.round(hw / 2 - bw / 2), by = iy - 1, bh = H - 6;
-      const glow = on ? 0.5 + 0.5 * Math.sin(ui.clock * 6) : 0;
-      if (on) rect(bx - 2, by - 2, bw + 4, bh + 4, `rgba(255,210,58,${0.25 + 0.35 * glow})`);
       rect(bx, by + bh, bw, 2, '#6a3a00');
-      rect(bx, by, bw, bh, on ? COL.gold : '#d08a1c');
+      rect(bx, by, bw, bh, on ? COL.gold : '#c98420');
       rect(bx, by, bw, 1, on ? '#fff2b0' : '#f0b050');
       txt(label, hw / 2, by + Math.round(bh / 2) - 4, 8, '#1a0c00', 'center', 'rgba(0,0,0,0)');
       const ax = Math.round((on ? Math.sin(ui.clock * 8) * 1.5 : 0));

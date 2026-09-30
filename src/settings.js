@@ -24,7 +24,25 @@ export const DEFAULTS = {
   turns: 10,             // Fiesta: cantidad de turnos
   mgOff: [],             // minijuegos desactivados (no salen en la Fiesta)
   char: 0,               // último personaje que elegiste (J1)
+  // opciones de v0.34
+  master: 10,            // volumen general 0..10
+  bgSound: false,        // sonido con la pestaña / ventana en segundo plano
+  psx: true,             // vértices que tiemblan (PS1)
+  dither: true,          // tramado de color (PS1)
+  shake: true,           // temblor de pantalla en los golpes fuertes
+  fps: false,            // mostrar cuadros por segundo
+  aim: true,             // ayuda para apuntar (Rey de la colina, Hexágonos)
+  vibrate: true,         // vibración (joystick y celular)
+  camSens: 5,            // sensibilidad de la cámara 1..10
+  camInvert: false,      // invertir el eje vertical de la cámara
+  touchSize: 'normal',   // botones táctiles: 'chico' | 'normal' | 'grande'
+  stickSide: 'left',     // joystick táctil a la izquierda o a la derecha
+  intro: 'normal',       // instrucciones antes de cada minijuego: 'normal' | 'corta'
+  tags: true,            // nombres arriba de los personajes
 };
+// las opciones que vuelven a su valor de fábrica con "RESTABLECER" (no se tocan apodo, personaje, mapas…)
+export const RESETTABLE = ['fullscreen', 'aspect', 'quality', 'integer', 'scanlines', 'sfx', 'muted', 'music', 'master', 'bgSound',
+  'psx', 'dither', 'shake', 'fps', 'aim', 'vibrate', 'camSens', 'camInvert', 'touchSize', 'stickSide', 'intro', 'tags', 'deathId'];
 
 function load() {
   try {

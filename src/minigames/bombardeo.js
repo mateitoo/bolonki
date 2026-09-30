@@ -16,7 +16,7 @@ import { scene, mat, add, scaleUV, camera } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorBombardeo } from '../world/decor.js';
 import { decorPuerto, decorNevada } from '../world/decorBomb.js';
-import { input } from '../input.js';
+import { input, actKey } from '../input.js';
 import { FX } from '../game/fx.js';
 import { burst, P } from '../fx/particles.js';
 import { SFX } from '../audio.js';
@@ -600,7 +600,7 @@ const bombardeo = {
     if (st === 'count') txt(`RONDA ${R.n}`, hw / 2, 80, 16, COL.teal, 'center');
     if (st === 'count' && R.n === 1 && game.mode !== 'demo') {
       txt('¡QUE NO TE CAIGA UNA CAJA ENCIMA!', hw / 2, 170, 8, '#ffb31a', 'center');
-      txt(input.device === 'gamepad' ? 'A = SALTAR · SUBITE A LAS PILAS' : 'ESPACIO = SALTAR · SUBITE A LAS PILAS', hw / 2, 184, 8, COL.dim, 'center');
+      txt(`${actKey()} = SALTAR · SUBITE A LAS PILAS`, hw / 2, 184, 8, COL.dim, 'center');
     }
     if (st === 'play' && R.over) {
       const w = R.winner, p = game.players[w];

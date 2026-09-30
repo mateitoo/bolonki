@@ -11,6 +11,8 @@ import { clamp } from './config.js';
 const zero = () => ({ x: 0, y: 0, hit: false });
 // ¿es un celular / tablet? (dedo y sin mouse)
 export const isTouch = () => (typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches);
+// cómo se llama el botón de acción según con qué se juega (para los textos de ayuda)
+export const actKey = () => (input.device === 'gamepad' ? 'A' : isTouch() ? 'BOTÓN' : 'ESPACIO');
 export const input = {
   events: [],
   ctl: { all: zero(), p1: zero(), p2: zero(), p3: zero(), p4: zero() },
@@ -97,6 +99,8 @@ export function initInput(stage, h) {
     hooks.onGesture();
   });
 
+  // ruedita del mouse: en las listas largas de los menús sube y baja
+  stage.addEventListener('wheel', (e) => { if (Math.abs(e.deltaY) > 2) queue.push({ a: 'wheel', d: e.deltaY > 0 ? 1 : -1 }); }, { passive: true });
   const endDrag = (e) => { if (input.drag.id === e.pointerId) input.drag.on = false; };
   window.addEventListener('pointerup', endDrag); window.addEventListener('pointercancel', endDrag);
 

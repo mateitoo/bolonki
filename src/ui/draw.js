@@ -105,6 +105,7 @@ export function tri(x, y, dir, col) {
   for (let i = 0; i < 4; i++) {
     if (dir === 'r') c.fillRect(x + i, y + i, 1, 8 - i * 2);
     else if (dir === 'l') c.fillRect(x + 3 - i, y + i, 1, 8 - i * 2);
+    else if (dir === 'u') c.fillRect(x + i, y + 3 - i, 8 - i * 2, 1);
     else c.fillRect(x + i, y + i, 8 - i * 2, 1);
   }
 }

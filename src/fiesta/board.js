@@ -22,7 +22,7 @@ import { settings } from '../settings.js';
 import { scene, mat, add, scaleUV, camera } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorFiesta } from '../world/decor.js';
-import { input } from '../input.js';
+import { input, actKey } from '../input.js';
 import { P } from '../fx/particles.js';
 import { FX } from '../game/fx.js';
 import { resetPodVisual } from '../world/pods.js';
@@ -559,8 +559,9 @@ function step(dt) {
       if (S.spin > 0.07) { S.spin = 0; S.dice = (S.dice % 6) + 1; S.dice2 = ((S.dice2 + 2) % 6) + 1; if (isHuman(i)) FX.snd('dice'); }
       const inp = isHuman(i) ? readIn(i) : null;
       if ((inp && inp.hit && S.t > 0.3) || (!isHuman(i) && S.t > S.botT)) {
-        if (!isHuman(i)) { S.dice = 1 + ((Math.random() * 6) | 0); S.dice2 = 1 + ((Math.random() * 6) | 0); }
-        if (isHuman(i) && S.dbl) S.dice2 = 1 + ((Math.random() * 6) | 0);   // el segundo dado no se puede "cazar"
+        // el número sale al azar en el momento de apretar (el dado que gira es solo para la vista): así no
+        // depende de cuándo apretás ni de la demora de la conexión, y todos los números salen igual de seguido
+        S.dice = 1 + ((Math.random() * 6) | 0); S.dice2 = 1 + ((Math.random() * 6) | 0);
         S.steps = S.dice + (S.dbl ? S.dice2 : 0); FX.snd('confirm');
         if (S.dbl) flash(`${S.dice} + ${S.dice2} = ${S.steps}`);
         S.dbl = false;
@@ -804,7 +805,7 @@ function banner(hw, y, big, small, col) {
 function keyFor(i) {
   const p = game.players[i];
   if (input.device === 'gamepad' || p.pad === 'p3' || p.pad === 'p4') return 'A';
-  return p.pad === 'p2' ? 'E' : 'ESPACIO';
+  return p.pad === 'p2' ? 'E' : actKey();
 }
 const mine = (i) => game.players[i] && game.players[i].ctrl === 'local';
 
@@ -820,7 +821,7 @@ function hud(hw) {
   if (S.fast > 1) { txt('>> x' + S.fast, hw - 10, 212, 8, COL.gold, 'right'); }
   else if (game.online !== 'guest' && FASTABLE.includes(S.ph) && S.ph !== 'bonus' && !(game.players[i] && game.players[i].ctrl === 'local')
     && game.players.some((p) => p.ctrl === 'local' && S.order.includes(p.i))) {
-    txt(`MANTENÉ ${input.device === 'gamepad' ? 'A' : 'ESPACIO'}: MÁS RÁPIDO`, hw - 10, 212, 8, COL.dim, 'right');
+    txt(`MANTENÉ ${actKey()}: MÁS RÁPIDO`, hw - 10, 212, 8, COL.dim, 'right');
   }
   switch (S.ph) {
     case 'intro':
@@ -878,7 +879,7 @@ function howTo(hw, id) {
   const m = mgById(id);
   rect(0, 184, hw, 30, 'rgba(4,6,14,.72)');
   txt(m.desc, hw / 2, 188, 8, COL.white, 'center');
-  txt(`${input.device === 'gamepad' ? 'A' : 'ESPACIO'}: ${m.howTo || 'GOLPE'}`, hw / 2, 201, 8, '#ffb31a', 'center');
+  txt(`${actKey()}: ${m.howTo || 'GOLPE'}`, hw / 2, 201, 8, '#ffb31a', 'center');
 }
 
 const OTHER_TITLE = { duel: 'DUELO: ELIGIENDO RIVAL', buy: '¿{w} COMPRA LA COPA?', shop: '{w} ESTÁ EN LA TIENDA', items: '{w} ELIGE...', gold: '{w} USA EL DADO DORADO' };

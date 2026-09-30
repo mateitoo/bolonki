@@ -10,11 +10,12 @@ import { register } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
+import { settings } from '../settings.js';
 import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorColina } from '../world/decor.js';
 import { HILLS, groundAt, onIsland, rim, pushOut, freeSpot, pierTip, OBST, WATER_Y, RMAX, buildIsla } from '../world/isla.js';
-import { input } from '../input.js';
+import { input, actKey } from '../input.js';
 import { FX } from '../game/fx.js';
 import { burst, P } from '../fx/particles.js';
 import { resetPodVisual, setEmissive } from '../world/pods.js';
@@ -29,6 +30,7 @@ const ACC = 55, MAXV = 5.8, FRICTION = 12, GRAV = 26, CLIMB_V = 7;
 const HIT_CD = 0.42, STICK_CD = 0.55, SWING_T = 0.24;
 const KB = 7.5, KB_STICK = 14, KB_BACK = 1.5, HOP = 4.2, HOP_STICK = 6, STUN = 0.32;
 const RANGE = 1.25, RANGE_STICK = 2.3;
+const ASSIST_R = 0.45, ASSIST_DOT = -0.35;            // ayuda para apuntar de las personas: alcance extra y ángulo (casi todo menos la espalda)
 const STICK_HITS = 3, STICK_EVERY = 9;
 const OUT_T = 2.0, INV_T = 1.2;
 const ZONE_T = 20, ZONE_WARN = 3.5;
@@ -152,7 +154,7 @@ function aiInput(p, dt) {
   const D = DIFFICULTIES[game.difficulty] || DIFFICULTIES.intermedio;
   p.thinkT -= dt;
   if (p.thinkT <= 0) {
-    p.thinkT = rnd(D.think[0], D.think[1]) * 1.3;
+    p.thinkT = rnd(D.think[0], D.think[1]) * 1.6;
     const hc = HILLS[S.hill];
     let tx = hc.x, tz = hc.z;
     const g0 = groundAt(p.x, p.z, p.fy);
@@ -193,7 +195,7 @@ function aiInput(p, dt) {
       const dx = q.x - p.x, dz = q.z - p.z, d = Math.hypot(dx, dz);
       if (d > range * 0.95 || Math.abs((q.fy || 0) - (p.fy || 0)) > 0.9) continue;
       const f = (dx * Math.sin(p.ang) + dz * Math.cos(p.ang)) / (d || 1);
-      if (f > (p.stick ? 0.1 : 0.55) && Math.random() < D.swing * 2.6) p.aiHit = true;
+      if (f > (p.stick ? 0.1 : 0.62) && Math.random() < D.swing * 1.5) p.aiHit = true;
     }
   }
   let dx = (p.aiTx || 0) - p.x, dz = (p.aiTz || 0) - p.z;
@@ -260,8 +262,26 @@ function doHit(p) {
   const stick = p.stick > 0;
   p.cd = stick ? STICK_CD : HIT_CD; p.swingT = SWING_T; p.hitN = (p.hitN || 0) + 1;
   FX.snd('swing');
+  // Ayuda para apuntar (solo personas, no bots): si hay alguien cerca y no justo a tu espalda,
+  // el personaje gira solo hacia él antes de empujar, y llega un poquito más lejos.
+  const human = p.ctrl === 'remote' || (p.ctrl !== 'ai' && settings.aim !== false);
+  if (human) {
+    let best = null, bd = 1e9;
+    const reach = (stick ? RANGE_STICK : RANGE) + PR + ASSIST_R;
+    const fx0 = Math.sin(p.ang), fz0 = Math.cos(p.ang);
+    for (const q of game.players) {
+      if (q === p || q.empty || q.out > 0 || q.inv > 0) continue;
+      const dx = q.x - p.x, dz = q.z - p.z, d = Math.hypot(dx, dz);
+      if (d > reach || Math.abs((q.fy || 0) - (p.fy || 0)) > 1.0) continue;
+      const dot = d > 1e-3 ? (dx * fx0 + dz * fz0) / d : 1;
+      if (dot < ASSIST_DOT) continue;
+      const score = d - dot * 0.6;                       // el más cercano, mejor si ya lo tenés adelante
+      if (score < bd) { bd = score; best = q; }
+    }
+    if (best) p.ang = Math.atan2(best.x - p.x, best.z - p.z);
+  }
   const fx = Math.sin(p.ang), fz = Math.cos(p.ang);
-  const range = (stick ? RANGE_STICK : RANGE) + PR, arc = stick ? -0.15 : 0.35;
+  const range = (stick ? RANGE_STICK : RANGE) + PR + (human ? ASSIST_R : 0), arc = stick ? -0.15 : 0.35;
   const cands = [];
   for (const q of game.players) {
     if (q === p || q.empty || q.out > 0 || q.inv > 0) continue;
@@ -522,7 +542,7 @@ const colina = {
     txt(clockTxt, cx, 8, 8, S.extra ? COL.gold : !S.extra && S.t < 20 && ((game.clock * 3) | 0) % 2 ? COL.red : COL.text, 'center');
     if (st === 'count' && game.mode !== 'demo') {
       txt(`¡QUEDATE SOLO EN LA CIMA! (A ${game.target || 30} PUNTOS)`, cx, 164, 8, '#ffb31a', 'center');
-      txt(input.device === 'gamepad' ? 'A = EMPUJAR · DE ESPALDAS EMPUJA MÁS' : 'ESPACIO / CLICK = EMPUJAR · DE ESPALDAS EMPUJA MÁS', cx, 178, 8, COL.dim, 'center');
+      txt(`${actKey()} = EMPUJAR · DE ESPALDAS EMPUJA MÁS`, cx, 178, 8, COL.dim, 'center');
       txt('AGARRÁ EL PALO: EMPUJA EL DOBLE', cx, 190, 8, COL.dim, 'center');
     }
     if (st !== 'play') return;

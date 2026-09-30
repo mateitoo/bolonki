@@ -30,7 +30,7 @@ const NAME = textEntry({
   },
   onCancel() { afterName = null; closeMenu(); },
 });
-function editName() { NAME.reset(settings.name || ''); openMenu(NAME); }
+export function editName() { NAME.reset(settings.name || ''); openMenu(NAME); }
 // Si todavía no tiene apodo, se lo pide antes de entrar al online
 function withName(fn) { if (settings.name) fn(); else { afterName = fn; editName(); } }
 

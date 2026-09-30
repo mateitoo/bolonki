@@ -18,7 +18,7 @@ import { game } from '../state.js';
 import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorPetardos } from '../world/decor.js';
-import { input } from '../input.js';
+import { input, actKey } from '../input.js';
 import { FX } from '../game/fx.js';
 import { resetPodVisual } from '../world/pods.js';
 import { drawWalker } from '../world/walker.js';
@@ -1041,7 +1041,7 @@ const petardos = {
     }
     if (st === 'count' && R.n === 1 && game.mode !== 'demo') {
       txt('¡ROMPÉ CAJONES Y VOLÁ A LOS DEMÁS!', hw / 2, 170, 8, '#ffb31a', 'center');
-      txt(input.device === 'gamepad' ? 'A = PONER PETARDO' : 'ESPACIO = PONER PETARDO', hw / 2, 184, 8, COL.dim, 'center');
+      txt(`${actKey()} = PONER PETARDO`, hw / 2, 184, 8, COL.dim, 'center');
     }
     if (st === 'play' && R.over) {
       const w = R.winner, p = game.players[w];

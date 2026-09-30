@@ -8,9 +8,10 @@ import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
+import { settings } from '../settings.js';
 import { scene, camera, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
-import { input } from '../input.js';
+import { input, actKey } from '../input.js';
 import { FX } from '../game/fx.js';
 import { SFX } from '../audio.js';
 import { burst, P } from '../fx/particles.js';
@@ -309,11 +310,16 @@ function doGrab(p) {
   for (const q of game.players) {
     if (q === p || !q.alive || q.empty || q.grabbedBy >= 0 || q.grab >= 0) continue;
     const dx = q.x - p.x, dz = q.z - p.z, d = Math.hypot(dx, dz);
-    if (d > GRAB_R + PR || Math.abs(q.fy - p.fy) > 0.8) continue;
-    if (d > 0.4 && (dx * fx + dz * fz) / d < 0.2) continue;
-    if (d < bd) { bd = d; best = q; }
+    // las personas tienen ayuda para apuntar: un poco más de alcance y casi cualquier ángulo menos la espalda
+    const human = p.ctrl === 'remote' || (p.ctrl !== 'ai' && settings.aim !== false);
+    if (d > GRAB_R + PR + (human ? 0.4 : 0) || Math.abs(q.fy - p.fy) > 0.8) continue;
+    const dot = d > 0.4 ? (dx * fx + dz * fz) / d : 1;
+    if (dot < (human ? -0.35 : 0.2)) continue;
+    const sc = d - dot * 0.6;
+    if (sc < bd) { bd = sc; best = q; }
   }
   if (!best) { p.cd = WHIFF_CD; FX.snd('swing'); return; }
+  p.ang = Math.atan2(best.x - p.x, best.z - p.z);
   p.grab = best.i; p.grabT = 0; best.grabbedBy = p.i;
   FX.snd('thump'); FX.sparkle(best.x, best.fy + 1.3, best.z, P.YELLOW, 4);
 }
@@ -507,7 +513,7 @@ const hexagonos = {
     if (game.mode === 'local' || !me || me.empty) return;
     if (!me.alive) txt(MAPS[S.map].bottom === 'VACÍO' ? '¡AL VACÍO!' : `¡AL ${MAPS[S.map].bottom}!`, hw / 2, 196, 16, '#b8ff5a', 'center', '#1a3a00');
     else if (me.grabbedBy >= 0) txt('¡TE AGARRARON!', hw / 2, 196, 16, COL.red, 'center');
-    else if (me.grab >= 0) txt(`¡LO TENÉS! ${input.device === 'gamepad' ? 'A' : 'ESPACIO'} = TIRARLO`, hw / 2, 200, 8, COL.gold, 'center');
+    else if (me.grab >= 0) txt(`¡LO TENÉS! ${actKey()} = TIRARLO`, hw / 2, 200, 8, COL.gold, 'center');
   },
 
   /* ---------- online (el anfitrión manda todo; el invitado solo manda para dónde va y si agarró) ---------- */

@@ -5,11 +5,12 @@ import { charOf } from './chars.js';
 import { game } from './state.js';
 import { view } from './display.js';
 import { ui, txt, rect, tri, COL, PX, textWidth } from './ui/draw.js';
-import { drawMenu, menuOpen, topMenu } from './ui/menu.js';
-import { input } from './input.js';
+import { drawMenu, menuOpen, topMenu, FOOT_Y } from './ui/menu.js';
+import { input, actKey, isTouch } from './input.js';
 import { camera } from './render/psx.js';
 import { room } from './net/room.js';
 import * as THREE from 'three';
+import { settings } from './settings.js';
 import { mg } from './minigames/registry.js';
 import { beginThumbs, flushThumbs, hiTxt, hiImage } from './render/thumbStore.js';
 import { portraits, drawPortrait } from './render/portraits.js';
@@ -122,6 +123,7 @@ function drawNameTags(hw, st) {
   for (const p of game.players) {
     if (p.empty || p.death || p.hideTag || (board && !p.mesh.root.visible)) continue;
     const mine = p.i === game.me && game.mode !== 'local';
+    if (settings.tags === false && !(mine && markMe)) continue;           // opción: sin nombres (salvo tu "VOS")
     const name = mine ? (markMe ? 'VOS' : null) : p.name;
     if (!name) continue;
     v3.set(p.x, tagY + (m.tagFeet ? p.fy || 0 : 0), p.z).project(camera);
@@ -154,7 +156,7 @@ function wrapLine(t, max) {
   return out;
 }
 function drawIntro(hw, n) {
-  const m = mg(), K = input.device === 'gamepad' ? 'A' : 'ESPACIO';
+  const m = mg(), K = actKey();
   const w = Math.min(hw - 24, 380), x = Math.round(hw / 2 - w / 2), max = Math.floor((w - 16) / 8);
   const lines = [];
   (m.rules ? m.rules(K) : [m.desc]).forEach((r, i) => wrapLine(r, max).forEach((l) => lines.push([l, i === 0 ? '#ffb31a' : COL.white])));
@@ -162,7 +164,7 @@ function drawIntro(hw, n) {
   if (game.setup && game.setup.fiesta) meta.push([game.setup.duel ? '¡DUELO!' : 'MINIJUEGO DE LA FIESTA', game.setup.duel ? '#d8a0ff' : COL.teal]);
   if (game.players.some((p) => p.ctrl === 'ai' || p.isBot)) meta.push([`CPU: ${DIFFICULTIES[game.difficulty].label}${game.online !== 'off' ? ' · PARTIDA ONLINE' : ''}`, COL.teal]);
   else if (game.online !== 'off') meta.push(['PARTIDA ONLINE', COL.teal]);
-  if (m.cam.orbit) wrapLine(input.device === 'gamepad' ? 'STICK DERECHO: GIRAR LA CÁMARA' : 'ARRASTRÁ EL MOUSE: GIRAR LA CÁMARA', max).forEach((l) => meta.push([l, COL.dim]));
+  if (m.cam.orbit) wrapLine(input.device === 'gamepad' ? 'STICK DERECHO: GIRAR LA CÁMARA' : isTouch() ? 'ARRASTRÁ EL DEDO: GIRAR LA CÁMARA' : 'ARRASTRÁ EL MOUSE: GIRAR LA CÁMARA', max).forEach((l) => meta.push([l, COL.dim]));
   const h = 42 + lines.length * 12 + (meta.length ? 8 + meta.length * 11 : 0) + 20, y = Math.max(54, Math.round(132 - h / 2));
   rect(x, y, w, h, 'rgba(6,10,22,.92)');
   rect(x, y, w, 1, '#1d6e68'); rect(x, y + h - 1, w, 1, '#1d6e68'); rect(x, y, 1, h, '#1d6e68'); rect(x + w - 1, y, 1, h, '#1d6e68');
@@ -203,7 +205,7 @@ export function drawHud() {
       const duel = !!game.setup.duel;
       txt(duel ? '¡DUELO!' : 'MINIJUEGO DE LA FIESTA', hw / 2, 64, 8, duel ? '#d8a0ff' : COL.teal, 'center');
     }
-    if (mg().cam.orbit && game.mode !== 'demo') txt(input.device === 'gamepad' ? 'STICK DERECHO: GIRAR LA CÁMARA' : 'ARRASTRÁ EL MOUSE: GIRAR CÁMARA · C', hw / 2, 204, 8, COL.dim, 'center');
+    if (mg().cam.orbit && game.mode !== 'demo') txt(input.device === 'gamepad' ? 'STICK DERECHO: GIRAR LA CÁMARA' : isTouch() ? 'ARRASTRÁ EL DEDO: GIRAR LA CÁMARA' : 'ARRASTRÁ EL MOUSE: GIRAR CÁMARA · C', hw / 2, 204, 8, COL.dim, 'center');
     // local en Bola Brava: los de los costados se mueven con arriba/abajo
     if (game.mode === 'local' && game.minigame === 'bolas' && game.players.some((p) => p.ctrl === 'local' && p.i % 2 === 1)) {
       txt('LOS DE LOS COSTADOS: ARRIBA / ABAJO', hw / 2, 170, 8, '#ffb31a', 'center');
@@ -248,9 +250,16 @@ export function drawHud() {
 
   if (toast.t > 0) {
     toast.t -= 1 / 60;
-    const w = toast.text.length * 8 + 20;
-    rect(hw / 2 - w / 2, 58, w, 16, COL.panel);
-    txt(toast.text, hw / 2, 62, 8, COL.teal, 'center');
+    const w = toast.text.length * 8 + 20, ty = menuOpen() ? FOOT_Y - 22 : 58;   // con un menú abierto, abajo (no tapa el título)
+    rect(hw / 2 - w / 2, ty, w, 16, COL.panel);
+    txt(toast.text, hw / 2, ty + 4, 8, COL.teal, 'center');
+  }
+  // opción: cuadros por segundo (arriba a la derecha, chiquito)
+  if (settings.fps) {
+    const now = performance.now(); fpsN++;
+    if (now - fpsT >= 500) { fpsV = Math.round((fpsN * 1000) / (now - fpsT)); fpsN = 0; fpsT = now; }
+    hiTxt(`${fpsV} FPS`, 4, 233, 5, fpsV >= 50 ? '#39d98a' : fpsV >= 30 ? '#ffd23a' : COL.red, 'left');
   }
   flushThumbs();                                  // las fotos de los minijuegos, nítidas, en su capa
 }
+let fpsT = 0, fpsN = 0, fpsV = 0;

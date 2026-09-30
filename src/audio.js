@@ -14,8 +14,18 @@ export function ensureAudio() {
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     } catch (e) { /* sin audio */ }
   }
-  if (ac && ac.state === 'suspended') ac.resume();
+  if (ac && ac.state === 'suspended' && !bgHidden) ac.resume();
 }
+// Pestaña o ventana en segundo plano: se pausa todo el sonido (salvo que la opción diga lo contrario)
+let bgHidden = false, allowBg = false;
+export function setBackgroundSound(on) { allowBg = !!on; syncBg(); }
+function syncBg() {
+  bgHidden = typeof document !== 'undefined' && document.hidden && !allowBg;
+  if (!ac) return;
+  if (bgHidden && ac.state === 'running') ac.suspend();
+  else if (!bgHidden && ac.state === 'suspended') ac.resume();
+}
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', syncBg);
 export function setSound(on) { soundOn = on; }
 // para la música (music.js): el contexto de audio y el ruido blanco compartido
 export const getAudio = () => ({ ac, noiseBuf });

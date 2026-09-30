@@ -48,7 +48,9 @@ export function applyDisplay() {
   }
   const retro = settings.quality !== 'sharp';
   renderer.setSize(iw, ih, false);
-  U.uRes.value.set(iw, ih); U.uSnap.value = retro ? 1 : 0; U.uDither.value = retro ? 1 : 0;
+  U.uRes.value.set(iw, ih); U.uSnap.value = retro && settings.psx !== false ? 1 : 0; U.uDither.value = retro && settings.dither !== false ? 1 : 0;
+  // botones táctiles: tamaño y de qué lado va el joystick
+  document.body.dataset.touchSize = settings.touchSize || 'normal'; document.body.dataset.stick = settings.stickSide || 'left';
 
   camera.aspect = aspect; camera.updateProjectionMatrix();
 

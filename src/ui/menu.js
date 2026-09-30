@@ -21,6 +21,7 @@ const stack = [];
 let rects = [];      // zonas clickeables de ítems
 let tabRects = [];   // zonas clickeables de solapas
 let footRects = [];  // zonas clickeables de la barra de abajo
+let scrollRects = []; // flechitas para subir / bajar en las listas largas
 export const customRects = [];   // zonas clickeables de pantallas propias
 
 export const menuOpen = () => stack.length > 0;
@@ -89,6 +90,7 @@ export function menuInput() {
     switch (e.a) {
       case 'up': move(top, -1); break;
       case 'down': move(top, 1); break;
+      case 'wheel': if (top.def.style !== 'big') move(top, e.d); break;
       case 'left': if (it) change(it, -1); break;
       case 'right': if (it) change(it, 1); break;
       case 'tabPrev': switchTab(top, -1); break;
@@ -103,6 +105,8 @@ export function menuInput() {
           else if (!(top.def.onEvent && top.def.onEvent({ a: 'confirm' }, top))) activate(it);
           break;
         }
+        const sa = hit(scrollRects, e.x, e.y);                     // flechitas de la lista larga
+        if (sa) { move(top, sa.d); break; }
         const t = hit(tabRects, e.x, e.y);
         if (t) { if (t.i !== top.tab) { top.tab = t.i; top.sel = firstSel(top); SFX.move(); } break; }
         const r = hit(rects, e.x, e.y);
@@ -184,30 +188,35 @@ function drawPanel(top, hw) {
   const ROW = def.rowH || 15;
   const hOf = (it) => it.h || ROW;                                       // las filas "art" tienen su propio alto
   const sumH = (list) => list.filter((it) => !(it.hidden && it.hidden())).reduce((a, it) => a + hOf(it), 0);
-  const rowsH = tabs ? Math.max(...tabs.map((t) => sumH(t.items))) : sumH(items);
+  const fullH = tabs ? Math.max(...tabs.map((t) => sumH(t.items))) : sumH(items);
   const w = Math.min(hw - 24, def.width || 240);
-  const titleH = def.title ? 30 : 8;
+  const titleH = def.title ? (def.titleSmall ? 22 : 30) : 8;
   const tabsH = tabs ? 20 : 0;
   const headH = def.headerH || 0;
+  // la ventana nunca se mete debajo de la barra de abajo: si la lista no entra, se desplaza (con flechitas)
+  const TOPM = 10, room0 = FOOT_Y - 6 - TOPM - titleH - headH - tabsH - 10;
+  const rowsH = def.body ? 0 : Math.min(fullH, room0);
   const h = titleH + headH + tabsH + (def.body ? def.bodyH : rowsH) + 10;
-  const x = Math.round((hw - w) / 2), y = Math.round(Math.max(def.minY || 20, (FOOT_Y - h) / 2 + (def.offsetY || 0)));
+  const x = Math.round((hw - w) / 2);
+  const y = Math.round(Math.max(Math.min(def.minY || 20, TOPM), Math.min((FOOT_Y - h) / 2 + (def.offsetY || 0), FOOT_Y - 6 - h)));
   panel(x, y, w, h);
   const title = typeof def.title === 'function' ? def.title() : def.title;
-  if (title) txt(title, hw / 2, y + 9, textWidth(title, 16) > w - 16 ? 8 : 16, def.titleColor || COL.gold, 'center', COL.goldShadow);
+  if (title) txt(title, hw / 2, y + (def.titleSmall ? 6 : 9), def.titleSmall || textWidth(title, 16) > w - 16 ? (def.titleSmall && textWidth(title, 16) <= w - 16 ? 16 : 8) : 16, def.titleColor || COL.gold, 'center', COL.goldShadow);
 
   if (tabs) {
     const ty = y + titleH + headH;
-    const widths = tabs.map((t) => textWidth(t.label, 8) + 12);
-    const total = widths.reduce((a, b) => a + b, 0) + (tabs.length - 1) * 4;
+    const pad = def.tabPad || 12, gap = def.tabGap || 4;
+    const widths = tabs.map((t) => textWidth(t.label, 8) + pad);
+    const total = widths.reduce((a, b) => a + b, 0) + (tabs.length - 1) * gap;
     let tx = hw / 2 - total / 2;
     tabs.forEach((t, i) => {
       const on = i === top.tab;
       rect(tx, ty - 3, widths[i], 14, on ? COL.teal : 'rgba(45,224,200,.06)');
-      txt(t.label, tx + 6, ty, 8, on ? '#04120f' : COL.dim, 'left', on ? 'rgba(0,0,0,0)' : '#000');
+      txt(t.label, tx + pad / 2, ty, 8, on ? '#04120f' : COL.dim, 'left', on ? 'rgba(0,0,0,0)' : '#000');
       tabRects.push({ i, x: tx, y: ty - 3, w: widths[i], h: 14 });
-      tx += widths[i] + 4;
+      tx += widths[i] + gap;
     });
-    if (input.device !== 'pointer') {
+    if (input.device !== 'pointer' && !isTouch()) {
       const k = input.device === 'gamepad' ? ['LB', 'RB'] : ['Q', 'E'];
       keyCap(k[0], hw / 2 - total / 2 - 8, ty, 'right');
       keyCap(k[1], hw / 2 + total / 2 + 8, ty, 'left');
@@ -217,8 +226,28 @@ function drawPanel(top, hw) {
 
   if (def.header) def.header(x, y + titleH, w, hw);
   if (def.body) { def.body(x, y + titleH + headH, w, hw, top); return; }
-  let iy = y + titleH + headH + tabsH + 4;
+  const y0 = y + titleH + headH + tabsH + 4;
+  // desplazamiento: que la fila elegida siempre se vea
+  const offs = []; let acc = 0; items.forEach((it) => { offs.push(acc); acc += hOf(it); });
+  const scrollable = acc > rowsH + 1;
+  if (!scrollable) top.scroll = 0;
+  else {
+    let sc = top.scroll || 0;
+    const so = offs[top.sel] || 0, sh = items[top.sel] ? hOf(items[top.sel]) : ROW;
+    if (so - sc < 0) sc = so - (top.sel > 0 && items[top.sel - 1] && !selectable(items[top.sel - 1]) ? hOf(items[top.sel - 1]) : 0);
+    if (so + sh - sc > rowsH) sc = so + sh - rowsH;
+    // en la última (o primera) elegible, se muestra también lo que queda después (o antes): textos de ayuda
+    const selIdx = items.map((it, k) => (selectable(it) ? k : -1)).filter((k) => k >= 0);
+    if (top.sel === selIdx[selIdx.length - 1]) sc = acc - rowsH;
+    if (top.sel === selIdx[0] && so + sh <= rowsH) sc = 0;
+    if (so < sc) sc = so;                                              // pero la elegida siempre a la vista
+    top.scroll = Math.max(0, Math.min(acc - rowsH, sc));
+  }
+  const sc = top.scroll || 0;
+  let iy = y0;
   items.forEach((it, i) => {
+    iy = y0 + offs[i] - sc;
+    if (offs[i] - sc < -0.5 || offs[i] + hOf(it) - sc > rowsH + 0.5) return;     // fuera de la ventana
     if (it.kind === 'art') { it.draw(x, iy - 3, w, hw); iy += hOf(it); return; }
     if (it.drawRow) {                         // fila dibujada por su cuenta (grilla de minijuegos)
       it.drawRow(x, iy - 3, w, hw, i === top.sel);
@@ -250,6 +279,11 @@ function drawPanel(top, hw) {
     if (selectable(it)) rects.push({ i, x: x + 4, y: iy - 3, w: w - 8, h: ROW - 1 });
     iy += ROW;
   });
+  if (scrollable) {                          // flechitas: hay más arriba / más abajo
+    const bob = Math.round(Math.abs(Math.sin(ui.clock * 4)) * 1.5);
+    if (sc > 0) { tri(x + w - 12, y0 - 7 - bob, 'u', COL.gold); scrollRects.push({ d: -1, x: x + w - 24, y: y0 - 12, w: 24, h: 12 }); }
+    if (sc < acc - rowsH - 0.5) { tri(x + w - 12, y0 + rowsH - 2 + bob, 'd', COL.gold); scrollRects.push({ d: 1, x: x + w - 24, y: y0 + rowsH - 5, w: 24, h: 14 }); }
+  }
 }
 
 // Tecla o botón dibujado como una tapita
@@ -270,7 +304,7 @@ function drawFooter(top, hw, custom) {
   const parts = custom || [
     { key: pad ? 'A' : isTouch() ? 'TOCÁ' : input.device === 'pointer' ? 'CLIC' : 'ENTER', label: (top.def.okLabel && top.def.okLabel(top)) || 'ACEPTAR', act: 'ok' },
   ];
-  if (!custom && top.def.tabs) parts.push({ key: pad ? 'LB RB' : 'Q E', label: 'SOLAPA', act: 'tabNext' });
+  if (!custom && top.def.tabs) parts.push({ key: pad ? 'LB RB' : isTouch() ? 'TOCÁ ARRIBA' : 'Q E', label: 'SOLAPA', act: 'tabNext' });
   if (!custom) parts.push({ key: pad ? 'B' : isTouch() ? '◀' : 'ESC', label: 'VOLVER', act: 'back' });
   const widths = parts.map((p) => fw(p.key) + 4 + 4 + fw(p.label));
   const total = widths.reduce((a, b) => a + b, 0) + (parts.length - 1) * 12;
@@ -288,7 +322,7 @@ function drawFooter(top, hw, custom) {
 
 export function drawMenu(hw) {
   const top = topMenu(); if (!top) return;
-  rects = []; tabRects = []; footRects = []; customRects.length = 0;
+  rects = []; tabRects = []; footRects = []; scrollRects = []; customRects.length = 0;
   if (top.def.style === 'custom') { top.def.draw(hw, top); if (top.def.footer) drawFooter(top, hw, top.def.footer(top)); return; }
   if (top.def.style === 'big') drawBig(top, hw); else drawPanel(top, hw);
   if (!top.def.noFooter) drawFooter(top, hw);   // el menú principal no lleva barra de botones

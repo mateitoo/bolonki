@@ -12,7 +12,7 @@ import { game } from '../state.js';
 import { settings, saveSettings } from '../settings.js';
 import { input, isTouch } from '../input.js';
 import { SFX } from '../audio.js';
-import { openMenu, replaceMenus, closeMenu, closeAllMenus, topMenu, footerHit, selectedItem } from '../ui/menu.js';
+import { openMenu, replaceMenus, closeMenu, closeAllMenus, topMenu, footerHit, selectedItem, FOOT_Y } from '../ui/menu.js';
 import { txt, rect, tri, textWidth, COL, ui, fitTxt } from '../ui/draw.js';
 import { mgValues, pointsChoice, botValues, diffValues, mgArt, mapChoice, mapOf } from '../ui/values.js';
 import { drawThumb, hiTxt } from '../render/thumbStore.js';
@@ -345,7 +345,7 @@ const SALA = {
     }
     // tarjetas de los jugadores: retrato (se mueve un poco; salta al cambiar de personaje o al elegir), chip chico
     // con el número y quién es, y abajo el nombre del personaje y el estado
-    const cw = Math.floor((hw - 24 - 3 * 6) / 4), cy = 164, ch = 58, wide = cw >= 96;
+    const cw = Math.floor((hw - 24 - 3 * 6) / 4), cy = 164, ch = Math.min(58, FOOT_Y - 4 - cy), wide = cw >= 96;   // que nunca toque la barra de abajo
     const now = ui.clock || 0;
     fs.forEach((f, k) => {
       const x = 12 + k * (cw + 6), human = f.occ === 'human';
@@ -381,7 +381,7 @@ const SALA = {
         if (f.away) { st = 'SE CORTÓ'; sc = COL.red; }
         else if (f.locked) { st = f.host && net() === 'guest' ? 'ANFITRIÓN' : '¡LISTO!'; sc = COL.gold; }
         else { st = 'ELIGE…'; sc = COL.teal; }
-      } else if (net() === 'off' && k > 0) { st = joinHint(k); sc = input.pads > k || k === 1 ? COL.text : COL.dim; }
+      } else if (net() === 'off' && k > 0 && !isTouch()) { st = joinHint(k); sc = input.pads > k || k === 1 ? COL.text : COL.dim; }
       else if (f.occ === 'cpu') st = DIFFICULTIES[net() === 'off' ? settings.difficulty : room.opts.difficulty].label;
       if (st) fitTxt(st, lx, sy, edge - lx, sc, 'left', hiTxt);
       cardRects.push({ k, x, y: cy, w: cw, h: ch });
@@ -417,32 +417,43 @@ const setS = (key) => (v) => { settings[key] = v; saveSettings(); };
 const curMgLocal = () => (S.kind === 'fiesta' ? 'fiesta' : settings.mg);
 const curMgRoom = () => (room.opts.mode === 'fiesta' ? 'fiesta' : room.opts.mg);
 
-// Fila con las fotos de todos los minijuegos: izquierda/derecha elige, clic en una foto la elige
+// Carrusel de minijuegos: el elegido grande en el medio y los vecinos más chicos a los costados
+// (izquierda/derecha cambia; clic en un vecino lo elige). Abajo, el nombre y de qué se trata.
 function mgGrid(get, setFn) {
-  let boxes = [];
-  const H = 50;
+  let boxes = [], midX = 0;
+  const BW = 80, BH = 45, H = 74;
   return {
     kind: 'choice', label: 'MINIJUEGO', h: H, get values() { return mgValues(); }, get, set: setFn,
     drawRow(x, y, w, hw, sel) {
-      const n = MINIGAMES.length, gap = 6;
-      const tw = Math.min(64, Math.floor((w - 40 - gap * (n - 1)) / n)), th = Math.round((tw * 9) / 16);
-      let tx = Math.round(hw / 2 - (n * tw + (n - 1) * gap) / 2);
+      const n = MINIGAMES.length, cur = Math.max(0, MINIGAMES.findIndex((m) => m.id === get()));
+      const cx = Math.round(hw / 2), ty = y + 4;
       boxes = [];
-      MINIGAMES.forEach((m) => {
-        const on = m.id === get();
-        if (on) rect(tx - 3, y + 1, tw + 6, th + 6, sel ? COL.gold : COL.teal);
-        drawThumb(m.id, tx, y + 4, tw, th, !on);
-        boxes.push({ id: m.id, x: tx, w: tw });
-        tx += tw + gap;
+      // vecinos (de afuera hacia adentro, así el del medio queda arriba)
+      midX = cx;
+      const far = w / 2 - 18 >= 132 && n >= 5;
+      [[2, 34, 19, 115], [1, 48, 27, 70]].forEach(([d, tw, th, off]) => {
+        if (d === 2 && !far) return;
+        [-1, 1].forEach((dir) => {
+          const m = MINIGAMES[(cur + dir * d + n * 4) % n];
+          const bx = Math.round(cx + dir * off - tw / 2), by = Math.round(ty + (BH - th) / 2);
+          drawThumb(m.id, bx, by, tw, th, true);
+          boxes.push({ id: m.id, x: bx, w: tw });
+        });
       });
-      if (sel) { tri(x + 10, y + 4 + th / 2 - 4, 'l', COL.gold); tri(x + w - 14, y + 4 + th / 2 - 4, 'r', COL.gold); }
-      const m = mgById(get());
-      txt(m.name, hw / 2, y + th + 9, 8, sel ? COL.gold : COL.white, 'center');
-      txt(m.desc, hw / 2, y + th + 19, 8, COL.teal, 'center');
+      const m = MINIGAMES[cur];
+      rect(cx - BW / 2 - 3, ty - 3, BW + 6, BH + 6, sel ? COL.gold : COL.teal);
+      drawThumb(m.id, cx - BW / 2, ty, BW, BH);
+      boxes.push({ id: m.id, x: cx - BW / 2, w: BW });
+      const ay = ty + BH / 2 - 4, bob = sel ? Math.round(Math.sin(ui.clock * 6) * 1.5) : 0;
+      tri(x + 10 - bob, ay, 'l', sel ? COL.gold : COL.dim); tri(x + w - 14 + bob, ay, 'r', sel ? COL.gold : COL.dim);
+      txt(m.name, cx, ty + BH + 6, 8, sel ? COL.gold : COL.white, 'center');
+      fitTxt(m.desc, cx, ty + BH + 16, w - 20, COL.teal, 'center', hiTxt);
     },
     clickAt(px) {
-      const b = boxes.find((q) => px >= q.x - 3 && px <= q.x + q.w + 3);
+      // los vecinos se dibujan antes que el del medio: se busca de atrás para adelante
+      const b = [...boxes].reverse().find((q) => px >= q.x - 2 && px <= q.x + q.w + 2);
       if (b && b.id !== get()) { setFn(b.id); SFX.select(); }
+      else if (!b) { const vals = mgValues(); let i = vals.findIndex((q) => q.v === get()); i = (i + (px < midX ? -1 : 1) + vals.length) % vals.length; setFn(vals[i].v); SFX.select(); }
     },
   };
 }
@@ -469,8 +480,8 @@ function localOptions() {
     },
   });
   items.push(pointsChoice(curMgLocal, () => pointsFor(curMgLocal()), (v) => { settings[mgById(curMgLocal()).points.key] = v; saveSettings(); }));
-  items.push({ kind: 'action', label: 'JUGAR ONLINE', left: true, value: 'INVITAR AMIGOS', valueColor: () => COL.dim, action: () => goOnline() });
-  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', button: true, h: 20, action: () => goChars() });
+  items.push({ kind: 'action', label: 'JUGAR ONLINE', left: true, hidden: () => isTouch(), value: 'INVITAR AMIGOS', valueColor: () => COL.dim, action: () => goOnline() });
+  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', button: true, h: 19, action: () => goChars() });
   return items;
 }
 
@@ -490,7 +501,7 @@ function hostOptions() {
   items.push(pointsChoice(curMgRoom, () => room.opts[mgById(curMgRoom()).points.key], (v) => setRoomOpt(mgById(curMgRoom()).points.key, v)));
   items.push({ kind: 'choice', label: 'SALA', values: [{ v: false, label: 'PRIVADA' }, { v: true, label: 'PÚBLICA' }],
     get: () => room.opts.public, set: (v) => setRoomOpt('public', v) });
-  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', button: true, h: 20, action: () => goChars() });
+  items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', button: true, h: 19, action: () => goChars() });
   return items;
 }
 
@@ -511,7 +522,7 @@ function openOptions() {
   if (topMenu() && topMenu().def.id === 'salaOpts') return;
   const online = net() === 'host';
   const def = {
-    id: 'salaOpts', width: 300, rowH: 13, offsetY: 6,
+    id: 'salaOpts', width: 320, rowH: 13, offsetY: 4, titleSmall: true,
     title: S.kind === 'fiesta' ? (online ? 'FIESTA ONLINE' : 'FIESTA') : online ? 'MINIJUEGOS ONLINE' : 'MINIJUEGOS',
     items: online ? hostOptions() : localOptions(),
     headerH: online ? 28 : 0, header: online ? hostHeader : null,

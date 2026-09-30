@@ -4,19 +4,21 @@
 // -> opciones -> partida. ONLINE: crear sala (la misma pantalla de sala) o unirse a una.
 import { charOf } from './chars.js';
 import { game } from './state.js';
-import { settings, saveSettings, IS_DESKTOP } from './settings.js';
-import { input, has, freezeControls } from './input.js';
+import { settings, saveSettings, IS_DESKTOP, DEFAULTS, RESETTABLE } from './settings.js';
+import { DIFFICULTIES, DIFF_ORDER } from './config.js';
+import { input, has, freezeControls, isTouch } from './input.js';
 import { applyDisplay, enterFullscreen, exitFullscreen, isFullscreen } from './display.js';
-import { SFX, setVolume, setMuted } from './audio.js';
+import { SFX, setVolume, setMuted, setBackgroundSound } from './audio.js';
+const applySfxVolume = () => setVolume((settings.sfx / 10) * ((settings.master === undefined ? 10 : settings.master) / 10));
 import { resetMatch, eliminate, deathsRunning, soloSetup, demoSetup, pointsFor, placement } from './game/match.js';
 import { localHit } from './game/controls.js';
 import { mg, MINIGAMES } from './minigames/registry.js';
 import { DEATH_ANIMS } from './deaths/index.js';
-import { openMenu, replaceMenus, closeAllMenus, menuOpen, menuInput, topMenu } from './ui/menu.js';
+import { openMenu, closeMenu, replaceMenus, closeAllMenus, menuOpen, menuInput, topMenu } from './ui/menu.js';
 import { COL, ui } from './ui/draw.js';
 import { yesNo } from './ui/values.js';
 import { doorsMenu } from './ui/mainMenu.js';
-import { ONLINE, ONLINE_PAUSE, onlineEndMenu, initMultiplayer } from './multiplayer.js';
+import { ONLINE, ONLINE_PAUSE, onlineEndMenu, initMultiplayer, editName } from './multiplayer.js';
 import { guestHit } from './net/online.js';
 import { startFiesta, fiestaMinigameDone, fiestaRankArt } from './fiesta/board.js';
 import { openSala, setSalaHooks, salaKind } from './sala/sala.js';
@@ -51,9 +53,12 @@ function startFromSala(kind, setup) {
   } else startMatch(Object.assign({}, setup, { mg: settings.mg, points: pointsFor(settings.mg) }));
 }
 
-let gameTab = null;
+let fiestaTab = null;
+const onOff = [{ v: true, label: 'SÍ' }, { v: false, label: 'NO' }];
+const touchOnly = () => !isTouch();
+const infoRow = (label, value) => ({ kind: 'info', label, value, valueColor: () => COL.text, hidden: () => isTouch() });   // teclas: en el celular no van
 export const OPTIONS = {
-  id: 'options', title: 'OPCIONES', width: 290,
+  id: 'options', title: 'OPCIONES', width: 300, tabGap: 3, tabPad: 8,
   tabs: [
     { label: 'VIDEO', items: [
       { kind: 'choice', label: 'PANTALLA COMPLETA', values: yesNo, get: () => settings.fullscreen,
@@ -64,30 +69,69 @@ export const OPTIONS = {
         get: () => settings.quality, set: set('quality', applyDisplay) },
       { kind: 'choice', label: 'ESCALADO ENTERO', values: [{ v: 'auto', label: 'AUTOMÁTICO' }].concat(yesNo),
         get: () => settings.integer, set: set('integer', applyDisplay) },
-      { kind: 'choice', label: 'SCANLINES', values: yesNo, get: () => settings.scanlines, set: set('scanlines', applyDisplay) },
+      { kind: 'choice', label: 'LÍNEAS DE TV', values: yesNo, get: () => settings.scanlines, set: set('scanlines', applyDisplay) },
+      { kind: 'choice', label: 'VÉRTICES QUE TIEMBLAN', values: onOff, get: () => settings.psx !== false, set: set('psx', applyDisplay), hidden: () => settings.quality === 'sharp' },
+      { kind: 'choice', label: 'TRAMADO DE COLOR', values: onOff, get: () => settings.dither !== false, set: set('dither', applyDisplay), hidden: () => settings.quality === 'sharp' },
+      { kind: 'choice', label: 'TEMBLOR DE PANTALLA', values: onOff, get: () => settings.shake !== false, set: set('shake') },
+      { kind: 'choice', label: 'MOSTRAR FPS', values: onOff, get: () => !!settings.fps, set: set('fps') },
     ] },
-    { label: 'AUDIO', items: [
-      { kind: 'slider', label: 'EFECTOS', max: 10, get: () => settings.sfx, set: set('sfx', (v) => setVolume(v / 10)) },
+    { label: 'SONIDO', items: [
+      { kind: 'slider', label: 'VOLUMEN GENERAL', max: 10, get: () => (settings.master === undefined ? 10 : settings.master), set: set('master', applySfxVolume) },
+      { kind: 'slider', label: 'EFECTOS', max: 10, get: () => settings.sfx, set: set('sfx', applySfxVolume) },
       { kind: 'slider', label: 'MÚSICA', max: 10, get: () => settings.music, set: set('music') },
+      { kind: 'choice', label: 'SILENCIAR TODO', values: onOff, get: () => !!settings.muted, set: set('muted', (v) => setMuted(v)) },
+      { kind: 'choice', label: 'SONIDO EN SEGUNDO PLANO', values: onOff, get: () => !!settings.bgSound, set: set('bgSound', (v) => setBackgroundSound(v)) },
     ] },
-    { label: 'CONTROLES', items: [
-      { kind: 'info', label: 'MOVER', value: 'FLECHAS / WASD / STICK' },
-      { kind: 'info', label: 'GOLPE FUERTE', value: 'ESPACIO / CTRL / A' },
-      { kind: 'info', label: 'PAUSA', value: 'ESC / START' },
-      { kind: 'info', label: 'LOCAL J1', value: 'FLECHAS · ESPACIO / CTRL' },
-      { kind: 'info', label: 'LOCAL J2', value: 'WASD · E / Q' },
-      { kind: 'info', label: 'CAMBIAR SOLAPA', value: 'Q E / LB RB' },
-      { kind: 'info', label: 'GIRAR CÁMARA', value: 'ARRASTRAR · C CENTRA' },
-      { kind: 'info', label: 'PANTALLA COMPLETA', value: 'F' },
+    { label: 'CONTROL', items: [
+      { kind: 'choice', label: 'AYUDA PARA APUNTAR', values: onOff, get: () => settings.aim !== false, set: set('aim') },
+      { kind: 'choice', label: 'VIBRACIÓN', values: onOff, get: () => settings.vibrate !== false, set: set('vibrate') },
+      { kind: 'slider', label: 'SENSIB. DE CÁMARA', max: 10, get: () => settings.camSens || 5, set: (v) => { settings.camSens = Math.max(1, v); saveSettings(); } },
+      { kind: 'choice', label: 'INVERTIR CÁMARA', values: onOff, get: () => !!settings.camInvert, set: set('camInvert') },
+      { kind: 'choice', label: 'BOTONES TÁCTILES', hidden: touchOnly, values: [{ v: 'chico', label: 'CHICOS' }, { v: 'normal', label: 'NORMALES' }, { v: 'grande', label: 'GRANDES' }],
+        get: () => settings.touchSize || 'normal', set: set('touchSize', applyDisplay) },
+      { kind: 'choice', label: 'JOYSTICK', hidden: touchOnly, values: [{ v: 'left', label: 'IZQUIERDA' }, { v: 'right', label: 'DERECHA' }],
+        get: () => settings.stickSide || 'left', set: set('stickSide', applyDisplay) },
+      { kind: 'info', label: 'TECLADO Y JOYSTICK', labelColor: () => COL.teal, hidden: () => isTouch() },
+      infoRow('MOVER', 'FLECHAS / WASD / STICK'),
+      infoRow('ACCIÓN', 'ESPACIO / CTRL / A'),
+      infoRow('PAUSA', 'ESC / START'),
+      infoRow('LOCAL J1', 'FLECHAS · ESPACIO'),
+      infoRow('LOCAL J2', 'WASD · E / Q'),
+      infoRow('CAMBIAR SOLAPA', 'Q E / LB RB'),
+      infoRow('GIRAR CÁMARA', 'ARRASTRAR · C CENTRA'),
+      infoRow('PANTALLA COMPLETA', 'F'),
     ] },
-    // JUEGO: qué minijuegos salen en la Fiesta y cómo se ve la derrota
-    { label: 'JUEGO', get items() { return gameTab || (gameTab = [
-      { kind: 'info', label: 'MINIJUEGOS QUE SALEN EN LA FIESTA', labelColor: () => COL.teal },
-      ...mgToggleItems(),
+    { label: 'JUEGO', items: [
+      { kind: 'action', label: 'APODO ONLINE', left: true, value: () => settings.name || 'SIN APODO', action: () => editName() },
+      { kind: 'choice', label: 'CPU', values: DIFF_ORDER.map((d) => ({ v: d, label: DIFFICULTIES[d].label })), get: () => settings.difficulty, set: set('difficulty', (v) => { game.difficulty = v; }) },
+      { kind: 'choice', label: 'INSTRUCCIONES', values: [{ v: 'normal', label: 'NORMALES' }, { v: 'corta', label: 'CORTAS' }], get: () => settings.intro || 'normal', set: set('intro') },
+      { kind: 'choice', label: 'NOMBRES EN PANTALLA', values: onOff, get: () => settings.tags !== false, set: set('tags') },
       { kind: 'choice', label: 'DERROTA', values: [{ v: 'random', label: 'ALEATORIA' }].concat(DEATH_ANIMS.map((a) => ({ v: a.id, label: a.name }))),
         get: () => settings.deathId, set: set('deathId') },
-      { kind: 'action', label: 'VER DERROTA EN CPU', hidden: () => game.state !== 'menu', action: () => showcaseDeath() },
+      { kind: 'action', label: 'VER DERROTA EN CPU', left: true, hidden: () => game.state !== 'menu', action: () => showcaseDeath() },
+      { kind: 'action', label: 'RESTABLECER OPCIONES', left: true, danger: true, action: () => openMenu(RESET) },
+    ] },
+    // FIESTA: cuántos turnos y qué minijuegos salen en el tablero
+    { label: 'FIESTA', get items() { return fiestaTab || (fiestaTab = [
+      { kind: 'choice', label: 'TURNOS', values: [5, 10, 15, 20].map((v) => ({ v, label: String(v) })), get: () => settings.turns, set: set('turns') },
+      { kind: 'info', label: 'MINIJUEGOS QUE SALEN', labelColor: () => COL.teal },
+      ...mgToggleItems(),
     ]); } },
+  ],
+};
+
+// confirmación para volver las opciones a como vienen
+const RESET = {
+  id: 'reset', title: '¿RESTABLECER?', width: 250,
+  items: [
+    { kind: 'info', label: 'VIDEO, SONIDO Y CONTROLES', center: true },
+    { kind: 'info', label: 'VUELVEN A COMO VENÍAN', center: true },
+    { kind: 'action', label: 'SÍ, RESTABLECER', danger: true, action: () => {
+      RESETTABLE.forEach((k) => { settings[k] = DEFAULTS[k]; });
+      saveSettings(); applyDisplay(); applySfxVolume(); setMuted(settings.muted); setBackgroundSound(settings.bgSound);
+      closeMenu(); showToast('OPCIONES RESTABLECIDAS');
+    } },
+    { kind: 'action', label: 'NO', action: () => closeMenu() },
   ],
 };
 
@@ -231,9 +275,12 @@ function mgToggleItems() {
   }));
 }
 export function initFlow() {
-  setVolume(settings.sfx / 10); setMuted(settings.muted); game.difficulty = settings.difficulty;
+  applySfxVolume(); setMuted(settings.muted); setBackgroundSound(settings.bgSound); game.difficulty = settings.difficulty;
   setSalaHooks({ startLocal: startFromSala, toMain: () => goMainMenu() });
   initMultiplayer();
 }
 export const inDemo = () => game.state === 'title' || game.state === 'menu';
 export { input };
+
+// para las pruebas (?debug): abrir pantallas directamente
+try { if (new URLSearchParams(location.search).has('debug')) window.__ui = { openMenu, replaceMenus, closeAllMenus, goMainMenu, OPTIONS, MAIN, ONLINE, openSala, startMatch }; } catch (e) { /* nada */ }

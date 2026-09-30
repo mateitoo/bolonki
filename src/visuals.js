@@ -8,6 +8,7 @@ import { updateParticles } from './fx/particles.js';
 import { mg } from './minigames/registry.js';
 import { input } from './input.js';
 import { updateProps } from './world/props.js';
+import { settings } from './settings.js';
 
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
 const orbitPos = new THREE.Vector3(), ORBIT_LOOK = new THREE.Vector3(0, 0, 0);
@@ -66,8 +67,9 @@ export function updateVisuals(dt, rdt) {
   const playing = game.state === 'play' || game.state === 'count' || game.state === 'end';
   const d = input.drag;
   if (m.cam.orbit && playing) {
-    game.camYaw = (game.camYaw || 0) - d.dx * 0.008 - input.camStick.x * 2.4 * rdt;
-    game.camPitch = Math.max(-0.55, Math.min(0.4, (game.camPitch || 0) + d.dy * 0.005 + input.camStick.y * 1.6 * rdt));
+    const sens = (settings.camSens || 5) / 5, inv = settings.camInvert ? -1 : 1;
+    game.camYaw = (game.camYaw || 0) - (d.dx * 0.008 + input.camStick.x * 2.4 * rdt) * sens;
+    game.camPitch = Math.max(-0.55, Math.min(0.4, (game.camPitch || 0) + (d.dy * 0.005 + input.camStick.y * 1.6 * rdt) * sens * inv));
     if (input.events.some((e) => e.a === 'camReset')) { game.camYaw = 0; game.camPitch = 0; }
   }
   d.dx = 0; d.dy = 0;
@@ -86,6 +88,23 @@ export function updateVisuals(dt, rdt) {
     camPos.lerp(orbitPos, orbit);
     camLook.lerp(ORBIT_LOOK, orbit);
   }
-  camera.position.set(camPos.x + rnd(-1, 1) * game.shake, camPos.y + rnd(-1, 1) * game.shake * 0.5, camPos.z);
+  const sh = settings.shake === false ? 0 : game.shake;
+  camera.position.set(camPos.x + rnd(-1, 1) * sh, camPos.y + rnd(-1, 1) * sh * 0.5, camPos.z);
+  // vibración (joystick y celular) cuando hay un sacudón fuerte
+  if (game.shake > lastShake + 0.12 && settings.vibrate !== false) rumble(Math.min(1, game.shake * 2.5));
+  lastShake = game.shake;
   camera.lookAt(camLook);
+}
+
+let lastShake = 0, lastRumble = 0;
+function rumble(k) {
+  const now = performance.now(); if (now - lastRumble < 120) return; lastRumble = now;
+  try {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const p of pads) {
+      const a = p && p.vibrationActuator;
+      if (a && a.playEffect) a.playEffect('dual-rumble', { duration: 90 + k * 120, strongMagnitude: 0.3 + k * 0.6, weakMagnitude: 0.4 + k * 0.5 }).catch(() => {});
+    }
+    if (navigator.vibrate && matchMedia('(pointer: coarse)').matches) navigator.vibrate(Math.round(25 + k * 50));
+  } catch (e) { /* sin vibración */ }
 }

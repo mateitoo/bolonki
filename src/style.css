@@ -47,6 +47,16 @@ body {
 .touch button.pause { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: 52px; height: 40px; font-size: 10px; }
 .touch button.on { transform: translateY(2px); border-bottom-width: 3px; filter: brightness(1.4); }
 @media (pointer: coarse) { body[data-mode="playing"] .touch { display: flex; } }
+/* opciones: botones táctiles chicos / grandes, y joystick a la derecha (para zurdos) */
+body[data-touch-size="chico"] .touch .stick { transform: scale(.8); transform-origin: bottom left; }
+body[data-touch-size="chico"] .touch button.hit { transform: scale(.8); transform-origin: bottom right; }
+body[data-touch-size="grande"] .touch .stick { transform: scale(1.22); transform-origin: bottom left; }
+body[data-touch-size="grande"] .touch button.hit { transform: scale(1.22); transform-origin: bottom right; }
+body[data-touch-size="grande"] .touch button.pause { bottom: calc(108px + env(safe-area-inset-bottom, 0px)); }
+body[data-stick="right"] .touch { flex-direction: row-reverse; }
+body[data-stick="right"][data-touch-size] .touch .stick { transform-origin: bottom right; }
+body[data-stick="right"][data-touch-size] .touch button.hit { transform-origin: bottom left; }
+body[data-stick="right"] .touch button.pause { right: auto; left: max(16px, env(safe-area-inset-left, 0px)); }
 
 /* campo de texto para el teclado del celular (va encima de las casillas del apodo / código) */
 #txtin {

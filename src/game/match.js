@@ -39,6 +39,7 @@ export function localSetup(n, bots, points, mgId) {
 }
 
 export const INTRO_T = 9.999;
+export const INTRO_SHORT = 6.999;       // opción "instrucciones cortas": 4 s de reglas en vez de 7
 export function resetMatch(mode, setup) {
   const demo = mode === 'title' || mode === 'menu';
   const cfg = setup || (demo ? demoSetup() : soloSetup());
@@ -61,7 +62,7 @@ export function resetMatch(mode, setup) {
   });
   m.reset(cfg);
   // al entrar al juego: 10 s con las instrucciones en un recuadro (hud.js) y después 3, 2, 1
-  if (mode === 'count') { game.countT = INTRO_T; game.intro = true; }
+  if (mode === 'count') { game.countT = settings.intro === 'corta' ? INTRO_SHORT : INTRO_T; game.intro = true; }
 }
 
 export function podPos(p) {

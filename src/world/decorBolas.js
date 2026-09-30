@@ -424,6 +424,50 @@ export function decorTerraza(g) {
   P.chaseLights(g, -16, 3.2, -18, 16, -18, 14, 0xffd27a, 3);
   P.chaseLights(g, -16, 3.2, 18, 16, 18, 14, 0xffd27a, 3);
   P.drift(g, 14, -30, 30, 2, 10, -30, 30, 0xffe07a, 0.12, 0.6);                // luciérnagas / polvo con la luz
+  // la parrilla con el asado (humito y brasas), mesa de plástico con sillas, antena de TV satelital y palomas
+  parrilla(g, 16, -22.5, 0);
+  patioTable(g, 24, -16);
+  P.dish(g, -24.5, Y + 1.2, -3, Math.PI / 2, 0.9);
+  pigeons(g, [[-6, -24.2], [-4.8, -24.6], [9, 24.3], [-25, 0.5], [25, 4]]);
+  // guirnaldas de lamparitas cruzadas de tanque a tanque
+  P.chaseLights(g, -21, 6.2, -21, 21, 6.2, -20, 20, 0xffe0a0, 1.5);
+  P.chaseLights(g, 21, 6.2, -20, 22, 6.2, 21, 20, 0xffe0a0, 1.5);
+}
+function parrilla(p, x, z, ry) {                                // parrilla de ladrillo con brasas y humo
+  const g = grp(p, x, Y, z, ry), bm = P.M(0xc07a5a, { map: TX.brick }), mm = P.M(0x2a2a2e, { map: TX.metal });
+  add(box(3.2, 1.1, 1.3), bm, 0, 0.55, 0, g);
+  add(box(0.9, 2.6, 1.3), bm, -1.95, 1.3, 0, g);
+  add(new THREE.CylinderGeometry(0.35, 0.45, 1.8, 6), bm, -1.95, 3.5, 0, g);
+  add(box(3.0, 0.05, 1.1), P.M(0xff5a1a, { unlit: true }), 0, 1.1, 0, g);                   // brasas
+  for (let k = 0; k < 9; k++) add(box(0.04, 0.04, 1.1), mm, -1.3 + k * 0.33, 1.25, 0, g);  // la parrilla
+  [[-0.8, 0x8a3a2a], [0, 0xa84a2a], [0.8, 0x7a2a1a]].forEach(([a, c]) => add(box(0.55, 0.12, 0.3), P.M(c), a, 1.35, 0.1, g));   // carne y chorizos
+  [-0.4, 0.4].forEach((a) => { const ch = add(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 6), P.M(0x9a3a2a), a, 1.36, -0.35, g); ch.rotation.z = Math.PI / 2; });
+  P.smoke(g, -1.95, 4.5, 0, 5, 1.1, 0x8a8a94);
+  P.smoke(g, 0.3, 1.5, 0, 3, 0.6, 0xa0a0a8);
+}
+function patioTable(p, x, z) {                                  // mesa de plástico blanca con sillas y una sombrilla
+  const g = grp(p, x, Y, z, rnd(0, 3)), w = P.M(0xf0f0f0);
+  add(new THREE.CylinderGeometry(1.1, 1.1, 0.08, 12), w, 0, 1.0, 0, g);
+  add(new THREE.CylinderGeometry(0.08, 0.1, 1.0, 5), w, 0, 0.5, 0, g);
+  for (let k = 0; k < 4; k++) {
+    const a = (k / 4) * Math.PI * 2 + 0.4, ch = grp(g, Math.sin(a) * 1.6, 0, Math.cos(a) * 1.6, a + Math.PI);
+    add(box(0.7, 0.06, 0.7), w, 0, 0.6, 0, ch); add(box(0.7, 0.7, 0.06), w, 0, 0.95, -0.32, ch);
+    [[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]].forEach(([a2, b2]) => add(box(0.05, 0.6, 0.05), w, a2, 0.3, b2, ch));
+  }
+  add(new THREE.CylinderGeometry(0.05, 0.05, 2.6, 4), w, 0, 1.6, 0, g);
+  const n = 8;
+  for (let k = 0; k < n; k++) add(new THREE.ConeGeometry(1.8, 0.6, n, 1, true, (k / n) * Math.PI * 2, (Math.PI * 2) / n), P.M(k % 2 ? 0x39a86a : 0xffffff, { side: THREE.DoubleSide }), 0, 2.9, 0, g);
+  [[0.3, 0.2, 0x3a8a3a], [-0.35, -0.2, 0x7a4a1a]].forEach(([a, b, c]) => add(new THREE.CylinderGeometry(0.09, 0.09, 0.4, 6), P.M(c), a, 1.24, b, g));   // botellas
+}
+function pigeons(p, pts) {                                      // palomas que picotean el piso del pretil
+  pts.forEach(([x, z], i) => {
+    const g = grp(p, x, Y + 1.2, z, rnd(0, 6)), gm = P.M(0x8a8a9a), dk = P.M(0x5a5a6a);
+    const b = add(new THREE.SphereGeometry(0.22, 6, 5), gm, 0, 0.2, 0, g); b.scale.set(0.8, 0.8, 1.3);
+    const h = grp(g, 0, 0.36, 0.22);
+    add(new THREE.SphereGeometry(0.12, 6, 5), dk, 0, 0, 0, h); add(new THREE.ConeGeometry(0.04, 0.12, 4), P.M(0xe8a040), 0, -0.02, 0.14, h).rotation.x = Math.PI / 2;
+    add(box(0.18, 0.05, 0.25), dk, 0, 0.22, -0.3, g).rotation.x = 0.3;
+    P.anim(g, (t) => { h.rotation.x = Math.max(0, Math.sin(t * 3 + i * 2)) * 0.9; g.rotation.y += Math.sin(t * 0.7 + i) * 0.004; });
+  });
 }
 
 /* ---------- piezas de juego (van en cada mapa, las maneja bolas.js) ---------- */
@@ -494,4 +538,141 @@ export function crab(p) {
   [-1, 1].forEach((sd) => { for (let k = 0; k < 3; k++) { const l = grp(body, sd * 0.55, 0.35, -0.25 + k * 0.25); add(box(0.55, 0.07, 0.07), dm, sd * 0.28, -0.1, 0, l).rotation.z = sd * -0.5; legs.push({ l, sd, k }); } });
   g.visible = false;
   return { g, body, claws, legs };
+}
+
+/* =====================================================================
+   ESPACIO: la arena flotando en el espacio, con galaxias, nebulosas, planetas y estrellas fugaces.
+   La cámara mira para abajo, así que el fondo que se ve está debajo del horizonte: el cielo está pintado
+   entero (arriba y abajo) y los planetas van abajo, detrás de la arena. Todo sin niebla (MeshBasic).
+   ===================================================================== */
+function spaceCanvas() {
+  const W = 1024, H = 512, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  x.fillStyle = '#03040c'; x.fillRect(0, 0, W, H);
+  const blob = (u, v, r, col, sx = 1) => {
+    for (const du of [-W, 0, W]) {
+      x.save(); x.translate(u * W + du, v * H); x.scale(sx, 1);
+      const g = x.createRadialGradient(0, 0, 0, 0, 0, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = g; x.fillRect(-r, -r, r * 2, r * 2); x.restore();
+    }
+  };
+  // nebulosas (sobre todo en la mitad de abajo, que es la que se ve)
+  blob(0.15, 0.7, 150, 'rgba(120,40,160,.35)', 1.8); blob(0.22, 0.75, 90, 'rgba(255,90,160,.22)', 1.5);
+  blob(0.55, 0.62, 170, 'rgba(30,110,170,.3)', 2); blob(0.62, 0.68, 80, 'rgba(60,220,200,.2)', 1.4);
+  blob(0.85, 0.8, 130, 'rgba(160,60,40,.25)', 1.7); blob(0.4, 0.3, 120, 'rgba(70,50,160,.25)', 2);
+  // estrellas de varios tamaños
+  for (let i = 0; i < 2600; i++) {
+    const a = Math.random() ** 3; x.fillStyle = `rgba(${220 + rnd(0, 35)},${220 + rnd(0, 35)},255,${0.25 + a * 0.75})`;
+    x.fillRect(Math.random() * W, Math.random() * H, a > 0.6 ? 2 : 1, a > 0.6 ? 2 : 1);
+  }
+  for (let i = 0; i < 40; i++) {                                   // estrellas con cruz de brillo
+    const sx = Math.random() * W, sy = Math.random() * H, col = ['#ffffff', '#bfe0ff', '#ffe8b0', '#ffc0d8'][i % 4];
+    x.fillStyle = col; x.fillRect(sx - 3, sy, 7, 1); x.fillRect(sx, sy - 3, 1, 7); x.fillRect(sx - 1, sy - 1, 3, 3);
+  }
+  // galaxias espirales (puntitos en dos brazos) y una elíptica
+  const spiral = (u, v, R, tilt, rot, cols) => {
+    x.save(); x.translate(u * W, v * H); x.rotate(rot); x.scale(1, tilt);
+    const g = x.createRadialGradient(0, 0, 0, 0, 0, R * 0.35); g.addColorStop(0, 'rgba(255,240,210,.9)'); g.addColorStop(1, 'rgba(255,200,150,0)');
+    x.fillStyle = g; x.beginPath(); x.arc(0, 0, R * 0.35, 0, 7); x.fill();
+    for (let arm = 0; arm < 2; arm++) for (let i = 0; i < 700; i++) {
+      const t = Math.random(), ang = arm * Math.PI + t * 5.5, r = t * R + rnd(-4, 4) * (0.4 + t);
+      x.fillStyle = cols[(Math.random() * cols.length) | 0]; x.globalAlpha = 0.25 + (1 - t) * 0.6;
+      x.fillRect(Math.cos(ang) * r + rnd(-2, 2), Math.sin(ang) * r + rnd(-2, 2), 1.5, 1.5);
+    }
+    x.restore(); x.globalAlpha = 1;
+  };
+  spiral(0.3, 0.72, 70, 0.45, 0.4, ['#bfd8ff', '#ffffff', '#c8b0ff', '#ffc8e8']);
+  spiral(0.74, 0.66, 48, 0.6, -0.8, ['#ffe0b0', '#ffffff', '#ffb0a0']);
+  spiral(0.52, 0.86, 34, 0.35, 1.2, ['#a0ffe8', '#ffffff', '#b0c8ff']);
+  const el = x.createRadialGradient(0.9 * W, 0.58 * H, 0, 0.9 * W, 0.58 * H, 22); el.addColorStop(0, 'rgba(255,230,200,.8)'); el.addColorStop(1, 'rgba(255,200,160,0)');
+  x.fillStyle = el; x.beginPath(); x.ellipse(0.9 * W, 0.58 * H, 22, 12, 0.5, 0, 7); x.fill();
+  const t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; t.generateMipmaps = false;
+  return t;
+}
+function planetTex(kind) {
+  const W = 256, H = 128, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  if (kind === 'gas') {                                           // gigante gaseoso con bandas y una tormenta
+    const cols = ['#e8c89a', '#c89060', '#f0dcb8', '#a8704a', '#e0b080', '#f4e8d0', '#b88058'];
+    let y = 0; while (y < H) { const hh = rnd(4, 14); x.fillStyle = cols[(Math.random() * cols.length) | 0]; x.fillRect(0, y, W, hh); y += hh; }
+    for (let i = 0; i < 60; i++) { x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(Math.random() * W, Math.random() * H, rnd(10, 60), 1); }
+    x.fillStyle = '#c8603a'; x.beginPath(); x.ellipse(70, 78, 16, 8, 0, 0, 7); x.fill(); x.fillStyle = '#e88a5a'; x.beginPath(); x.ellipse(70, 78, 9, 4, 0, 0, 7); x.fill();
+  } else if (kind === 'rock') {                                   // planeta rojo con cráteres
+    x.fillStyle = '#b8503a'; x.fillRect(0, 0, W, H);
+    for (let i = 0; i < 400; i++) { x.fillStyle = Math.random() < 0.5 ? 'rgba(90,30,20,.3)' : 'rgba(240,150,110,.25)'; x.fillRect(Math.random() * W, Math.random() * H, rnd(2, 8), rnd(1, 4)); }
+    for (let i = 0; i < 26; i++) { const cx = Math.random() * W, cy = rnd(10, H - 10), r = rnd(2, 9); x.fillStyle = 'rgba(70,20,15,.5)'; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); x.fillStyle = 'rgba(255,190,150,.35)'; x.beginPath(); x.arc(cx - r * 0.3, cy - r * 0.3, r * 0.6, 0, 7); x.fill(); }
+    x.fillStyle = 'rgba(255,255,255,.7)'; x.fillRect(0, 0, W, 6); x.fillRect(0, H - 5, W, 5);           // polos helados
+  } else {                                                        // luna helada / planeta de océano
+    const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#dff4ff'); g.addColorStop(0.5, '#4a9ad8'); g.addColorStop(1, '#dff4ff');
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    for (let i = 0; i < 30; i++) { x.fillStyle = 'rgba(80,170,90,.7)'; x.beginPath(); x.ellipse(Math.random() * W, rnd(30, 98), rnd(6, 20), rnd(4, 10), rnd(0, 3), 0, 7); x.fill(); }
+    for (let i = 0; i < 40; i++) { x.fillStyle = 'rgba(255,255,255,.55)'; x.fillRect(Math.random() * W, Math.random() * H, rnd(10, 40), rnd(1, 3)); }
+  }
+  const t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; t.generateMipmaps = false;
+  return t;
+}
+export function decorEspacio(g) {
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(118, 32, 20), new THREE.MeshBasicMaterial({ map: spaceCanvas(), side: THREE.BackSide, depthWrite: false, fog: false }));
+  sky.renderOrder = -10; g.add(sky);
+  P.anim(sky, (t) => { sky.rotation.y = t * 0.004; });
+  const B = (o) => new THREE.MeshBasicMaterial(Object.assign({ fog: false }, o));
+  // planetas abajo, detrás de la arena (se ven entre la arena y el borde de la pantalla)
+  const planet = (kind, pos, r, ring, tilt = 0.4) => {
+    const pg = grp(g, pos[0], pos[1], pos[2]);
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 28, 18), B({ map: planetTex(kind) })); pg.add(m);
+    // lado oscuro: una media esfera negra transparente un poco más grande (sombra del planeta)
+    const sh = new THREE.Mesh(new THREE.SphereGeometry(r * 1.01, 28, 18, 0, Math.PI), B({ color: 0x000000, transparent: true, opacity: 0.55, depthWrite: false }));
+    sh.rotation.y = 2.2; pg.add(sh);
+    if (ring) {
+      const rg = new THREE.RingGeometry(r * 1.35, r * 2.1, 48);
+      const rm = new THREE.Mesh(rg, B({ color: ring, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })); rm.rotation.x = Math.PI / 2 - tilt; pg.add(rm);
+      const rg2 = new THREE.RingGeometry(r * 2.15, r * 2.35, 48);
+      const rm2 = new THREE.Mesh(rg2, B({ color: ring, side: THREE.DoubleSide, transparent: true, opacity: 0.35 })); rm2.rotation.x = Math.PI / 2 - tilt; pg.add(rm2);
+    }
+    P.anim(pg, (t) => { m.rotation.y = t * 0.03; });
+    return pg;
+  };
+  planet('gas', [-46, -34, -58], 14, 0xe8d0a8, 0.35);
+  planet('rock', [44, -26, -50], 6.5);
+  planet('ice', [18, -48, -78], 4.2);
+  planet('rock', [-70, -60, 10], 5).scale.setScalar(0.8);
+  planet('ice', [64, -52, 26], 9);
+  // la base de la arena (se ve al girar la cámara): plataforma de metal con propulsores que brillan
+  const base = grp(g, 0, -2.2, 0), mm = P.M(0x3a4458, { map: TX.metal });
+  add(new THREE.BoxGeometry(29, 1.6, 29), mm, 0, -0.8, 0, base);
+  add(new THREE.CylinderGeometry(12, 5, 7, 8), mm, 0, -5, 0, base).rotation.y = Math.PI / 8;
+  const glowM = P.M(0x35f0ff, { unlit: true });
+  [[-10, -10], [10, -10], [10, 10], [-10, 10]].forEach(([x, z]) => {
+    add(new THREE.CylinderGeometry(1.2, 1.6, 1.6, 8), P.M(0x2a3040, { map: TX.metal }), x, -2.3, z, base);
+    const fl = add(new THREE.ConeGeometry(1.1, 3, 8), glowM, x, -4.4, z, base); fl.rotation.x = Math.PI;
+    P.anim(fl, (t) => { fl.scale.y = 0.8 + Math.abs(Math.sin(t * 13 + x)) * 0.4; });
+  });
+  add(new THREE.ConeGeometry(4, 5, 8), glowM, 0, -10.8, 0, base).rotation.x = Math.PI;
+  // asteroides flotando cerca (con la niebla del mapa, como el resto de la arena)
+  P.asteroids(g, 18, 26, 44, -14, -4);
+  // estrellas fugaces: cada tanto cruza una por el fondo
+  const tm = document.createElement('canvas'); tm.width = 64; tm.height = 4;
+  const tx = tm.getContext('2d'), tg = tx.createLinearGradient(0, 0, 64, 0); tg.addColorStop(0, 'rgba(255,255,255,0)'); tg.addColorStop(0.85, 'rgba(200,230,255,.8)'); tg.addColorStop(1, '#ffffff');
+  tx.fillStyle = tg; tx.fillRect(0, 0, 64, 4);
+  const trailM = B({ map: new THREE.CanvasTexture(tm), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+  const stars = [0, 1].map(() => { const m = new THREE.Mesh(new THREE.PlaneGeometry(9, 0.28), trailM); m.visible = false; m.renderOrder = -9; g.add(m); return { m, t: 1, next: rnd(1, 4), a: new THREE.Vector3(), b: new THREE.Vector3() }; });
+  const tmp = new THREE.Vector3();
+  P.anim(g, (t, dt) => stars.forEach((s) => {
+    if (s.t >= 1) {
+      s.m.visible = false; s.next -= dt;
+      if (s.next > 0) return;
+      // de un punto a otro del fondo visible (abajo y atrás de la arena)
+      const x0 = rnd(-80, 80), y0 = rnd(-18, -45), z0 = rnd(-95, -70), dir = Math.random() < 0.5 ? 1 : -1;
+      s.a.set(x0, y0, z0); s.b.set(x0 + dir * rnd(35, 60), y0 - rnd(6, 20), z0 + rnd(-8, 8));
+      s.t = 0; s.dur = rnd(0.7, 1.2); s.next = rnd(2.5, 6);
+    }
+    s.t = Math.min(1, s.t + dt / s.dur);
+    s.m.visible = true;
+    tmp.lerpVectors(s.a, s.b, s.t); s.m.position.copy(tmp);
+    const d = new THREE.Vector3().subVectors(s.b, s.a).normalize();
+    s.m.rotation.set(0, 0, 0); s.m.lookAt(tmp.x, tmp.y + 10, tmp.z + 30);      // de cara a la cámara
+    s.m.rotateZ(Math.atan2(d.y, d.x));
+    s.m.material.opacity = Math.sin(s.t * Math.PI);
+    s.m.scale.x = 0.4 + Math.sin(s.t * Math.PI) * 0.8;
+  }));
 }

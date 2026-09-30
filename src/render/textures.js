@@ -601,5 +601,32 @@ export const TX = {
   }),
   tin: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#b8c0c8', 0.12); x.fillStyle = 'rgba(0,0,0,.18)'; x.fillRect(0, 7, w, 1); x.fillStyle = '#7a8088'; x.fillRect(2, 2, 1, 1); x.fillRect(13, 2, 1, 1); x.fillRect(2, 13, 1, 1); x.fillRect(13, 13, 1, 1); }),
   suit: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#f0f0f4', 0.08); x.fillStyle = 'rgba(0,0,0,.1)'; x.fillRect(0, 5, w, 1); x.fillRect(0, 11, w, 1); }),
+
+  /* ---------- Bola Brava: línea del arco de cada mapa ---------- */
+  marquee: tex(16, 8, (x, w, h) => {              // CIRCO: marquesina roja con foquitos (se desplaza: parecen prenderse en fila)
+    x.fillStyle = '#7a0a14'; x.fillRect(0, 0, w, h); x.fillStyle = '#ffd24a'; x.fillRect(0, 0, w, 1); x.fillRect(0, 7, w, 1);
+    x.fillStyle = '#fff6c8'; x.fillRect(2, 2, 4, 4); x.fillStyle = '#ffb020'; x.fillRect(10, 3, 3, 2);
+    x.fillStyle = '#ffffff'; x.fillRect(3, 3, 1, 1);
+  }),
+  rope: tex(64, 8, (x, w, h) => {                 // PLAYA: soga trenzada con boyas rojas y blancas
+    x.fillStyle = 'rgba(0,0,0,0)'; x.fillStyle = '#d8c090'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#c8a870'; x.fillRect(0, 2, w, 4);
+    x.fillStyle = '#8a6a3a'; for (let i = 0; i < w; i += 3) x.fillRect(i, 2 + (i % 2), 1, 3);
+    x.fillStyle = '#e8303a'; x.fillRect(6, 0, 7, 8); x.fillStyle = '#ffffff'; x.fillRect(8, 0, 3, 8);
+    x.fillStyle = '#ffffff'; x.fillRect(38, 0, 7, 8); x.fillStyle = '#e8303a'; x.fillRect(40, 0, 3, 8);
+  }),
+  tape: tex(16, 8, (x, w, h) => {                 // TERRAZA: cinta de peligro amarilla y negra
+    x.fillStyle = '#ffd21a'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#1a1a1a'; for (let i = -8; i < w; i += 8) { x.beginPath(); x.moveTo(i, h); x.lineTo(i + 4, h); x.lineTo(i + 8, 0); x.lineTo(i + 4, 0); x.fill(); }
+    x.fillStyle = 'rgba(255,255,255,.25)'; x.fillRect(0, 1, w, 1);
+  }),
+  velvet: tex(16, 16, (x, w, h) => {              // foso del circo: terciopelo rojo con flecos dorados
+    noisy(x, w, h, '#5a0a14', 0.2); x.fillStyle = 'rgba(0,0,0,.25)'; for (let i = 0; i < w; i += 4) x.fillRect(i, 0, 1, h);
+    x.fillStyle = '#ffd24a'; for (let i = 0; i < w; i += 2) x.fillRect(i, 0, 1, 2);
+  }),
+  gutter: tex(16, 16, (x, w, h) => {              // foso de la terraza: canaleta con rejilla
+    noisy(x, w, h, '#2a2c32', 0.2); x.fillStyle = '#16171b'; for (let i = 1; i < w; i += 3) x.fillRect(i, 3, 1, 10);
+    x.fillStyle = '#4a4c52'; x.fillRect(0, 2, w, 1); x.fillRect(0, 13, w, 1);
+  }),
 };
 setWhiteTexture(TX.white);

@@ -6,8 +6,7 @@ import { game, world } from '../state.js';
 import { buildArena, arenaGroup, arenaMats } from '../world/arena.js';
 import { R, CORN } from '../config.js';
 import { P as PART } from '../fx/particles.js';
-import { decorBolas } from '../world/decor.js';
-import { decorCirco, decorPlaya, decorTerraza, carousel, column, rubble, crab } from '../world/decorBolas.js';
+import { decorEspacio, decorCirco, decorPlaya, decorTerraza, carousel, column, rubble, crab } from '../world/decorBolas.js';
 import { TX } from '../render/textures.js';
 import { mat } from '../render/psx.js';
 import { buildBalls, removeBall } from '../world/balls.js';
@@ -32,14 +31,14 @@ let sendT = 0;
 const CAR_R = 1.5, CAR_SPIN = 6, WIND = 5;
 const COL_R = 1.15, COL_HP = 12, MOUND_R = 0.7, CRAB_R = 0.85, CRAB_SP = 3.2;
 const MAPS = [
-  { name: 'ESPACIO', build: (g) => decorBolas(g), fog: { col: 0x04060b, near: 40, far: 80 },
-    floor: [TX.floor, 0xe8eef0], outer: [TX.outer, 0xffffff, 1], rim: TX.rim, tower: [TX.tower, 0xffffff], ring: 0x35f0ff, cap: [TX.bronze, 0xffffff], ball: 'chrome' },
+  { name: 'ESPACIO', build: (g) => decorEspacio(g), fog: { col: 0x04060b, near: 40, far: 80 },
+    floor: [TX.floor, 0xe8eef0], outer: [TX.outer, 0xffffff, 0], rim: TX.rim, tower: [TX.tower, 0xffffff], ring: 0x35f0ff, cap: [TX.bronze, 0xffffff], ball: 'chrome', strip: [TX.lights, 22, 0], pit: [TX.pit, 0xffffff] },
   { name: 'CIRCO', build: (g) => decorCirco(g), fog: { col: 0x2a0a14, near: 45, far: 110 }, rule: 'EL TAMBOR DEL MEDIO GIRA Y DESVÍA LAS PELOTAS',
-    floor: [TX.carnival, 0xffffff], outer: [TX.sand, 0xc88a58, 1], rim: TX.fairFence, tower: [TX.circus, 0xffffff], ring: 0xffd24a, cap: [TX.circus, 0xffffff], ball: 'circus', carousel: true },
+    floor: [TX.carnival, 0xffffff], outer: [TX.sand, 0xc88a58, 1], rim: TX.fairFence, tower: [TX.circus, 0xffffff], ring: 0xffd24a, cap: [TX.circus, 0xffffff], ball: 'circus', carousel: true, strip: [TX.marquee, 22, 3], pit: [TX.velvet, 0xffffff] },
   { name: 'PLAYA', build: (g) => decorPlaya(g), fog: { col: 0xd8807a, near: 55, far: 150 }, rule: 'VIENTO (MIRÁ LAS FLECHAS) Y UN CANGREJO QUE CRUZA',
-    floor: [TX.beachFloor, 0xffffff], outer: [TX.sand, 0xffffff, 0.58], rim: TX.beachRim, tower: [TX.lifeguard, 0xffffff], ring: 0xffffff, cap: [TX.cloth, 0xe83a3a], ball: 'beach', wind: true, crab: true },
+    floor: [TX.beachFloor, 0xffffff], outer: [TX.sand, 0xffffff, 0.58], rim: TX.beachRim, tower: [TX.lifeguard, 0xffffff], ring: 0xffffff, cap: [TX.cloth, 0xe83a3a], ball: 'beach', wind: true, crab: true, strip: [TX.rope, 5, 0.12], pit: [TX.water, 0x9ad0e8] },
   { name: 'TERRAZA', build: (g) => decorTerraza(g), fog: { col: 0x0c1030, near: 45, far: 110 }, rule: 'LA COLUMNA SE ROMPE A PELOTAZOS Y DEJA ESCOMBROS',
-    floor: [TX.roofTiles, 0xffffff], outer: [TX.roofTiles, 0x8a8a8a, 0.5], rim: TX.parapet, tower: [TX.tank, 0xffffff], ring: 0xff5fa2, cap: [TX.metal, 0xa8b0b8], ball: 'chrome', column: true },
+    floor: [TX.roofTiles, 0xffffff], outer: [TX.roofTiles, 0x8a8a8a, 0.5], rim: TX.parapet, tower: [TX.tank, 0xffffff], ring: 0xff5fa2, cap: [TX.metal, 0xa8b0b8], ball: 'chrome', column: true, strip: [TX.tape, 18, 0], pit: [TX.gutter, 0xffffff] },
 ];
 const S = {
   map: 0, wa: 0, wst: 0, wT: 8,                   // viento — wst: 0 calma · 1 aviso · 2 sopla
@@ -80,10 +79,19 @@ function applyMap(i) {
   MG.groups.forEach((g, k) => { g.visible = k === i; });
   const setM = (mt, map, col) => { mt.uniforms.uMap.value = map; mt.uniforms.uColor.value.set(col); };
   setM(arenaMats.floor, m.floor[0], m.floor[1]);
-  setM(arenaMats.outerMesh.material, m.outer[0], m.outer[1]); arenaMats.outerMesh.scale.set(m.outer[2], 1, m.outer[2]);
+  setM(arenaMats.outerMesh.material, m.outer[0], m.outer[1]); arenaMats.outerMesh.scale.set(m.outer[2] || 1, 1, m.outer[2] || 1); arenaMats.outerMesh.visible = m.outer[2] > 0;   // en el espacio no hay piso: flota
   setM(arenaMats.rim, m.rim, 0xffffff);
   setM(arenaMats.tower, m.tower[0], m.tower[1]);
   arenaMats.towerRing.uniforms.uColor.value.set(m.ring);
+  // línea del arco y foso de atrás, según el mapa
+  setM(arenaMats.strip, m.strip[0], 0xffffff); arenaMats.strip.uniforms.uOff.value.set(0, 0);
+  arenaMats.strips.forEach((g) => {                   // cuántas veces se repite la textura a lo largo de la línea
+    const uv = g.attributes.uv; if (!g.userData.base) g.userData.base = Float32Array.from(uv.array);
+    const b = g.userData.base, k = m.strip[1] / 22;
+    for (let i = 0; i < uv.count; i++) uv.setX(i, b[i * 2] * k);
+    uv.needsUpdate = true;
+  });
+  setM(arenaMats.pit, m.pit[0], m.pit[1]);
   setM(arenaMats.cap, m.cap[0], m.cap[1]); setM(arenaMats.capRim, m.cap[0], new THREE.Color(m.cap[1]).multiplyScalar(0.7).getHex());
   game.balls.forEach((b) => {
     if (!b.chromeM) { b.chromeM = b.m; b.beachM = mat({ map: TX.beachBall }); b.circusM = mat({ map: TX.circusBall }); }
@@ -301,6 +309,8 @@ const bolas = {
 const sandM4 = new THREE.Matrix4(), sandQ = new THREE.Quaternion(), sandV = new THREE.Vector3(), sandS = new THREE.Vector3(1, 1, 1), UP = new THREE.Vector3(0, 1, 0);
 function mapVisuals(dt, clock) {
   const m = MAPS[S.map];
+  if (m.strip[2]) arenaMats.strip.uniforms.uOff.value.x = (clock * m.strip[2] / m.strip[1]) % 1;     // foquitos / boyas que se mueven
+  if (m.pit[0] === TX.water) arenaMats.pit.uniforms.uOff.value.set((clock * 0.05) % 1, (clock * 0.08) % 1);
   if (m.column && MG.col) {
     if (game.online !== 'guest' && S.colHitT > 0) S.colHitT -= dt;
     const C = MG.col, k = S.hp / COL_HP;

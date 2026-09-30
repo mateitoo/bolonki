@@ -29,9 +29,12 @@ export function buildArena() {
   SIDES.forEach((s) => {
     const rt = rotT(s);
     const strip = scaleUV(new THREE.PlaneGeometry(2 * G, 0.7), 22, 1); strip.rotateX(-Math.PI / 2);
+    arenaMats.strips = arenaMats.strips || [];
+    arenaMats.strips.push(strip);
     add(strip, arenaMats.strip, s.nx * (H + 0.35), 0.02, s.nz * (H + 0.35)).rotation.y = rt;
     const pit = new THREE.PlaneGeometry(2 * G, 3.2); pit.rotateX(-Math.PI / 2);
-    add(pit, mat({ map: TX.pit }), s.nx * (H + 2.3), -1.2, s.nz * (H + 2.3)).rotation.y = rt;
+    arenaMats.pit = arenaMats.pit || mat({ map: TX.pit });
+    add(pit, arenaMats.pit, s.nx * (H + 2.3), -1.2, s.nz * (H + 2.3)).rotation.y = rt;
     const wall = scaleUV(new THREE.BoxGeometry(2 * G + 2, 1.4, 0.6), 8, 1);
     add(wall, arenaMats.rim, s.nx * (H + 4.1), -0.5, s.nz * (H + 4.1)).rotation.y = rt;
 

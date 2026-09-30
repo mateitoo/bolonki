@@ -34,6 +34,8 @@ const BR0 = 0.58, BMASS = 0.42;              // pelota (en el hielo es más chic
 let BR = BR0;
 const BFRIC = 0.75; let BMAX = 21; const WALL_B = 0.78, KICK = 4.5;
 const MATCH_T = 120, GOAL_PAUSE = 2.8, END_PAUSE = 2.2, FREEZE = 0.8;
+const TEAM_HULL = [0x5a9aff, 0xff5a4a], TEAM_BUMP = [0x2a5ad8, 0xc8302a];
+const restoreHull = (p) => { const m = p.mesh; [m.hullM, m.bumpM].forEach((mt) => { const o = m.vehMats.find((q) => q.m === mt); if (o) mt.uniforms.uColor.value.copy(o.base); }); };
 const TEAM_COL = ['#35a0ff', '#ff5a4a'], TEAM_HEX = [0x35a0ff, 0xff5a4a], TEAM_NAME = ['AZUL', 'ROJO'];
 
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -51,7 +53,7 @@ const MAPS = [
     pitch: [TX.pitch, 0xffffff], lines: 0xf4f6f0, wall: TX.ads, cap: 0x2a2f3c, post: 0xf2f4f8, net: 0xdfe6ee, phys: { acc: 1, fric: 1, bfric: 1 } },
   { name: 'POTRERO', decor: (g) => decorPotrero(g, HX, HZ), fog: { col: 0x4a2a3a, near: 50, far: 125 }, extra: 'BARRO QUE FRENA · LA PELOTA SE PINCHA A LOS 3 GOLPES',
     pitch: [TX.potrero, 0xffffff], lines: 0xf0e8d0, wall: TX.graffiti, cap: 0x6a5a4a, post: 0xb07a48, postMap: TX.wood, net: 0xd8d0c0, phys: { acc: 1, fric: 1, bfric: 1 }, mud: true,
-    noLines: true, brokenNet: true, ballMap: TX.oldBall, ballFx: 'flat' },
+    noLines: true, noNet: true, ballMap: TX.oldBall, ballFx: 'flat' },
   { name: 'LAGO HELADO', decor: (g) => decorHielo(g, HX, HZ), fog: { col: 0x0a1428, near: 50, far: 125 }, extra: 'HIELO · LA PELOTA ARRANCA CONGELADA (3 GOLPES LA ROMPEN)',
     pitch: [TX.icePitch, 0xa8d0f0], lines: 0x3a9aff, wall: TX.boards, cap: 0x2a5aff, post: 0xe8303a, net: 0xf4f6fa, phys: { acc: 0.62, fric: 0.28, bfric: 0.5 }, gw: 1.75, br: 0.4, bmax: 15, ballFx: 'ice' },
 ];
@@ -197,7 +199,7 @@ function applyMap(i) {
   BR = m.br || BR0; BMAX = m.bmax || 21;
   W.M.post.uniforms.uMap.value = m.postMap || TX.white;
   W.lines.forEach((l) => { l.visible = !m.noLines; });
-  W.nets.forEach((c) => { c.visible = !m.brokenNet || c.userData.keep; });
+  W.nets.forEach((c) => { c.visible = !m.noNet; });
   W.ball.material.uniforms.uMap.value = m.ballMap || TX.football;
   if (W.ball) { W.ball.scale.setScalar(BR / BR0); W.ballSh.scale.setScalar(BR / BR0); }
   if (!S.golden) S.gw = mapGw();
@@ -579,7 +581,10 @@ const futbol = {
     return r;
   },
   build: buildWorld,
-  show(on) { if (W.grp) W.grp.visible = on; },
+  show(on) {
+    if (W.grp) W.grp.visible = on;
+    if (!on) game.players.forEach((p) => { if (p.mesh) restoreHull(p); });      // las naves vuelven a su color
+  },
 
   reset() { pickMap(); newMatch(); sendT = 0; W.lastB = null; },
   step,
@@ -621,6 +626,8 @@ const futbol = {
       m.sh.position.set(p.x, 0.03, p.z); m.sh.rotation.y = p.ang || 0; m.sh.scale.set(1.95 * POD_SCALE, 1, 1.6 * POD_SCALE); m.sh.visible = true;
       ring.visible = true; ring.position.set(p.x, 0.035, p.z);
       W.ringM[p.i].uniforms.uColor.value.setHex(TEAM_HEX[t]);
+      // la nave del color del equipo (casco y paragolpes)
+      m.hullM.uniforms.uColor.value.setHex(TEAM_HULL[t]); m.bumpM.uniforms.uColor.value.setHex(TEAM_BUMP[t]);
     }
   },
 

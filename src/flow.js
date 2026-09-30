@@ -28,7 +28,7 @@ const set = (key, after) => (v) => { settings[key] = v; saveSettings(); if (afte
 export const MAIN = doorsMenu({
   doors: [
     { label: 'FIESTA', sub: 'TABLERO, DADOS Y COPAS', thumb: () => 'fiesta', action: () => openSala('fiesta') },
-    { label: 'MINIJUEGOS', sub: 'ELEGÍ UNO Y A JUGAR', thumb: () => MINIGAMES[((ui.clock || 0) / 2.2 | 0) % MINIGAMES.length].id, action: () => openSala('libre') },
+    { label: 'MINIJUEGOS', sub: 'ELEGÍ UNO Y A JUGAR', thumb: () => { const n = MINIGAMES.length, k = Math.floor((ui.clock || 0) / 2.2) || 0; return MINIGAMES[((k % n) + n) % n].id; }, action: () => openSala('libre') },
   ],
   row: [
     { label: 'ONLINE', action: () => openMenu(ONLINE) },

@@ -64,13 +64,14 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   hasta que alguien la meta. Los CPU se reparten: uno va a buscar la pelota y el otro ataja. Un tiro que el rival desvía
   adentro cuenta como gol del que pateó.
   Tres mapas (misma cancha; `world/decorFutbol.js`): **Estadio** (el de siempre), **Potrero** (canchita de tierra del
-  barrio al atardecer, con alambrado, casas, autos y un perro dando vueltas; arcos de madera con la red rota, sin
+  barrio al atardecer, con alambrado, casas, autos y un perro dando vueltas; arcos de madera sin red, sin
   líneas (solo el punto del medio) y una pelota de cuero gastada que **se pincha al tercer golpe**: tiembla, larga
   aire y queda aplastada y más lenta hasta el próximo saque; cuatro **charcos de barro** —simétricos respecto del
   medio— frenan la pelota y a las naves) y **Lago helado** (pista de hielo en el bosque nevado de noche,
   con aurora y nieve que cae; las naves **patinan**, la pelota es más chica y los arcos más angostos, con líneas celestes; en cada saque la
   pelota arranca **congelada** —desliza más— y se rompe el hielo a los 3 golpes).
-  Abajo de los retratos de Futbolonki van solo los nombres (los goles están en el marcador grande).
+  Abajo de los retratos de Futbolonki van solo los nombres (los goles están en el marcador grande). Las naves
+  se pintan del color del equipo (casco y paragolpes), igual que el aro de abajo.
 - **Rey de la colina** (a pie): una isla de costa irregular con tres colinas distintas (el Morro, con ruinas arriba; la Mesa,
   ancha y con bandera; y el Peñón, chico y pegado al agua), un puente colgante entre el Morro y la Mesa, un muelle que sale
   al mar (a veces el palo aparece en la punta) y palmeras, rocas, un bote y barriles que estorban. La corona flota sobre la cima

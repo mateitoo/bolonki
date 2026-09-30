@@ -447,5 +447,20 @@ export const TX = {
       const r = Math.random(); x.fillStyle = r < 0.35 ? '#ffd88a' : r < 0.45 ? '#8ad8ff' : '#0c0e18'; x.fillRect(i, j, 3, 3);
     }
   }),
+
+  /* ---------- Hexágonos ---------- */
+  hexTop: tex(32, 32, (x, w, h) => {              // tapa de la baldosa: clarita en el medio, con brillo
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h);
+    const g = x.createRadialGradient(16, 16, 2, 16, 16, 18); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.28)');
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 40; i++) { x.fillStyle = 'rgba(255,255,255,.35)'; x.fillRect(Math.random() * w, Math.random() * h, 1, 1); }
+  }),
+  hexSide: tex(16, 16, (x, w, h) => {             // costado: rayitas, más oscuro abajo
+    noisy(x, w, h, '#e8e8e8', 0.12); x.fillStyle = 'rgba(0,0,0,.25)'; x.fillRect(0, 10, w, 6); x.fillStyle = 'rgba(255,255,255,.4)'; x.fillRect(0, 0, w, 2);
+  }),
+  slime: tex(32, 32, (x, w, h) => {               // slime verde con burbujas
+    noisy(x, w, h, '#4ec81a', 0.25);
+    for (let i = 0; i < 18; i++) { const cx = Math.random() * w, cy = Math.random() * h, r = rnd(1, 3); x.fillStyle = 'rgba(210,255,120,.7)'; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); x.fillStyle = 'rgba(40,120,10,.5)'; x.fillRect(cx + r * 0.3, cy + r * 0.3, 1, 1); }
+  }),
 };
 setWhiteTexture(TX.white);

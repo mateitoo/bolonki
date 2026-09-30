@@ -97,6 +97,19 @@ export const SONGS = {
     drums: { A: 'k..hs.h.k.hks.h.', B: 'x..ho.hkx.hko.h.', fill: 'k..hs.hkk.s.s.ss' },
   },
 
+  // Hexágonos: saltarín y apurado, en Fa mayor (el piso se cae)
+  hexagonos: {
+    bpm: 144, loop: true, leadWave: 'pulse25', arpWave: 'pulse125', bass: 'octave8', arp: 'up16', leadVol: 0.85,
+    chords: ['F', 'Dm', 'Bb', 'C', 'F', 'Dm', 'Gm', 'C', 'Bb', 'C', 'Am', 'Dm', 'Gm', 'C', 'F', 'C'],
+    lead: [
+      'F5:2 A5:2 C6:2 A5:2 F5:2 C5:2 F5:4', 'D5:2 F5:2 A5:2 D6:2 C6:4 A5:4', 'Bb5:2 D6:2 Bb5:2 F5:2 D5:4 F5:4', 'C6:2 Bb5:2 A5:2 G5:2 E5:4 C5:4',
+      'F5:2 F5:2 A5:2 C6:2 F6:4 C6:4', 'D6:2 C6:2 A5:2 F5:2 D5:4 A5:4', 'G5:2 Bb5:2 D6:2 Bb5:2 G5:4 D5:4', 'E5:4 G5:4 C6:4 E6:4',
+      'D6:2 C6:2 Bb5:4 F5:2 G5:2 Bb5:4', 'C6:2 Bb5:2 A5:4 E5:2 F5:2 G5:4', 'A5:2 C6:2 E6:4 C6:2 A5:2 E5:4', 'D5:2 F5:2 A5:4 D6:8',
+      'G5:2 A5:2 Bb5:2 D6:2 G6:4 D6:4', 'C6:2 E6:2 G6:4 E6:2 C6:2 G5:4', 'F5:2 A5:2 C6:2 F6:2 C6:2 A5:2 F5:4', 'C6:4 E5:4 G5:4 C6:4',
+    ],
+    drums: { A: 'x.hkohhkx.hko.hh', B: 'x.hko.hkx.hko.h.', fill: 'x.o.o.hhx.o.oooo' },
+  },
+
   // Fiesta (el tablero): alegre, en Sol mayor
   fiesta: {
     bpm: 118, loop: true, leadWave: 'pulse25', arpWave: 'pulse125', bass: 'bounce', arp: 'up8', leadVol: 0.85,

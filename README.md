@@ -69,6 +69,13 @@ Bolonki es un juego grande con varios minijuegos adentro. Se elige el minijuego 
   adelante (dura 3 golpes). Si te caés al agua volvés a la orilla a los 2 s. De vez en cuando viene una **ola** que barre
   la parte baja de la isla: arriba de las colinas no te toca. Gana el primero en llegar a 20, 30 o 45 puntos o el que
   tiene más al terminar el tiempo (si empatan, desempate: el próximo punto gana).
+- **Hexágonos** (a pie, estilo "hex-a-gone"): cuatro pisos de baldosas hexagonales flotando en el cielo, con el slime
+  abajo de todo. Cada baldosa que pisás tiembla (se pone roja y blanca) y al medio segundo se cae, así que no te podés
+  quedar quieto; si se te cae el piso, caés al de abajo, y si te caés del último quedás afuera. El golpe es **agarrar**:
+  frenás al que tenés adelante (y su baldosa se sigue cayendo) y al apretar otra vez (o solo, a los 1,8 s) lo **tirás**
+  para adelante. A los 45 s el piso se empieza a caer solo. Los pisos que quedaron arriba de todos se desarman para que
+  se vea lo de abajo, y la cámara baja siguiendo a los que quedan. Gana la ronda el último en pie (a 1, 2 o 3 rondas).
+  El estado de cada baldosa va en la foto del anfitrión (un caracter por baldosa).
 
 En la Fiesta, Futbolonki y Rey de la colina duran 90 segundos en lugar de 2 minutos.
 

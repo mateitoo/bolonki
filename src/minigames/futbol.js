@@ -581,13 +581,12 @@ const futbol = {
 
   onLocalHit(p) { p.wantDash = true; },
 
-  // debajo de cada retrato: el color del equipo y sus goles
+  // debajo de cada retrato: solo el color del equipo (los goles ya están en el marcador grande)
   drawScore(p, x, y) {
     const t = S.team[p.i];
-    if (p.empty || t < 0) { txt('--', x, y, 16, '#555b6e', 'center', COL.goldShadow); return; }
-    rect(x - 12, y + 1, 24, 13, '#000');
-    rect(x - 11, y + 2, 22, 11, TEAM_COL[t]);
-    txt(String(S.goals[t]), x, y + 4, 8, '#fff', 'center');
+    if (p.empty || t < 0) return;
+    rect(x - 12, y + 4, 24, 5, '#000');
+    rect(x - 11, y + 5, 22, 3, TEAM_COL[t]);
   },
   hud(hw, st) {
     // marcador y reloj arriba al medio
@@ -603,7 +602,7 @@ const futbol = {
 
     if (st === 'count' && game.mode !== 'demo') {
       const myT = S.team[game.me];
-      if (game.mode !== 'local' && myT >= 0) txt(`JUGÁS EN EL EQUIPO ${TEAM_NAME[myT]}`, cx, 150, 8, TEAM_COL[myT], 'center');
+      if (game.mode !== 'local' && myT >= 0) txt(`JUGÁS EN EL EQUIPO ${TEAM_NAME[myT]}`, cx, 156, 8, TEAM_COL[myT], 'center');
       txt(`¡EL PRIMERO EN METER ${game.target || 3} GANA!`, cx, 170, 8, '#ffb31a', 'center');
       txt('GOLPE = EMBESTIDA (PELOTAZO)', cx, 184, 8, COL.dim, 'center');
     }

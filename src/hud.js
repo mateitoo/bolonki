@@ -104,8 +104,14 @@ function drawNameTags(hw, st) {
     if (!name) continue;
     v3.set(p.x, tagY + (m.tagFeet ? p.fy || 0 : 0), p.z).project(camera);
     if (v3.z > 1) continue;
-    const x = Math.round((v3.x + 1) / 2 * hw), y = Math.round((1 - v3.y) / 2 * 240) - 4;
-    txt(name, x, Math.max(58, Math.min(214, y)), 8, charOf(p.i).col, 'center');
+    const x = Math.round((v3.x + 1) / 2 * hw), y = Math.round((1 - v3.y) / 2 * 240) - 4, ty = Math.max(58, Math.min(214, y));
+    txt(name, x, ty, 8, charOf(p.i).col, 'center');
+    // al arrancar: una flecha que salta señalando tu personaje (en el local, la de cada jugador de esta pantalla)
+    const start = st === 'count' || (st === 'play' && game.elapsed < 3.5);
+    if (start && p.ctrl === 'local' && !board) {
+      const by = ty + 9 + Math.round(Math.abs(Math.sin(game.clock * 7)) * 3), col = charOf(p.i).col;
+      for (let k = 0; k < 6; k++) { rect(x - 6 + k + 1, by + k + 1, 12 - k * 2, 1, 'rgba(0,0,0,.7)'); rect(x - 6 + k, by + k, 12 - k * 2, 1, col); }
+    }
   }
 }
 

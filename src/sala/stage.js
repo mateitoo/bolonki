@@ -9,6 +9,8 @@ import { TX } from '../render/textures.js';
 import { drawWalker } from '../world/walker.js';
 import { charOf } from '../chars.js';
 import { burst } from '../fx/particles.js';
+import { input } from '../input.js';
+import { toHud, view } from '../display.js';
 
 // Podio k (de izquierda a derecha) -> lugar de la partida. Es el mismo orden en que entran
 // los jugadores locales (J1, J2, J3, J4) y los invitados online (anfitrión, 1°, 2°, 3°).
@@ -68,12 +70,36 @@ function reset() {
     p.mesh.scorch.visible = false;
   });
   STAGE.pick = [0, 0, 0, 0]; STAGE.lockT = [0, 0, 0, 0];
+  SPIN.a = [0, 0, 0, 0]; SPIN.v = [0, 0, 0, 0];
+}
+
+// Girar a los personajes arrastrando con el mouse (o el dedo): se agarra el del podio más cercano
+// a donde empezó el arrastre, y al soltarlo sigue girando un poquito hasta frenar.
+const SPIN = { k: -1, a: [0, 0, 0, 0], v: [0, 0, 0, 0] };
+const tmpV = new THREE.Vector3();
+function spinDrag(rdt) {
+  const d = input.drag;
+  if (d.on) {
+    if (SPIN.k === -1) {
+      const px = (toHud(d.lx, d.ly).x / view.hw) * 2 - 1;
+      let best = -2, bd = 0.3;
+      for (let k = 0; k < 4; k++) { if (STAGE.occ[k] === 'none') continue; tmpV.set(PODIUM_X[k], 2, 0.4).project(camera); const dd = Math.abs(tmpV.x - px); if (dd < bd) { bd = dd; best = k; } }
+      SPIN.k = best;
+    }
+    if (SPIN.k >= 0 && d.dx) { const da = d.dx * 0.014; SPIN.a[SPIN.k] += da; SPIN.v[SPIN.k] = da / Math.max(rdt, 1 / 120); }
+    else if (SPIN.k >= 0) SPIN.v[SPIN.k] *= 0.8;
+  } else SPIN.k = -1;
+  for (let k = 0; k < 4; k++) {
+    if (k === SPIN.k) continue;
+    SPIN.a[k] += SPIN.v[k] * rdt; SPIN.v[k] *= Math.exp(-3.5 * rdt);
+  }
 }
 
 const tmpCol = new THREE.Color();
 function visuals(dt, rdt) {
   W.t += rdt;
   layout();
+  spinDrag(rdt);
   PODIUM_SLOT.forEach((slot, k) => {
     const p = game.players[slot], occ = STAGE.occ[k];
     const on = occ !== 'none';
@@ -93,7 +119,7 @@ function visuals(dt, rdt) {
     p.fy = TOP + 0.3 + (lt > 0 ? Math.abs(Math.sin((1 - lt) * Math.PI * 2)) * 1.1 : 0);
     p.onGround = lt <= 0;
     const sway = STAGE.locked[k] ? Math.sin(W.t * 1.3 + k) * 0.12 : Math.sin(W.t * 2 + k * 1.7) * 0.35;
-    p.ang = sway + STAGE.pick[k] * Math.PI * 2;
+    p.ang = sway + STAGE.pick[k] * Math.PI * 2 + SPIN.a[k];
     p.vx = 0; p.vz = 0;
     drawWalker(p, rdt, 1.25, TOP + 0.3);
     p.mesh.root.position.y = p.fy;

@@ -34,6 +34,7 @@ const DASH_V = 15, DASH_T = 0.22, DASH_CD = 1.1;    // embestida
 const BOUNCE = 0.85;         // rebote de los choques
 const DASH_PUSH = 3.2;       // empujón extra de la embestida
 const DASH_MASS = 2.2;       // la embestida "pesa" más
+const HAZARD_AT = 10;         // desde cuándo caen bolas de fuego (volcán) y carámbanos (glaciar)
 const SHRINK_AT = 14, SHRINK_RATE = 0.11, WARN_AT = 11;
 const ROUND_PAUSE = 2.4;     // segundos de festejo entre rondas
 const SPAWN_R = 5.3;
@@ -180,7 +181,7 @@ function spawnFireball() {
 const IC_R = 1.35, IC_WARN = 1.5, IC_STUN = 1.7;
 function stepIcicles(dt, R) {
   if (S.map !== 0) { S.ic = []; return; }
-  if (!R.over && game.elapsed > 3) {
+  if (!R.over && game.elapsed > HAZARD_AT) {
     S.icT -= dt;
     if (S.icT <= 0 && S.ic.length < 3) {
       const alive = game.players.filter((p) => p.alive && !p.empty), r = game.radius * 0.85;
@@ -211,7 +212,7 @@ function stepIcicles(dt, R) {
 
 function stepFireballs(dt, R) {
   if (S.map !== 1) { S.fb = []; return; }
-  if (!R.over && game.elapsed > 3) {
+  if (!R.over && game.elapsed > HAZARD_AT) {
     S.fbT -= dt;
     if (S.fbT <= 0 && S.fb.length < 4) { spawnFireball(); S.fbT = rnd(2.0, 3.6) * (game.radius < R0 - 2 ? 0.75 : 1); }
   }
@@ -277,7 +278,7 @@ function placeAll() {
   game.radius = R0;
   game.elapsed = 0;
   warned = false;
-  S.fb = []; S.fbT = 4; S.ic = []; S.icT = 4;
+  S.fb = []; S.fbT = 1; S.ic = []; S.icT = 1.6;       // (cuentan recién desde HAZARD_AT)
   game.players.forEach((p) => { p.stunT = 0; });
 }
 

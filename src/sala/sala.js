@@ -241,6 +241,7 @@ const SALA = {
     const me = S.seats[k0];
     const sub = net() === 'guest' && me.locked ? 'ESPERANDO AL ANFITRIÓN' : me.locked && net() !== 'guest' ? 'ESPERANDO A LOS DEMÁS' : 'ELEGÍ TU PERSONAJE';
     txt(sub, 12, 28, 8, COL.teal);
+    if (input.device !== 'gamepad') txt(input.device === 'pointer' ? 'ARRASTRÁ UN PERSONAJE PARA GIRARLO' : 'CON EL MOUSE PODÉS GIRARLOS', 12, 40, 8, COL.dim);
     // online: código de la sala y cómo viene
     if (net() !== 'off') {
       const code = room.code || '····';

@@ -160,6 +160,47 @@ function spotlight(p, x, z, tx, tz, col, ph) {                // reflector colga
     beam.rotation.set(0, 0, 0); beam.lookAt(g.position.x + dx, g.position.y + dy, g.position.z + dz); beam.rotateX(Math.PI / 2);
   });
 }
+function ringmaster(p, x, z) {                                // presentador con galera y saco rojo, arriba de un tambor, saludando
+  const pd = pedestal(p, x, z, 1.1, 1.1);
+  const g = grp(pd, 0, 1.15, 0), red = P.M(0xd8202a), blk = P.M(0x1a1a1e), skin = P.M(0xf0c8a8), gold = P.M(0xffd24a);
+  add(box(0.5, 0.9, 0.3), blk, 0, 0.45, 0, g);                                  // pantalón
+  add(box(0.7, 0.8, 0.45), red, 0, 1.3, 0, g);                                   // saco
+  [-0.12, 0.12].forEach((sx) => add(box(0.06, 0.06, 0.02), gold, sx, 1.45, 0.24, g));
+  add(new THREE.SphereGeometry(0.26, 8, 6), skin, 0, 1.95, 0, g);
+  add(box(0.3, 0.06, 0.05), blk, 0, 1.9, 0.25, g);                               // bigote
+  add(new THREE.CylinderGeometry(0.36, 0.36, 0.04, 10), blk, 0, 2.18, 0, g); add(new THREE.CylinderGeometry(0.22, 0.24, 0.5, 10), blk, 0, 2.42, 0, g);
+  add(new THREE.CylinderGeometry(0.245, 0.245, 0.08, 10), red, 0, 2.24, 0, g);
+  const arm = grp(g, 0.42, 1.55, 0); add(box(0.16, 0.6, 0.16), red, 0, 0.25, 0, arm); add(new THREE.SphereGeometry(0.1, 6, 4), P.M(0xffffff), 0, 0.6, 0, arm);
+  add(box(0.16, 0.6, 0.16), red, -0.42, 1.25, 0, g);
+  P.anim(g, (t) => { arm.rotation.z = -0.4 + Math.sin(t * 3) * 0.5; g.rotation.y = Math.sin(t * 0.5) * 0.6; });
+}
+function popcorn(p, x, z, ry) {                                  // carrito de pochoclos
+  const g = grp(p, x, Y, z, ry);
+  add(box(1.8, 1.0, 1.1), P.M(0xe8303a, { map: TX.circus }), 0, 0.7, 0, g);
+  [[-0.8, -0.45], [0.8, -0.45], [-0.8, 0.45], [0.8, 0.45]].forEach(([a, b]) => add(box(0.08, 1.4, 0.08), P.M(0xffd24a), a, 1.9, b, g));
+  add(box(1.9, 0.2, 1.2), P.M(0xe8303a), 0, 2.65, 0, g);
+  add(box(1.5, 0.8, 0.9), P.M(0xfff4c8, { map: TX.pebble }), 0, 1.6, 0, g);        // pochoclos adentro
+  [-0.55, 0.55].forEach((a) => { const w = add(new THREE.CylinderGeometry(0.4, 0.4, 0.1, 10), P.M(0x2a2a2e), a, 0.3, 0.6, g); w.rotation.x = Math.PI / 2; });
+  add(box(1.4, 0.35, 0.05), P.M(0xffd24a, { unlit: true }), 0, 2.95, 0.6, g);
+}
+function cottonCandy(p, x, z, ry) {                             // puesto de algodón de azúcar
+  const g = grp(p, x, Y, z, ry);
+  add(new THREE.CylinderGeometry(0.8, 0.9, 1.1, 10), P.M(0xff8ac0, { map: TX.circus }), 0, 0.55, 0, g);
+  for (let k = 0; k < 4; k++) {
+    const a = (k / 4) * Math.PI * 2, sx = Math.sin(a) * 0.5, sz = Math.cos(a) * 0.5;
+    add(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 4), P.M(0xffffff), sx, 1.5, sz, g);
+    add(new THREE.DodecahedronGeometry(0.32, 1), P.M([0xffb0e0, 0x9ad8ff, 0xffffff, 0xd8b0ff][k]), sx, 2.1, sz, g);
+  }
+}
+function clownCar(p, x, z) {                                    // autito de payasos (tiembla, como a punto de explotar de gente)
+  const g = grp(p, x, Y, z, -Math.PI / 2 + 0.3);
+  add(box(1.6, 0.8, 2.4), P.M(0xffd23a, { map: TX.metal }), 0, 0.7, 0, g);
+  add(box(1.4, 0.6, 1.2), P.M(0x3a8aff, { map: TX.metal }), 0, 1.4, -0.2, g);
+  [[-0.8, 0.8], [0.8, 0.8], [-0.8, -0.8], [0.8, -0.8]].forEach(([a, b]) => { const w = add(new THREE.CylinderGeometry(0.4, 0.4, 0.3, 10), P.M(0x1a1a1e), a, 0.4, b, g); w.rotation.z = Math.PI / 2; });
+  [[-0.35, 0xff5a4a], [0.1, 0x39d98a], [0.45, 0xb07aff]].forEach(([a, c]) => { add(new THREE.SphereGeometry(0.24, 8, 6), P.M(0xf4f2ee), a, 1.95, 0.1, g); add(new THREE.SphereGeometry(0.07, 5, 4), P.M(0xe8203a), a, 1.93, 0.33, g); add(new THREE.SphereGeometry(0.2, 6, 4), P.M(c), a, 2.12, 0.05, g); });
+  add(new THREE.SphereGeometry(0.2, 6, 4), P.M(0xff3a3a), 0, 1.2, 1.25, g);   // bocina
+  P.anim(g, (t) => { g.position.y = Y + Math.abs(Math.sin(t * 9)) * 0.08; g.rotation.z = Math.sin(t * 7) * 0.03; });
+}
 export function decorCirco(g) {
   P.sky(g, [[0, '#1a0610'], [0.4, '#3a0a1a'], [0.5, '#5a1a2a'], [1, '#12060a']], { r: 110 });
   // la carpa: pared rayada alrededor y el techo en punta (alto, así no tapa la cámara)
@@ -192,6 +233,11 @@ export function decorCirco(g) {
   trapeze(g, -6, -4, 17); trapeze(g, 6, 4, 17);
   spotlight(g, -18, -18, 0, 0, 0xfff0b0, 0); spotlight(g, 18, -18, 0, 0, 0xffb0d0, 2); spotlight(g, 18, 18, 0, 0, 0xb0e0ff, 4); spotlight(g, -18, 18, 0, 0, 0xfff0b0, 5);
   P.balloons(g, -16, 3, -2, 3, 5); P.balloons(g, 16, 3, 2, 3, 5);
+  ringmaster(g, 0, -17.6);
+  popcorn(g, -17.4, 5.5, 0.9); cottonCandy(g, 17.4, 6, -0.9);
+  clownCar(g, 17.2, -5.5);
+  // guirnaldas de lamparitas colgadas del techo hasta el borde de la pista
+  for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2 + 0.2; P.chaseLights(g, 0, 22, 0, Math.sin(a) * 17, 9, Math.cos(a) * 17, 10, [0xffe07a, 0xff5fa2, 0x7ae0ff][k % 3], 2); }
   P.scatter(g, 0, Y + 0.01, 0, 30, 30, 200, 0xffe14a, 0.12, [15, 15]);        // papel picado
   P.scatter(g, 0, Y + 0.01, 0, 30, 30, 200, 0xff5fa2, 0.12, [15, 15]);
 }

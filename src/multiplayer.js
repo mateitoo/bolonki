@@ -85,14 +85,14 @@ const PUBLIC = {
   onBack: () => { stopBrowse(); if (room.role === 'guest') leaveRoom(); closeMenu(); },
 };
 
+// UNIRSE: entrar a la sala de otro (crear una sala propia se hace desde JUGAR > INVITAR AMIGOS)
 export const ONLINE = {
-  id: 'online', title: 'ONLINE', width: 270,
+  id: 'online', title: 'UNIRSE A UNA SALA', width: 290,
   items: [
-    { kind: 'action', label: 'CREAR SALA DE FIESTA', action: () => hostSala('fiesta') },
-    { kind: 'action', label: 'CREAR SALA DE MINIJUEGOS', action: () => hostSala('libre') },
-    { kind: 'action', label: 'UNIRSE CON CÓDIGO', action: () => withName(() => { JOIN.reset(''); openMenu(JOIN); }) },
-    { kind: 'action', label: 'SALAS PÚBLICAS', action: () => withName(() => { browsePublic(); openMenu(PUBLIC); }) },
-    { kind: 'action', label: 'APODO', value: () => settings.name || '-', action: () => editName() },
+    { kind: 'info', center: true, label: 'PEDILE EL CÓDIGO A TU AMIGO', labelColor: () => COL.teal },
+    { kind: 'action', label: 'ESCRIBIR EL CÓDIGO', button: true, h: 22, action: () => withName(() => { JOIN.reset(''); openMenu(JOIN); }) },
+    { kind: 'action', label: 'VER SALAS PÚBLICAS', action: () => withName(() => { browsePublic(); openMenu(PUBLIC); }) },
+    { kind: 'action', label: 'TU APODO', left: true, value: () => settings.name || 'SIN APODO', action: () => editName() },
   ],
 };
 
@@ -137,7 +137,7 @@ function checkVotes() {
 function toLobbyScreen() { openSalaOnline(true); }
 function toMultiMenu() {
   endOnline(); resetMatch('menu'); game.state = 'menu';
-  replaceMenus(MAIN); openMenu(ONLINE);
+  replaceMenus(MAIN);
 }
 export function exitRoom() { leaveRoom(); toMultiMenu(); }
 

@@ -36,6 +36,8 @@ function firstSel(e) { const v = itemsOf(e); return Math.max(0, v.findIndex(sele
 export function openMenu(def) { const e = { def, sel: 0, tab: 0 }; e.sel = firstSel(e); stack.push(e); }
 export function replaceMenus(def) { stack.length = 0; openMenu(def); }
 export function closeMenu() { stack.pop(); }
+// elegir una solapa desde afuera (la sala abre en FIESTA o MINIJUEGOS según lo último que jugaste)
+export function setTab(top, i) { if (top && top.def.tabs) { top.tab = i; top.sel = firstSel(top); } }
 export function closeAllMenus() { stack.length = 0; }
 
 function move(top, d) {
@@ -190,11 +192,11 @@ function drawPanel(top, hw) {
   const sumH = (list) => list.filter((it) => !(it.hidden && it.hidden())).reduce((a, it) => a + hOf(it), 0);
   const fullH = tabs ? Math.max(...tabs.map((t) => sumH(t.items))) : sumH(items);
   const w = Math.min(hw - 24, def.width || 240);
-  const titleH = def.title ? (def.titleSmall ? 22 : 30) : 8;
+  const titleH = def.title ? (def.titleSmall ? 22 : 30) : 5;
   const tabsH = tabs ? 20 : 0;
   const headH = def.headerH || 0;
   // la ventana nunca se mete debajo de la barra de abajo: si la lista no entra, se desplaza (con flechitas)
-  const TOPM = 10, room0 = FOOT_Y - 6 - TOPM - titleH - headH - tabsH - 10;
+  const TOPM = isTouch() ? 4 : 10, room0 = FOOT_Y - 6 - TOPM - titleH - headH - tabsH - 10;
   const rowsH = def.body ? 0 : Math.min(fullH, room0);
   const h = titleH + headH + tabsH + (def.body ? def.bodyH : rowsH) + 10;
   const x = Math.round((hw - w) / 2);

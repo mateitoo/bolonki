@@ -53,15 +53,15 @@ function optionsArt(x, y, w, h) {
   });
 }
 export const MAIN = doorsMenu({
+  // dos acciones: armar una partida (solo, en esta compu o invitando amigos, todo desde la misma sala)
+  // o entrar a la sala de un amigo
   doors: [
-    { label: 'FIESTA', sub: 'TABLERO, DADOS Y COPAS', thumb: () => 'fiesta', action: () => openSala('fiesta'),
-      desc: ['TABLERO, DADOS Y COPAS', 'TIRÁ EL DADO, JUGÁ MINIJUEGOS', 'Y JUNTÁ MÁS COPAS QUE LOS DEMÁS'] },
-    { label: 'MINIJUEGOS', sub: 'ELEGÍ UNO Y A JUGAR', thumb: () => { const n = MINIGAMES.length, k = Math.floor((ui.clock || 0) / 2.2) || 0; return MINIGAMES[((k % n) + n) % n].id; }, action: () => openSala('libre'),
-      desc: () => [`${MINIGAMES.length} MINIJUEGOS · ELEGÍ UNO Y A JUGAR`, 'DE 1 A 4 JUGADORES EN LA MISMA COMPU', 'LOS LUGARES LIBRES LOS JUEGA LA CPU'] },
+    { label: 'JUGAR', sub: 'SOLO O CON AMIGOS', thumb: () => (Math.floor((ui.clock || 0) / 2.2) % (MINIGAMES.length + 1) === 0 ? 'fiesta' : (() => { const n = MINIGAMES.length, k = Math.floor((ui.clock || 0) / 2.2) || 0; return MINIGAMES[((k % n) + n) % n].id; })()), action: () => openSala(settings.mode === 'libre' ? 'libre' : 'fiesta'),
+      desc: ['FIESTA O MINIJUEGOS', 'SOLO, DE A VARIOS EN ESTA COMPU', 'O INVITANDO AMIGOS CON UN CÓDIGO'] },
+    { label: 'UNIRSE', sub: 'ENTRAR A LA SALA DE UN AMIGO', thumb: () => { const n = MINIGAMES.length, k = Math.floor((ui.clock || 0) / 1.6) || 0; return MINIGAMES[((k % n) + n) % n].id; }, action: () => openMenu(ONLINE),
+      desc: ['ENTRÁ A LA SALA DE UN AMIGO', 'CON EL CÓDIGO QUE TE PASÓ', 'O BUSCÁ UNA SALA PÚBLICA'] },
   ],
   row: [
-    { label: 'ONLINE', action: () => openMenu(ONLINE), thumb: () => { const n = MINIGAMES.length, k = Math.floor((ui.clock || 0) / 1.6) || 0; return MINIGAMES[((k % n) + n) % n].id; },
-      desc: ['JUGÁ CON AMIGOS POR INTERNET', 'CREÁ UNA SALA Y PASALES EL CÓDIGO', 'O ENTRÁ A UNA SALA PÚBLICA'] },
     { label: 'LOGROS', action: () => openMenu(LOGROS), art: logrosArt,
       desc: () => [`${achCount()} DE ${ACHIEVEMENTS.length} LOGRADOS`, 'GANÁ EN CADA MINIJUEGO, EN LA FIESTA', 'Y CONTRA LA CPU EN EXTREMO'] },
     { label: 'OPCIONES', action: () => openMenu(OPTIONS), art: optionsArt,

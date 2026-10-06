@@ -26,7 +26,7 @@ export const mapChoice = (getMg, getV, setV) => {
   const multi = () => maps().length > 1;
   let midX = 0;
   const it = {
-    kind: 'choice', label: 'MAPA', h: 51,
+    kind: 'choice', label: 'MAPA', h: 47,
     get values() {
       if (!multi()) return [{ v: getV(), label: mgById(getMg()).mapName || 'ÚNICO' }];     // tiene un solo mapa
       return [{ v: -1, label: 'ALEATORIO' }].concat(maps().map((n, i) => ({ v: i, label: n })));
@@ -36,9 +36,9 @@ export const mapChoice = (getMg, getV, setV) => {
     drawRow(x, y, w, hw, sel) {
       const id = getMg(), n = maps().length, v = getV();
       const shown = !multi() ? -1 : v >= 0 ? v : Math.floor((ui.clock || 0) / 1.3) % n;
-      const tw = 80, th = 45, tx = Math.round(hw / 2 - tw / 2), ty = y + 1, my = y + 20;
+      const tw = 73, th = 41, tx = Math.round(hw / 2 - tw / 2), ty = y + 1, my = y + 18;
       midX = hw / 2;
-      if (sel) rect(x + 4, y, w - 8, 49, 'rgba(45,224,200,.16)');
+      if (sel) rect(x + 4, y, w - 8, 45, 'rgba(45,224,200,.16)');
       if (sel && ((ui.clock * 3) | 0) % 2 === 0) tri(x + 9, my, 'r', COL.teal);
       txt('MAPA', x + 20, my, 8, sel ? COL.white : COL.text);
       drawThumb(shown >= 0 ? `${id}:${shown}` : id, tx, ty, tw, th);

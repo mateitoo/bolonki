@@ -285,7 +285,7 @@ src/
   sala/stage.js      escenario 3D de la sala (cuatro podios; se usa en la presentación)
   render/portraits.js retratos 3D de cada personaje para la grilla
   chars.js           qué personaje usa cada lugar (se elige en la sala)
-  ui/mainMenu.js     menú principal con las dos puertas
+  ui/mainMenu.js     menú principal: JUGAR (sala única: Fiesta o Minijuegos, invitar amigos) y UNIRSE
   net/room.js        conexión PeerJS: código, lugares, listo, ping, votos, reconexión y salas públicas
   net/online.js      sincronización: snapshots del anfitrión e interpolación del invitado
   game/fx.js         efectos como eventos (se reproducen igual en todas las máquinas)

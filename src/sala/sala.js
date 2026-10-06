@@ -12,7 +12,7 @@ import { game } from '../state.js';
 import { settings, saveSettings } from '../settings.js';
 import { input, isTouch } from '../input.js';
 import { SFX } from '../audio.js';
-import { openMenu, replaceMenus, closeMenu, closeAllMenus, topMenu, footerHit, selectedItem, FOOT_Y } from '../ui/menu.js';
+import { openMenu, replaceMenus, closeMenu, closeAllMenus, topMenu, footerHit, selectedItem, setTab, FOOT_Y } from '../ui/menu.js';
 import { txt, rect, tri, textWidth, COL, ui, fitTxt } from '../ui/draw.js';
 import { mgValues, pointsChoice, botValues, diffValues, mgArt, mapChoice, mapOf } from '../ui/values.js';
 import { drawThumb, hiTxt } from '../render/thumbStore.js';
@@ -421,7 +421,7 @@ const curMgRoom = () => (room.opts.mode === 'fiesta' ? 'fiesta' : room.opts.mg);
 // (izquierda/derecha cambia; clic en un vecino lo elige). Abajo, el nombre y de qué se trata.
 function mgGrid(get, setFn) {
   let boxes = [], midX = 0;
-  const BW = 48, BH = 27, H = 58;             // el elegido; los 4 vecinos, todos del mismo tamaño (más chicos)
+  const BW = 48, BH = 27, H = 55;             // el elegido; los 4 vecinos, todos del mismo tamaño (más chicos)
   return {
     kind: 'choice', label: 'MINIJUEGO', h: H, get values() { return mgValues(); }, get, set: setFn,
     drawRow(x, y, w, hw, sel) {
@@ -446,8 +446,8 @@ function mgGrid(get, setFn) {
       boxes.push({ id: m.id, x: cx - BW / 2, w: BW });
       const ay = ty + BH / 2 - 4, bob = sel ? Math.round(Math.sin(ui.clock * 6) * 1.5) : 0;
       tri(x + 10 - bob, ay, 'l', sel ? COL.gold : COL.dim); tri(x + w - 14 + bob, ay, 'r', sel ? COL.gold : COL.dim);
-      txt(m.name, cx, ty + BH + 6, 8, sel ? COL.gold : COL.white, 'center');
-      fitTxt(m.desc, cx, ty + BH + 16, w - 20, COL.teal, 'center', hiTxt);
+      txt(m.name, cx, ty + BH + 5, 8, sel ? COL.gold : COL.white, 'center');
+      fitTxt(m.desc, cx, ty + BH + 14, w - 20, COL.teal, 'center', hiTxt);
     },
     clickAt(px) {
       // los vecinos se dibujan antes que el del medio: se busca de atrás para adelante
@@ -458,8 +458,7 @@ function mgGrid(get, setFn) {
   };
 }
 
-function localOptions() {
-  const fiesta = S.kind === 'fiesta';
+function localOptions(fiesta) {
   const items = [];
   if (fiesta) {
     items.push(mgArt(() => 'fiesta', 50));
@@ -480,13 +479,13 @@ function localOptions() {
     },
   });
   items.push(pointsChoice(curMgLocal, () => pointsFor(curMgLocal()), (v) => { settings[mgById(curMgLocal()).points.key] = v; saveSettings(); }));
-  items.push({ kind: 'action', label: 'JUGAR ONLINE', left: true, hidden: () => isTouch(), value: 'INVITAR AMIGOS', valueColor: () => COL.dim, action: () => goOnline() });
+  // invitar amigos: la misma sala pasa a ser online y aparece el código para pasarles
+  items.push({ kind: 'action', label: 'INVITAR AMIGOS', left: true, labelColor: () => COL.teal, value: 'CREAR CÓDIGO', valueColor: () => COL.gold, action: () => goOnline() });
   items.push({ kind: 'action', label: 'ELEGIR PERSONAJES', button: true, h: 19, action: () => goChars() });
   return items;
 }
 
-function hostOptions() {
-  const fiesta = room.opts.mode === 'fiesta';
+function hostOptions(fiesta) {
   const items = [];
   if (fiesta) items.push(mgArt(() => 'fiesta', 44));
   else {
@@ -496,7 +495,7 @@ function hostOptions() {
       setRoomOpt('maps', Object.assign({}, room.opts.maps, { [room.opts.mg]: v }));
     }));
   }
-  items.push({ kind: 'choice', label: 'BOTS', values: botValues, get: () => (room.opts.bots ? room.opts.difficulty : 'no'),
+  items.push({ kind: 'choice', label: 'CPU', values: botValues, get: () => (room.opts.bots ? room.opts.difficulty : 'no'),
     set: (v) => { if (v !== 'no') room.opts.difficulty = v; setRoomOpt('bots', v !== 'no'); } });
   items.push(pointsChoice(curMgRoom, () => room.opts[mgById(curMgRoom()).points.key], (v) => setRoomOpt(mgById(curMgRoom()).points.key, v)));
   items.push({ kind: 'choice', label: 'SALA', values: [{ v: false, label: 'PRIVADA' }, { v: true, label: 'PÚBLICA' }],
@@ -505,11 +504,12 @@ function hostOptions() {
   return items;
 }
 
+// arriba de las opciones, con la sala online: el código para pasarles a los amigos y cuántos hay
 function hostHeader(x, y, w, hw) {
-  const why = startBlocker();
-  txt(`SALA ${room.code || '····'} · ${humanCount()}/${MAX_PLAYERS}`, hw / 2, y, 8, COL.gold, 'center');
-  txt(why || 'TODOS LISTOS', hw / 2, y + 12, 8, why ? COL.dim : '#39d98a', 'center');
-  rect(x + 6, y + 24, w - 12, 1, '#1d6e68');
+  const ready = room.status === 'ready';
+  const a = ready ? 'CÓDIGO PARA TUS AMIGOS: ' : room.status === 'error' ? (room.error || 'SIN CONEXIÓN') : 'CREANDO LA SALA...', b = ready ? `${room.code}  ·  ${humanCount()}/${MAX_PLAYERS}` : '';
+  const tw = textWidth(a + b, 8), x0 = Math.round(hw / 2 - tw / 2);
+  txt(a, x0, y, 8, COL.text); if (b) txt(b, x0 + textWidth(a, 8), y, 8, COL.gold);
 }
 
 // de las opciones a la grilla de personajes
@@ -518,15 +518,24 @@ function goChars() {
   S.seats.forEach((s) => { s.locked = false; });
   share(myK());
 }
+// FIESTA o MINIJUEGOS: se cambia con las solapas de arriba (en la sala online, les cambia a todos)
+function setKind(kind) {
+  if (S.kind === kind) return;
+  S.kind = kind; settings.mode = kind; saveSettings();
+  if (net() === 'host') setRoomOpt('mode', kind);
+}
 function openOptions() {
   if (topMenu() && topMenu().def.id === 'salaOpts') return;
   const online = net() === 'host';
   const def = {
-    id: 'salaOpts', width: 320, rowH: 13, offsetY: 4, titleSmall: true,
-    title: S.kind === 'fiesta' ? (online ? 'FIESTA ONLINE' : 'FIESTA') : online ? 'MINIJUEGOS ONLINE' : 'MINIJUEGOS',
-    items: online ? hostOptions() : localOptions(),
-    headerH: online ? 28 : 0, header: online ? hostHeader : null,
-    tick() { syncStage(); },
+    id: 'salaOpts', width: 320, rowH: 13, offsetY: 4, tabPad: 20,
+    // las dos solapas son los dos modos: todo lo demás (CPU, invitar, personajes) es igual en las dos
+    tabs: [
+      { label: 'FIESTA', items: online ? hostOptions(true) : localOptions(true) },
+      { label: 'MINIJUEGOS', items: online ? hostOptions(false) : localOptions(false) },
+    ],
+    headerH: online ? 14 : 0, header: online ? hostHeader : null,
+    tick(top) { syncStage(); setKind(top.tab === 0 ? 'fiesta' : 'libre'); },
     okLabel: (top) => { const it = selectedItem(top); return it && it.kind === 'action' && !it.button ? 'ACEPTAR' : 'ELEGIR PERSONAJES'; },
     // en local, los joysticks de J2..J4 no manejan este menú (solo J1, el teclado y el mouse);
     // Enter o espacio en cualquier fila sigue a elegir personajes (sin tener que bajar hasta el botón)
@@ -538,6 +547,7 @@ function openOptions() {
     onBack() { leave(); },
   };
   openMenu(def);
+  setTab(topMenu(), S.kind === 'fiesta' ? 0 : 1);
   SFX.confirm();
 }
 

@@ -105,7 +105,7 @@ export const rotT = (s) => Math.atan2(-s.tz, s.tx);          // alinea el eje X 
 export const faceIn = (nx, nz) => Math.atan2(-nx, -nz);      // +Z local mira al centro
 
 export function initRenderer(canvas) {
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches ? 'default' : 'high-performance' });   // en el celular, que no fuerce la placa al máximo
   renderer.setPixelRatio(1);
   renderer.setClearColor(0x04060b, 1);
   return renderer;

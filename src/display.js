@@ -46,6 +46,18 @@ function unzoom() {
   setTimeout(() => { m.setAttribute('content', c); window.scrollTo(0, 0); applyDisplay(); }, 60);
 }
 
+// Rendimiento: cuántos cuadros por segundo y cuánta resolución (lo que hace que el celular caliente y gaste batería)
+const touchDevice = () => typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+const PERF = {
+  ahorro: { fps: 30, menuFps: 30, dpr: 1, pixels: 600000 },
+  equilibrado: { fps: 60, menuFps: 30, dpr: 1.5, pixels: 1300000 },
+  maximo: { fps: 0, menuFps: 0, dpr: 2, pixels: 9e9 },
+};
+export function perf() {
+  const m = settings.perf && settings.perf !== 'auto' ? settings.perf : touchDevice() ? 'equilibrado' : 'maximo';
+  return PERF[m] || PERF.maximo;
+}
+
 export function applyDisplay() {
   if (!els || !renderer) return;
   // el escenario ocupa exactamente la parte visible (aunque el navegador haya quedado con zoom, el juego entra entero)
@@ -71,7 +83,10 @@ export function applyDisplay() {
   // resolución interna del render
   let iw, ih;
   if (settings.quality === 'sharp') {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // cuántos píxeles se dibujan es lo que más calienta el celular: según el rendimiento elegido se limita
+    const P = perf();
+    let dpr = Math.min(window.devicePixelRatio || 1, P.dpr);
+    const budget = P.pixels; if (boxW * boxH * dpr * dpr > budget) dpr = Math.sqrt(budget / (boxW * boxH));
     iw = Math.round(boxW * dpr); ih = Math.round(boxH * dpr);
   } else {
     const mul = settings.quality === '480' ? 2 : 1;
@@ -81,7 +96,7 @@ export function applyDisplay() {
   renderer.setSize(iw, ih, false);
   U.uRes.value.set(iw, ih); U.uSnap.value = retro && settings.psx !== false ? 1 : 0; U.uDither.value = retro && settings.dither !== false ? 1 : 0;
   // botones táctiles: tamaño y de qué lado va el joystick
-  document.body.dataset.touchSize = settings.touchSize || 'normal'; document.body.dataset.stick = settings.stickSide || 'left'; document.body.dataset.pad = settings.pad || 'joystick';
+  document.body.dataset.touchSize = settings.touchSize || 'normal'; document.body.dataset.stick = settings.stickSide || 'left';
 
   camera.aspect = aspect; camera.updateProjectionMatrix();
 

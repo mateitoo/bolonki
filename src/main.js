@@ -22,7 +22,7 @@ import fiesta, { S as fiestaState, startFiesta } from './fiesta/board.js';
 import salaStage from './sala/stage.js';
 import { updateVisuals } from './visuals.js';
 import { initHud, drawHud, showToast } from './hud.js';
-import { initDisplay, toHud, toggleFullscreen, fullscreenGesture, isFullscreen, canFullscreen } from './display.js';
+import { initDisplay, toHud, toggleFullscreen, fullscreenGesture, isFullscreen, canFullscreen, perf } from './display.js';
 import { input, initInput, pollInput, bindTouch, bindStick, bindDpad, resetZoom, pushEvent } from './input.js';
 import { syncNativeText } from './ui/textEntry.js';
 import { initFlow, updateFlow, onMatchEnd, inDemo } from './flow.js';
@@ -99,7 +99,16 @@ const STEP = 1 / 120;
 let last = performance.now(), acc = 0;
 let touchState = '', fsState = '', fsFull = null;
 
+// qué control táctil conviene en cada minijuego (con la opción en AUTOMÁTICO): flechas donde se mueve en
+// línea recta o de a casillas, joystick donde se camina para cualquier lado
+const PAD_AUTO = { bolas: 'flechas', petardos: 'flechas', fiesta: 'flechas', empujon: 'joystick', bombardeo: 'joystick', futbol: 'joystick', colina: 'joystick', hexagonos: 'joystick' };
+let padState = '', lastDraw = 0;
 function frame(now) {
+  // límite de cuadros por segundo (según el rendimiento): menos cuadros = menos calor y más batería
+  const P = perf(), playing = game.state === 'play' || game.state === 'count';
+  const cap = playing ? P.fps : P.menuFps;
+  if (cap && now - lastDraw < 1000 / cap - 2) { requestAnimationFrame(frame); return; }
+  lastDraw = now;
   const rdt = Math.min(0.05, (now - last) / 1000); last = now;
 
   pollInput(rdt);
@@ -148,6 +157,8 @@ function frame(now) {
   // el botón táctil dice qué hace en este minijuego
   if (game.minigame !== touchMg) { touchMg = game.minigame; const th = document.getElementById('th'); if (th) th.textContent = TOUCH_LABEL[touchMg] || 'GOLPE'; }
   // botones táctiles solo durante la partida
+  const pad = settings.pad && settings.pad !== 'auto' ? settings.pad : PAD_AUTO[game.minigame] || 'joystick';
+  if (pad !== padState) { padState = pad; document.body.dataset.pad = pad; input.touch.x = 0; input.touch.y = 0; }
   // botón de pantalla completa: en el título y en el menú principal
   const fsOn = !capsule && (game.state === 'title' || (menuOpen() && topMenu().def.id === 'main')) ? 'on' : 'off';
   if (fsOn !== fsState) { fsState = fsOn; document.body.dataset.fsbtn = fsOn; }

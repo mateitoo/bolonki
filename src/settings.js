@@ -39,12 +39,13 @@ export const DEFAULTS = {
   stickSide: 'left',     // joystick táctil a la izquierda o a la derecha
   intro: 'normal',       // instrucciones antes de cada minijuego: 'normal' | 'corta'
   tags: true,            // nombres arriba de los personajes
-  pad: 'joystick',       // celular: 'joystick' o 'flechas'
+  pad: 'auto',           // celular: 'auto' (lo mejor para cada minijuego) | 'joystick' | 'flechas'
+  perf: 'auto',          // rendimiento: 'auto' (celular: equilibrado · compu: máximo) | 'ahorro' | 'equilibrado' | 'maximo'
   touchCam: false,       // celular: girar la cámara arrastrando el dedo
 };
 // las opciones que vuelven a su valor de fábrica con "RESTABLECER" (no se tocan apodo, personaje, mapas…)
 export const RESETTABLE = ['fullscreen', 'aspect', 'quality', 'integer', 'scanlines', 'sfx', 'muted', 'music', 'master', 'bgSound',
-  'psx', 'dither', 'shake', 'fps', 'aim', 'vibrate', 'camSens', 'camInvert', 'touchSize', 'stickSide', 'intro', 'tags', 'deathId', 'pad', 'touchCam'];
+  'psx', 'dither', 'shake', 'fps', 'aim', 'vibrate', 'camSens', 'camInvert', 'touchSize', 'stickSide', 'intro', 'tags', 'deathId', 'pad', 'touchCam', 'perf'];
 
 function load() {
   try {
@@ -67,6 +68,9 @@ if (settings.v < 7) { settings.quality = 'sharp'; settings.scanlines = false; se
 if (!DIFF_ORDER.includes(settings.difficulty)) settings.difficulty = DEFAULTS.difficulty;
 if (!Array.isArray(settings.mgOff)) settings.mgOff = [];
 if (settings.mode !== 'fiesta') settings.mode = 'libre';
+
+// v0.36: el control táctil pasa a elegirse solo según el minijuego (una sola vez; después se puede fijar en Opciones)
+if (settings.v < 8) { settings.pad = 'auto'; settings.v = 8; try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) { /* sin storage */ } }
 
 export function saveSettings() {
   try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) { /* sin storage */ }

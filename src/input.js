@@ -138,7 +138,8 @@ export function bindDpad(id) {
   const set = (e) => {
     const r = el.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
     let dir = null;
-    if (Math.hypot(dx, dy) > r.width * 0.12) dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'r' : 'l') : (dy > 0 ? 'd' : 'u');
+    if (document.body.dataset.pad === 'flechash') dir = dx > 0 ? 'r' : 'l';        // solo izquierda / derecha: la mitad que tocás
+    else if (Math.hypot(dx, dy) > r.width * 0.12) dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'r' : 'l') : (dy > 0 ? 'd' : 'u');
     input.touch.x = dir === 'r' ? 1 : dir === 'l' ? -1 : 0;
     input.touch.y = dir === 'u' ? 1 : dir === 'd' ? -1 : 0;
     Object.entries(arms).forEach(([k, a]) => a && a.classList.toggle('on', k === dir));

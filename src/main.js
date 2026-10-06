@@ -101,7 +101,7 @@ let touchState = '', fsState = '', fsFull = null;
 
 // qué control táctil conviene en cada minijuego (con la opción en AUTOMÁTICO): flechas donde se mueve en
 // línea recta o de a casillas, joystick donde se camina para cualquier lado
-const PAD_AUTO = { bolas: 'flechas', petardos: 'flechas', fiesta: 'flechas', empujon: 'joystick', bombardeo: 'joystick', futbol: 'joystick', colina: 'joystick', hexagonos: 'joystick' };
+const PAD_AUTO = { bolas: 'flechash', petardos: 'flechas', fiesta: 'flechas', empujon: 'joystick', bombardeo: 'joystick', futbol: 'joystick', colina: 'joystick', hexagonos: 'joystick' };
 let padState = '', lastDraw = 0;
 function frame(now) {
   // límite de cuadros por segundo (según el rendimiento): menos cuadros = menos calor y más batería
@@ -157,7 +157,8 @@ function frame(now) {
   // el botón táctil dice qué hace en este minijuego
   if (game.minigame !== touchMg) { touchMg = game.minigame; const th = document.getElementById('th'); if (th) th.textContent = TOUCH_LABEL[touchMg] || 'GOLPE'; }
   // botones táctiles solo durante la partida
-  const pad = settings.pad && settings.pad !== 'auto' ? settings.pad : PAD_AUTO[game.minigame] || 'joystick';
+  let pad = settings.pad && settings.pad !== 'auto' ? settings.pad : PAD_AUTO[game.minigame] || 'joystick';
+  if (pad === 'flechas' && game.minigame === 'bolas') pad = 'flechash';          // en Bola Brava solo te movés a los costados
   if (pad !== padState) { padState = pad; document.body.dataset.pad = pad; input.touch.x = 0; input.touch.y = 0; }
   // botón de pantalla completa: en el título y en el menú principal
   const fsOn = !capsule && (game.state === 'title' || (menuOpen() && topMenu().def.id === 'main')) ? 'on' : 'off';

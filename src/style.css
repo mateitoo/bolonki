@@ -57,8 +57,12 @@ body {
 .touch .dpad .r { right: 0; top: 44px; } .touch .dpad .r::after { border-left: 12px solid #aab4d6; border-right-width: 0; }
 .touch .dpad b { position: absolute; left: 44px; top: 44px; width: 44px; height: 44px; background: rgba(20,26,48,.55); }
 .touch .dpad i.on { background: rgba(255,154,31,.45); border-color: var(--gold); }
-body[data-pad="flechas"] .touch .stick { display: none; }
-body[data-pad="flechas"] .touch .dpad { display: block; }
+body[data-pad="flechas"] .touch .stick, body[data-pad="flechash"] .touch .stick { display: none; }
+body[data-pad="flechas"] .touch .dpad, body[data-pad="flechash"] .touch .dpad { display: block; }
+/* solo izquierda y derecha (Bola Brava): dos flechas grandes, una al lado de la otra */
+body[data-pad="flechash"] .touch .dpad { width: 148px; height: 70px; }
+body[data-pad="flechash"] .touch .dpad .u, body[data-pad="flechash"] .touch .dpad .d, body[data-pad="flechash"] .touch .dpad b { display: none; }
+body[data-pad="flechash"] .touch .dpad .l, body[data-pad="flechash"] .touch .dpad .r { width: 70px; height: 70px; top: 0; }
 body[data-touch-size="chico"] .touch .dpad { transform: scale(.8); transform-origin: bottom left; }
 body[data-touch-size="grande"] .touch .dpad { transform: scale(1.2); transform-origin: bottom left; }
 body[data-stick="right"][data-touch-size] .touch .dpad { transform-origin: bottom right; }

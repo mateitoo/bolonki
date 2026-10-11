@@ -484,11 +484,19 @@ export const TX = {
   }),
 
   /* ---------- Hexágonos ---------- */
-  hexTop: tex(32, 32, (x, w, h) => {              // tapa de la baldosa: clarita en el medio, con brillo
-    x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h);
-    const g = x.createRadialGradient(16, 16, 2, 16, 16, 18); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.28)');
-    x.fillStyle = g; x.fillRect(0, 0, w, h);
-    for (let i = 0; i < 40; i++) { x.fillStyle = 'rgba(255,255,255,.35)'; x.fillRect(Math.random() * w, Math.random() * h, 1, 1); }
+  hexTop: tex(32, 32, (x, w, h) => {              // tapa de la baldosa: borde biselado (luz arriba a la izquierda), canaleta y centro con granito
+    const g = x.createImageData(w, h), d = g.data;
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+      const dx = xx + 0.5 - 16, dy = yy + 0.5 - 16, r = Math.hypot(dx, dy), lit = r > 0 ? (-dx - dy) / (r * 1.414) : 0;
+      let v = 0.92 + (Math.random() - 0.5) * 0.06;                                   // centro
+      if (r > 10.5 && r <= 12) v = 0.72;                                            // canaleta
+      else if (r > 12) v = 0.86 + lit * 0.14;                                       // bisel
+      else v += Math.max(0, 1 - r / 10) * 0.08;                                    // brillo suave al centro
+      if (r > 3 && r < 9 && Math.abs(dx + dy + 6) < 0.8) v = 1;                       // reflejo en diagonal
+      const c = Math.max(0, Math.min(255, v * 255)) | 0, i4 = (yy * w + xx) * 4;
+      d[i4] = c; d[i4 + 1] = c; d[i4 + 2] = c; d[i4 + 3] = 255;
+    }
+    x.putImageData(g, 0, 0);
   }),
   hexSide: tex(16, 16, (x, w, h) => {             // costado: rayitas, más oscuro abajo
     noisy(x, w, h, '#e8e8e8', 0.12); x.fillStyle = 'rgba(0,0,0,.25)'; x.fillRect(0, 10, w, 6); x.fillStyle = 'rgba(255,255,255,.4)'; x.fillRect(0, 0, w, 2);

@@ -44,6 +44,7 @@ function bollard(p, x, z) {
 export function decorPuerto(g, HALF) {
   P.sky(g, [[0, '#2a1a4a'], [0.3, '#8a3a6a'], [0.42, '#ff7a4a'], [0.49, '#ffc86a'], [0.52, '#ffe8a8'], [0.56, '#6a4a6a'], [1, '#1a2040']], { stars: 10, starBand: 0.2 });
   const sun = add(new THREE.CircleGeometry(12, 20), new THREE.MeshBasicMaterial({ color: 0xffb04a, fog: false }), 20, 2, -104, g); sun.renderOrder = -9;
+  P.skyClouds(g, 8, 45, 65, 12, 20, 0xffa890, 0.004);
   // el mar alrededor y el muelle de hormigón con bordes amarillos
   const wg = scaleUV(new THREE.PlaneGeometry(260, 260, 20, 20), 40); wg.rotateX(-Math.PI / 2);
   const sea = add(wg, waterMat({ map: TX.water, color: 0x6aaad8, deep: 0x2a4a7a, sky: 0xffa070, glint: 1, wave: 0.15 }), 0, -2.6, 0, g);
@@ -123,6 +124,7 @@ function cabin(p, x, z, ry) {
 }
 export function decorNevada(g, HALF) {
   P.sky(g, [[0, '#2a3a6a'], [0.35, '#6a8ac0'], [0.47, '#c8d8f0'], [0.52, '#f0f4ff'], [0.6, '#a8b8d0'], [1, '#4a5a70']], { stars: 20, starBand: 0.25 });
+  P.skyClouds(g, 8, 42, 62, 14, 22, 0xe8eef8, 0.004);
   // campo nevado y montañas
   const fl = scaleUV(new THREE.PlaneGeometry(160, 160, 16, 16), 30); fl.rotateX(-Math.PI / 2);
   add(fl, P.M(0xf0f6ff, { map: TX.snow }), 0, Y - 0.02, 0, g);
@@ -196,6 +198,7 @@ function mushroom(p, x, z, s, col) {
 }
 export function decorSelva(g, HALF) {
   P.sky(g, [[0, '#0a2a1a'], [0.35, '#2a6a4a'], [0.46, '#9ad8a0'], [0.5, '#e8f8c8'], [0.55, '#3a6a2a'], [1, '#0a1a0a']], { r: 120 });
+  P.skyClouds(g, 7, 45, 65, 16, 24, 0xe8f8e0, 0.004);
   // piso de la selva: pasto y tierra, con el pantano alrededor más abajo
   const fl = scaleUV(new THREE.PlaneGeometry(160, 160, 16, 16), 30); fl.rotateX(-Math.PI / 2);
   add(fl, P.M(0x5a8a3a, { map: TX.grass }), 0, Y - 0.02, 0, g);

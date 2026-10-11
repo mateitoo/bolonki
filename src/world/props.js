@@ -1097,3 +1097,125 @@ export function windblown(p, n, x0, x1, y0, y1, z0, z1, dx, dz, speed, col, size
   });
   return im;
 }
+// Nubes de cielo (grupos de bollos aplastados) que dan la vuelta despacio, lejos
+export function skyClouds(p, n = 8, rMin = 45, rMax = 70, yMin = 14, yMax = 24, col = 0xffffff, sp = 0.004) {
+  const m1 = M(col), m2 = M(new THREE.Color(col).multiplyScalar(0.88).getHex()), cs = [];
+  for (let k = 0; k < n; k++) {
+    const c = G(p), s = rnd(2.5, 4.5);
+    for (let j = 0; j < 4; j++) { const b = add(new THREE.DodecahedronGeometry(s * rnd(0.6, 1), 1), j % 2 ? m2 : m1, (j - 1.5) * s * 0.9, rnd(-0.3, 0.6) * s, rnd(-0.5, 0.5) * s, c); b.scale.y = 0.55; }
+    cs.push({ c, a: (k / n) * Math.PI * 2 + rnd(-0.2, 0.2), r: rnd(rMin, rMax), y: rnd(yMin, yMax) });
+  }
+  anim(p, (t) => cs.forEach((q) => { const a = q.a + t * sp; q.c.position.set(Math.sin(a) * q.r, q.y, Math.cos(a) * q.r); q.c.rotation.y = a; }));
+}
+// Estrellas que titilan en el cielo de noche (sin niebla, para que se vean lejos)
+export function twinkleStars(p, n = 70, r = 95, yMin = 18) {
+  const im = new THREE.InstancedMesh(box(0.5, 0.5, 0.5), new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false }), n), ps = [];
+  for (let i = 0; i < n; i++) { const a = rnd(0, Math.PI * 2), y = rnd(yMin, r * 0.8), rr = Math.sqrt(Math.max(1, r * r - y * y)); ps.push({ x: Math.sin(a) * rr, y, z: Math.cos(a) * rr, ph: rnd(0, 6), sp: rnd(1, 3), s: rnd(0.5, 1.2) }); }
+  im.renderOrder = -8; p.add(im);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+  anim(p, (t) => { ps.forEach((s, i) => { const k = s.s * (0.35 + 0.65 * Math.abs(Math.sin(t * s.sp + s.ph))); v.set(s.x, s.y, s.z); sc.set(k, k, k); m4.compose(v, q, sc); im.setMatrixAt(i, m4); }); im.instanceMatrix.needsUpdate = true; });
+  return im;
+}
+// Fuegos artificiales a lo lejos: suben, explotan en una esfera de chispas que cae y se apaga (sin niebla)
+export function fireworks(p, cx, cz, rx, rz, yMin = 18, yMax = 30, every = 2.5) {
+  const cols = [0xff5a7a, 0xffe14a, 0x6ad8ff, 0x8aff6a, 0xd08aff, 0xffffff];
+  const N = 26, shows = [0, 1, 2].map(() => {
+    const m = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+    const im = new THREE.InstancedMesh(box(0.5, 0.5, 0.5), m, N + 1); im.visible = false; p.add(im);
+    const dirs = []; for (let i = 0; i < N; i++) { const u = rnd(-1, 1), a = rnd(0, Math.PI * 2), r = Math.sqrt(1 - u * u); dirs.push([Math.cos(a) * r, u, Math.sin(a) * r]); }
+    return { im, m, dirs, t: -1, x: 0, z: 0, y: 0 };
+  });
+  let wait = rnd(0.5, every);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+  anim(p, (t, dt) => {
+    wait -= dt;
+    if (wait <= 0) { const s = shows.find((q2) => q2.t < 0); if (s) { s.t = 0; s.x = cx + rnd(-rx, rx); s.z = cz + rnd(-rz, rz); s.y = rnd(yMin, yMax); s.m.color.set(cols[(Math.random() * cols.length) | 0]); s.im.visible = true; } wait = rnd(every * 0.5, every * 1.3); }
+    shows.forEach((s) => {
+      if (s.t < 0) return;
+      s.t += dt;
+      const rise = 0.9;
+      if (s.t < rise) {                                        // el cohete subiendo
+        const k = s.t / rise; v.set(s.x, s.y * 0.35 + (s.y * 0.65) * k * (2 - k) - 6, s.z); sc.set(0.6, 1.4, 0.6); m4.compose(v, q, sc); s.im.setMatrixAt(N, m4);
+        sc.set(0, 0, 0); m4.compose(v, q, sc); for (let i = 0; i < N; i++) s.im.setMatrixAt(i, m4);
+      } else {
+        const e = s.t - rise, R = 7 * (1 - Math.exp(-e * 3)), fall = e * e * 1.5, k = Math.max(0, 1 - e / 2.2);
+        sc.set(0, 0, 0); m4.compose(v.set(0, -999, 0), q, sc); s.im.setMatrixAt(N, m4);
+        s.dirs.forEach(([a, b, c], i) => { const tw = k * (0.6 + 0.4 * Math.abs(Math.sin(e * 20 + i))); v.set(s.x + a * R, s.y + b * R - fall, s.z + c * R); sc.set(tw, tw, tw); m4.compose(v, q, sc); s.im.setMatrixAt(i, m4); });
+        if (e > 2.2) { s.t = -1; s.im.visible = false; }
+      }
+      s.im.instanceMatrix.needsUpdate = true;
+    });
+  });
+}
+// Aurora: cortinas de luz de colores que ondulan en el cielo de noche
+export function aurora(p, x, y, z, w = 90, h = 16, cols = [0x3aff9a, 0x6ad8ff, 0xb070ff]) {
+  const g = G(p, x, y, z), bands = [];
+  cols.forEach((c, k) => {
+    const geo = new THREE.PlaneGeometry(w, h, 30, 1), m = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.22, depthWrite: false, fog: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+    const me = new THREE.Mesh(geo, m); me.position.set(0, k * 4, -k * 6); me.renderOrder = -8; g.add(me);
+    bands.push({ me, base: geo.attributes.position.array.slice(), ph: k * 1.7 });
+  });
+  anim(p, (t) => bands.forEach((b) => {
+    const pos = b.me.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i++) { const bx = b.base[i * 3], by = b.base[i * 3 + 1]; pos.setZ(i, Math.sin(bx * 0.08 + t * 0.4 + b.ph) * 6 + Math.sin(bx * 0.03 - t * 0.2) * 4); pos.setY(i, by + Math.sin(bx * 0.12 + t * 0.6 + b.ph) * 1.5); }
+    pos.needsUpdate = true; b.me.material.opacity = 0.16 + Math.sin(t * 0.5 + b.ph) * 0.07;
+  }));
+  return g;
+}
+
+/* ---------- juntar lo quieto en pocas mallas ----------
+   Un mapa con mucho decorado son cientos de mallas chiquitas (y cada una es un "dibujo" aparte para la placa).
+   freezeStatic(root) prueba las animaciones del decorado en varios momentos para ver qué se mueve, cambia de
+   material o se prende/apaga; todo lo demás (lo que nunca cambia) se junta en una sola malla por material.
+   Lo marcado con userData.keep (o adentro de algo marcado) no se toca nunca. */
+export function freezeStatic(root) {
+  const list = [];
+  const vis = (o) => { for (let x = o; x && x !== root; x = x.parent) if (!x.visible) return false; return true; };   // el grupo del mapa puede estar oculto todavía
+  const kept = (o) => { for (let x = o; x && x !== root.parent; x = x.parent) if (x.userData && x.userData.keep) return true; return false; };
+  root.updateMatrixWorld(true);
+  root.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || Array.isArray(o.material) || o.renderOrder !== 0 || kept(o)) return;
+    const g = o.geometry;
+    if (!g || !g.attributes.position || !g.attributes.normal || !g.attributes.uv || g.morphAttributes.position) return;
+    list.push({ o, m: o.matrixWorld.clone(), v: vis(o), mt: o.material, dyn: false });
+  });
+  const mine = ANIMS.filter((a) => { for (let x = a.owner; x; x = x.parent) if (x === root) return true; return false; });
+  for (const T of [0.37, 1.93, 4.31, 7.72, 13.1, 21.9, 34.4]) {
+    for (const a of mine) a.fn(T, 0.45);
+    root.updateMatrixWorld(true);
+    for (const q of list) if (!q.dyn && (!q.o.matrixWorld.equals(q.m) || vis(q.o) !== q.v || q.o.material !== q.mt)) q.dyn = true;
+  }
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(), byMat = new Map();
+  for (const q of list) {
+    if (q.dyn || !q.v) continue;
+    let g = q.o.geometry.index ? q.o.geometry.toNonIndexed() : q.o.geometry.clone();
+    for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'uv') g.deleteAttribute(k);
+    g.clearGroups();
+    g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, q.m));
+    if (q.m.determinant() < 0) { const p = g.attributes.position.array, n = g.attributes.normal.array, u = g.attributes.uv.array; for (let i = 0; i < p.length; i += 9) for (let c = 0; c < 3; c++) { [p[i + 3 + c], p[i + 6 + c]] = [p[i + 6 + c], p[i + 3 + c]]; [n[i + 3 + c], n[i + 6 + c]] = [n[i + 6 + c], n[i + 3 + c]]; } for (let i = 0; i < u.length; i += 6) for (let c = 0; c < 2; c++) [u[i + 2 + c], u[i + 4 + c]] = [u[i + 4 + c], u[i + 2 + c]]; }
+    if (!byMat.has(q.mt)) byMat.set(q.mt, []);
+    byMat.get(q.mt).push(g); q.done = true;
+  }
+  let n = 0;
+  byMat.forEach((geos, mt) => {
+    if (geos.length < 2) { return; }
+    const merged = mergeGeos(geos);
+    const me = new THREE.Mesh(merged, mt); me.frustumCulled = false; root.add(me); n += geos.length;
+  });
+  for (const q of list) if (q.done && byMat.get(q.mt).length >= 2) q.o.parent.remove(q.o);
+  // grupos que quedaron vacíos
+  const empty = []; root.traverse((o) => { if (o !== root && o.isGroup && !o.children.length) empty.push(o); });
+  empty.forEach((o) => o.parent && o.parent.remove(o));
+  return n;
+}
+function mergeGeos(geos) {
+  let total = 0; geos.forEach((g) => { total += g.attributes.position.count; });
+  const out = new THREE.BufferGeometry();
+  ['position', 'normal', 'uv'].forEach((k) => {
+    const size = k === 'uv' ? 2 : 3, arr = new Float32Array(total * size); let off = 0;
+    geos.forEach((g) => { arr.set(g.attributes[k].array, off); off += g.attributes[k].count * size; });
+    out.setAttribute(k, new THREE.BufferAttribute(arr, size));
+  });
+  out.computeBoundingSphere();
+  return out;
+}

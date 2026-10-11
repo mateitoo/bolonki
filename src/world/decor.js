@@ -35,6 +35,8 @@ export function decorFutbol(g, HX, HZ) {
   P.jumbotron(g, -(DX + 7.5), 7.5, 0, Math.PI / 2, 10, 4.6);
   P.planet(g, -40, 22, -60, 7, 0x3a6ab8, 0xa0d0ff);
   P.sky(g, [[0, '#04061a'], [0.38, '#0b1236'], [0.48, '#1a2a5a'], [0.52, '#101830'], [1, '#04060b']], { stars: 80 });
+  P.twinkleStars(g, 70, 95, 20);
+  P.fireworks(g, 0, -38, 28, 6, 12, 20, 3);
   // carteles de LED que cambian de color al costado de la cancha y detrás de los arcos
   const ledCols = [0xff3a5a, 0xffd23a, 0x35a0ff, 0x39d98a, 0xffffff].map((c) => P.M(c, { unlit: true }));
   const leds = [];
@@ -86,6 +88,7 @@ export function decorColina(g, rim) {
   // cielo de tarde soleada, gaviotas, islotes con palmeras, un faro y rocas alrededor
   P.sky(g, [[0, '#2a6ad8'], [0.42, '#7ab8f0'], [0.5, '#f4e0b0'], [0.53, '#9ad0f0'], [1, '#2a6aa8']]);
   P.flyers(g, 0, 14, 0, 24, 6, 0xf4f4f0, 0.6);
+  P.skyClouds(g, 10, 45, 75, 12, 22, 0xffffff, 0.005);
   const islets = [[-26, -30, 1.3], [30, -24, 1.0], [-34, 8, 0.9], [36, 14, 1.2], [8, -40, 1.5]];
   islets.forEach(([x, z, s], k) => {
     const r = add(new THREE.CylinderGeometry(3.2 * s, 4.2 * s, 2.2, 10), P.M(0xd8b878, { map: TX.sand }), x, -0.4, z, g);
@@ -323,6 +326,7 @@ export function decorBombardeo(grp, HALF) {
     stars: 140, starBand: 0.7, blobs: [[0.2, 0.3, 0.3, 'rgba(120,60,160,.45)'], [0.65, 0.22, 0.25, 'rgba(40,140,170,.4)'], [0.85, 0.45, 0.2, 'rgba(170,70,110,.35)']],
   });
   P.asteroids(grp, 14, 28, 44, -2, 14);
+  P.twinkleStars(grp, 80, 95, 10);
   P.dish(grp, 15.5, Y, -8.5, -0.8, 1);
   P.container(grp, -14.5, Y, 11.5, 0.15, 0xd8463a, 4.2); P.container(grp, -14.2, Y + 1.6, 11.4, 0.05, 0x3a7ac8, 3.6);
   P.container(grp, 15, Y, 1, Math.PI / 2 + 0.1, 0x39a86a, 4);
@@ -395,6 +399,7 @@ export function decorPetardos(g, deco, L) {
     P.birdbath(g, -17.6, Y, -4.6);
     P.stones(g, [-8, -6.6, -5.1, -3.7, -2.2, -0.7, 0.8, 2.3, 3.7, 5.2, 6.6, 8].map((x, k) => [x, -11.9 + (k % 2) * 0.25, Y]));
     P.sky(g, [[0, '#3a7ad8'], [0.45, '#9ac8f4'], [0.5, '#e8f0f8'], [1, '#6a9a5a']]);
+    P.skyClouds(g, 8, 40, 60, 14, 22, 0xffffff, 0.006);
     [[-13.6, -12], [13.6, -12], [-13.6, 12], [13.6, 12]].forEach(([x, z]) => P.lamp(g, x, Y, z, 3.2));
     P.flyers(g, 0, 3.5, -2, 15, 5, 0xffe14a, 0.35);
     P.windblown(g, 24, -20, 20, Y + 0.2, Y + 3, -16, 14, 1, 0.4, 1.4, 0x6ab04a, 0.1);   // hojitas que lleva el viento
@@ -475,6 +480,7 @@ export function decorPetardos(g, deco, L) {
     P.mesa(g, -25, Y, -17, 7, 6, 5); P.mesa(g, 26, Y, -13, 6, 4.5, 5, 0xb86a3a); P.mesa(g, -27, Y, 9, 5, 3.5, 4, 0xd08a4a);
     P.scatter(g, 0, Y, 0, 22, 16, 90, 0xb88a5a, 0.18, [13.2, 11.2]);
     P.sky(g, [[0, '#4a8ad8'], [0.45, '#bcd8f0'], [0.5, '#ffe8b0'], [1, '#c8a060']]);
+    P.skyClouds(g, 5, 42, 62, 16, 24, 0xfff8ec, 0.004);
     [[-15.2, -9], [16, -2.5], [-16, 3], [15.5, 10.5], [-8, -13.5], [11, -13]].forEach(([x, z]) => P.cactus(g, x, Y, z, rnd(0.75, 1.05)));
     [[-14.5, 0], [15.2, -6.5], [-15, 10.5], [3, -13.8]].forEach(([x, z]) => P.rock(g, x, Y, z, rnd(0.8, 1.3), 0xc8905a));
     P.bones(g, -14.4, Y, -3.2); P.bones(g, 14.6, Y, 7.4);
@@ -513,6 +519,7 @@ export function decorPetardos(g, deco, L) {
     P.sled(g, 15.2, Y, 4.6, 0.6);
     [[-15, 8.5, 1.2], [15.6, -10.5, 1.4], [6, -14, 1.1], [-9, -13.2, 1.3], [17.5, 7.5, 1.1], [-17.5, -11, 1.2]].forEach(([x, z, s2]) => P.snowPile(g, x, Y, z, s2));
     P.sky(g, [[0, '#8a98b0'], [0.45, '#d8e0ec'], [0.5, '#f4f8ff'], [1, '#dde8f4']]);
+    P.skyClouds(g, 9, 40, 60, 12, 20, 0xd8e0ec, 0.004);
     P.drift(g, 150, -22, 22, 14, Y, -16, 14, 0xffffff, 0.13, 2.2, true);   // copos que caen
     // alguien patinando en la laguna, un ciervo, guerra de bolas de nieve armada y luces de colores
     const sk = P.fans(g, Y + 0.25, [[-16.8, -5.6, 0]], { hats: [0xd83a3a], shirts: [0x3a7ad8] })[0];

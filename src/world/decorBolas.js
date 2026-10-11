@@ -391,6 +391,7 @@ export function decorPlaya(g) {
   // sol que se hunde en el mar
   const sun = add(new THREE.CircleGeometry(12, 20), new THREE.MeshBasicMaterial({ color: 0xffd05a, fog: false }), 0, 4, -104, g);
   sun.renderOrder = -9;
+  P.skyClouds(g, 8, 50, 75, 10, 20, 0xffb8a0, 0.004);
   // el mar: un plano grande que se mueve
   const wg = scaleUV(new THREE.PlaneGeometry(260, 260, 20, 20), 40); wg.rotateX(-Math.PI / 2);
   const sea = add(wg, waterMat({ map: TX.water, color: 0x5aa8d8, deep: 0x1a2a5a, sky: 0xffb07a, glint: 1, wave: 0.18 }), 0, -2.6, 0, g);
@@ -501,6 +502,7 @@ export function decorTerraza(g) {
   const moon = add(new THREE.CircleGeometry(5, 16), new THREE.MeshBasicMaterial({ color: 0xf0f0d8, fog: false }), 40, 34, -92, g);
   moon.lookAt(0, 0, 0); moon.renderOrder = -9;
   skyline(g);
+  P.twinkleStars(g, 80, 95, 14);
   // pretil alrededor de la azotea (±27.5, el piso de afuera se achica a esa medida)
   const E = 27.5, pm = P.M(0xffffff, { map: TX.parapet });
   [[0, -E, 2 * E + 1, 0.6], [0, E, 2 * E + 1, 0.6], [-E, 0, 0.6, 2 * E], [E, 0, 0.6, 2 * E]].forEach(([x, z, w, d]) => add(scaleUV(box(w, 1.2, d), Math.max(w, d) / 4, 1), pm, x, Y + 0.6, z, g));
@@ -796,7 +798,7 @@ export function decorEspacio(g) {
   P.satellite(g, 0, 2, 0, 19, 0.12, 0); P.satellite(g, 0, -1, 0, 22, -0.09, 2.5);
   // medusas espaciales que brillan y un platito volador que pasa
   P.jelly(g, -19, -3, 6, 0.9, 0x8ad8ff); P.jelly(g, 20, -5, -9, 0.7, 0xff8ad8); P.jelly(g, -8, -7, -19, 1.1, 0xb08aff);
-  P.ufo(g, 0, 6, -10, 18, 0.12, 0x6aff9a);
+  P.ufo(g, 0, 7, -30, 26, 0.1, 0x6aff9a);
   P.drift(g, 50, -24, 24, -10, 8, -24, 20, 0xb8d8ff, 0.08, 0.4);          // polvo de estrellas que sube despacio
   const dock = grp(g, -17.6, -2.4, -6);
   add(new THREE.BoxGeometry(4, 0.4, 3.2), P.M(0x3a4458, { map: TX.metal }), 0, 0, 0, dock);

@@ -7,6 +7,7 @@
 // Cajas especiales: RESORTE (verde; si caés encima te lanza unas tres cajas de alto)
 // y EXPLOSIVA (roja; al caer vuela la caja de arriba de las 4 pilas de al lado).
 // Gana la ronda el último que queda; gana la partida el primero que llega a N rondas.
+import { freezeStatic } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
@@ -146,7 +147,7 @@ function buildWorld() {
   W.lava = add(lg, W.lavaM, 0, -5, 0, grp); W.lava.visible = false;
   W.lavaGlowM = waterMat({ map: TX.magma, color: 0xffffff, emit: 1, glint: 0.3, foam: 0, wave: 0.15 });
   W.riseWaterM = waterMat({ map: TX.water, color: 0x5aa0d0, deep: 0x0a2a4a, sky: 0xffb08a, glint: 1, foam: 0.5, wave: 0.12 });
-  MAPS.forEach((m, i) => m.decor(W.maps[i], HALF));
+  MAPS.forEach((m, i) => { m.decor(W.maps[i], HALF); freezeStatic(W.maps[i]); });
   applyMap(0);
 }
 function applyMap(i) {

@@ -3,6 +3,7 @@
 // piso de abajo; si te caés del último, al slime: quedás afuera. Gana la ronda el último que queda en pie.
 // El golpe es AGARRAR: agarrás al que tenés adelante y lo frenás (su baldosa se sigue cayendo); al soltarlo
 // (apretando otra vez, o solo al rato) lo tirás para adelante. A los 45 s el piso empieza a caerse solo.
+import { freezeStatic } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
@@ -86,7 +87,7 @@ function buildWorld() {
     grp.add(body); grp.add(cap); W.body.push(body); W.cap.push(cap);
   });
   W.seen = FLOORS.map(() => new Uint8Array(NT));
-  W.maps = MAPS.map((m) => { const g = new THREE.Group(); g.visible = false; grp.add(g); return { g, bottom: m.decor(g, SLIME_Y) }; });
+  W.maps = MAPS.map((m) => { const g = new THREE.Group(); g.visible = false; grp.add(g); const bottom = m.decor(g, SLIME_Y); freezeStatic(g); return { g, bottom }; });
   applyMap(0);
 }
 function applyMap(i) {

@@ -53,6 +53,7 @@ function powerLine(p, pts, h = 7) {                       // postes de luz con c
 export function decorPotrero(g, HX, HZ) {
   P.sky(g, [[0, '#1a1848'], [0.3, '#5a2a6a'], [0.42, '#e0605a'], [0.49, '#ffa04a'], [0.53, '#ffcf7a'], [0.56, '#3a2a2a'], [1, '#1a120e']], { stars: 20, starBand: 0.25 });
   const sun = add(new THREE.CircleGeometry(9, 16), new THREE.MeshBasicMaterial({ color: 0xffc05a, fog: false }), -30, 3, -98, g); sun.renderOrder = -9;
+  P.skyClouds(g, 8, 45, 65, 12, 20, 0xffb8a8, 0.004);
   // tierra y pasto de alrededor
   const fl = scaleUV(new THREE.PlaneGeometry(110, 90, 20, 16), 20, 16); fl.rotateX(-Math.PI / 2);
   add(fl, P.M(0x8a7a50, { map: TX.potrero }), 0, -0.3, 0, g);
@@ -112,6 +113,8 @@ export function decorPotrero(g, HX, HZ) {
 
 /* ===================== LAGO HELADO ===================== */
 export function decorHielo(g, HX, HZ) {
+  P.twinkleStars(g, 80, 95, 16);
+  P.aurora(g, 0, 13, -62, 120, 18);
   P.sky(g, [[0, '#040818'], [0.3, '#0a1a3a'], [0.45, '#1a3a5a'], [0.52, '#2a4a6a'], [0.56, '#0a1020'], [1, '#04060a']],
     { stars: 90, starBand: 0.45, blobs: [[0.2, 0.22, 0.25, 'rgba(60,255,160,.35)'], [0.45, 0.18, 0.2, 'rgba(80,200,255,.3)'], [0.75, 0.25, 0.22, 'rgba(160,90,255,.25)']] });
   // nieve alrededor del lago (el lago es la pista)
@@ -178,6 +181,7 @@ export function decorHielo(g, HX, HZ) {
 export function decorPlayaFutbol(g, HX, HZ) {
   P.sky(g, [[0, '#1a6ad8'], [0.35, '#4aa8ff'], [0.47, '#bfe8ff'], [0.5, '#fff4d8'], [0.55, '#e8c890'], [1, '#8a6a40']], { r: 120 });
   const sun = add(new THREE.CircleGeometry(7, 16), new THREE.MeshBasicMaterial({ color: 0xfff2a0, fog: false }), 30, 40, -96, g); sun.renderOrder = -9;
+  P.skyClouds(g, 9, 45, 70, 14, 24, 0xffffff, 0.005);
   // los adornos de la playa se arman como en Bola Brava (su arena está 1.9 más abajo): se suben en un grupo
   const b = new THREE.Group(); b.position.y = 1.9; g.add(b);
   // arena alrededor de la cancha y el mar atrás (del lado de arriba de la pantalla)

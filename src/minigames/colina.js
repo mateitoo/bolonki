@@ -5,6 +5,7 @@
 // a todos los que tengas adelante (dura 3 golpes). El que se cae al agua vuelve a la orilla a los 2 s.
 // De vez en cuando viene una OLA que barre la parte baja de la isla: arriba de las colinas estás a salvo.
 // Gana el primero que llega a N puntos o el que tiene más cuando se termina el tiempo (si empatan, desempate).
+import { freezeStatic } from '../world/props.js';
 import * as THREE from 'three';
 import { register } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
@@ -88,7 +89,7 @@ function buildWorld() {
   const wv = new THREE.Group(); wv.visible = false; grp.add(wv); W.wave = wv;
   add(scaleUV(new THREE.BoxGeometry(34, 1.0, 1.6), 12, 1), mat({ map: TX.water, color: 0xb0d8ff }), 0, 0.5, 0, wv);
   add(new THREE.BoxGeometry(34, 0.22, 1.0), mat({ color: 0xf4fbff, unlit: true }), 0, 1.08, 0.25, wv);
-  decorColina(grp, rim);
+  { const dg = new THREE.Group(); grp.add(dg); decorColina(dg, rim); freezeStatic(dg); }
 }
 
 /* ---------- partido ---------- */

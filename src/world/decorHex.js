@@ -55,7 +55,7 @@ export function decorHexagonos(g, slimeY) {
     P.anim(hb, (t) => { hb.position.y = y + Math.sin(t * 0.25 + k * 2) * 2.5; hb.rotation.y = t * 0.08 + k; });
   });
   P.flyers(g, 0, 6, 0, 24, 6, 0x2a2a34, 0.45); P.flyers(g, -6, -4, 8, 19, 4, 0xffffff, 0.4);
-  P.blimp(g, 0, 6, -4, 26, 0.035, 0xfff4e6, 0xff5a4a);
+  P.blimp(g, 0, 10, -32, 22, 0.035, 0xfff4e6, 0xff5a4a);
   P.windblown(g, 30, -26, 26, -14, 6, -26, 26, 1, 0.5, 2, 0xffffff, 0.12);    // plumitas que pasan volando
   // mariposas gigantes de colores que revolotean cerca de los pisos
   for (let k = 0; k < 4; k++) {
@@ -207,7 +207,9 @@ export function decorNeon(g, slimeY) {
     const a0 = (k / 10) * Math.PI * 2, d = rnd(16, 22), y0 = rnd(-14, 3), sp = rnd(0.05, 0.1); g.add(cu);
     P.anim(cu, (t) => { const a = a0 + t * sp; cu.position.set(Math.sin(a) * d, y0 + Math.sin(t + k) * 0.8, Math.cos(a) * d); cu.rotation.set(t * 0.8 + k, t * 0.6, 0); });
   }
-  P.ufo(g, 0, 4, 0, 20, 0.15, 0x3af0ff);
+  P.ufo(g, 0, 9, -14, 30, 0.12, 0x3af0ff);
+  P.twinkleStars(g, 70, 95, 10);
+  P.fireworks(g, 0, -34, 26, 8, -6, 8, 2);                                  // fuegos artificiales de neón
   return grid;
 }
 

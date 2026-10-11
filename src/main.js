@@ -193,4 +193,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // ?debug en la URL deja el estado a mano en la consola (para pruebas)
-try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { netStats, closeAllMenus, game, room, browse, settings, eliminate, resetMatch, demoSetup, fiesta: fiestaState, startFiesta, mgById, checkSongs, renderSong, musicState, TX: TXall, rinfo: () => ({ calls: PSX.renderer.info.render.calls, tris: PSX.renderer.info.render.triangles }) }; } catch (e) { /* nada */ }
+try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { netStats, closeAllMenus, game, room, browse, settings, eliminate, resetMatch, demoSetup, fiesta: fiestaState, startFiesta, mgById, checkSongs, renderSong, musicState, TX: TXall, scene: PSX.scene, rinfo: () => ({ calls: PSX.renderer.info.render.calls, tris: PSX.renderer.info.render.triangles }) }; } catch (e) { /* nada */ }

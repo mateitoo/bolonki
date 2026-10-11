@@ -10,6 +10,7 @@
 //   que va largando una máquina)
 //   · desierto: arenas movedizas que te frenan · nieve: hielo, si soltás seguís resbalando
 // Gana la ronda el último que queda. Al minuto empieza la muerte súbita: las paredes se cierran en espiral.
+import { freezeStatic } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
@@ -107,7 +108,7 @@ const CANCHAS = [
       '.X..XX.X..X..',
       '.............'
     ] },
-  { name: 'DESIERTO', amb: 0x7a6a60, lcol: 0xfff0c8, fog: 0xf0dcb0, floor: 'sand', wall: 'sandstone', wallCol: 0xffffff, style: 'sandstone', crate: 'pot', out: 0xc8a060, deco: 'cactus', extra: 'ARENAS MOVEDIZAS',
+  { name: 'DESIERTO', amb: 0x746c68, lcol: 0xfff4e0, fog: 0xf0dcb0, floor: 'sand', wall: 'sandstone', wallCol: 0xffffff, style: 'sandstone', crate: 'pot', out: 0xc8a060, deco: 'cactus', extra: 'ARENAS MOVEDIZAS',
     map: [
       '....q........',
       '.X.qqX..X.X..',
@@ -296,13 +297,14 @@ function buildCancha(ci) {
   const wg = scaleUV(new THREE.BoxGeometry(TS, TS * 0.9, TS), 1, 1), wm = mat({ map: TX[C.wall], color: C.wallCol });
   // paredes: las del borde son de la cancha; las de adentro tienen la forma de cada lugar
   C.innerM = wm;
+  const sg = new THREE.Group(); g.add(sg);                        // lo fijo de la cancha (paredes y detalles del piso): se junta en pocas mallas
   for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) {
     if (!isWall(ci, c, r)) continue;
     const border = c === 0 || r === 0 || c === GW - 1 || r === GH - 1;
-    if (border) add(wg, wm, cxOf(c), TS * 0.45, czOf(r), g);
-    else innerWall(g, C, c, r, wm);
+    if (border) add(wg, wm, cxOf(c), TS * 0.45, czOf(r), sg);
+    else innerWall(sg, C, c, r, wm);
   }
-  floorBits(g, ci);
+  floorBits(sg, ci);
   // la máquina de cajones (un arco arriba de la cinta, con cortinas de goma a la salida)
   if (C.machine) {
     const [mc, mr] = C.machine, x = cxOf(mc + 1), z = czOf(mr + 1);
@@ -322,9 +324,9 @@ function buildCancha(ci) {
   const bushM = mat({ color: 0x3f8a3a }), bush2M = mat({ color: 0x2f7430 });
   for (let r = 1; r < GH - 1; r++) for (let c = 1; c < GW - 1; c++) {
     const sp = specialAt(ci, c, r), x = cxOf(c), z = czOf(r);
-    if (sp === '~') add(pg, W.iceM, x, 0.012, z, g);
-    else if (sp === 'q') add(pg, W.sandM, x, 0.012, z, g);
-    else if (CONV[sp]) { const [dc, dr] = CONV[sp]; add(pg, W.beltM, x, 0.012, z, g).rotation.y = Math.atan2(-dc, -dr); }
+    if (sp === '~') add(pg, W.iceM, x, 0.012, z, sg);
+    else if (sp === 'q') add(pg, W.sandM, x, 0.012, z, sg);
+    else if (CONV[sp]) { const [dc, dr] = CONV[sp]; add(pg, W.beltM, x, 0.012, z, sg).rotation.y = Math.atan2(-dc, -dr); }
     else if (sp === 'b') {
       const bg = new THREE.Group(); bg.position.set(x, 0, z); g.add(bg);
       [[0, 0, 0.62], [-0.35, 0.25, 0.42], [0.36, -0.2, 0.46], [0.2, 0.35, 0.38], [-0.3, -0.3, 0.4]].forEach(([dx, dz, rr], i) => {
@@ -334,7 +336,10 @@ function buildCancha(ci) {
     }
   }
   // decoración de afuera, según la cancha (jardín, fábrica, desierto, nieve)
-  decorPetardos(g, C.deco, { TS, GW, GH, cx: cxOf, cz: czOf, wallCol: C.wallCol, wallTex: TX[C.wall] });
+  freezeStatic(sg);
+  const dg = new THREE.Group(); g.add(dg);
+  decorPetardos(dg, C.deco, { TS, GW, GH, cx: cxOf, cz: czOf, wallCol: C.wallCol, wallTex: TX[C.wall] });
+  freezeStatic(dg);
   W.canchas.push(g);
 }
 

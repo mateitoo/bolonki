@@ -1,4 +1,5 @@
 // Minijuego 1: BOLA BRAVA. Cada uno defiende su arco; las pelotas salen de las torres.
+import { freezeStatic } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
 import { BR, HUMAN_SPEED } from '../config.js';
@@ -52,7 +53,7 @@ const chevGeo = () => {
   const g = new THREE.ShapeGeometry(cs); g.rotateX(-Math.PI / 2); return g;
 };
 function buildMaps() {
-  MG.groups = MAPS.map((m) => { const g = new THREE.Group(); g.visible = false; arenaGroup.add(g); m.build(g); return g; });
+  MG.groups = MAPS.map((m) => { const g = new THREE.Group(); g.visible = false; arenaGroup.add(g); m.build(g); freezeStatic(g); return g; });
   // tambor giratorio (CIRCO)
   MG.car = carousel(MG.groups[1], CAR_R);
   // columna y escombros (TERRAZA)

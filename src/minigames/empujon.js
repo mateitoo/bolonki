@@ -5,6 +5,7 @@
 // Las naves se mueven libres (patinan un poco, es hielo) y con el botón de golpe hacen una EMBESTIDA.
 // Gana la ronda el último que queda arriba; gana la partida el primero que llega a N rondas.
 // A los 14 s la plataforma empieza a achicarse para que nadie se quede quieto.
+import { freezeStatic } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
@@ -106,7 +107,7 @@ function buildMap(mi) {
       m.rotation.set(rnd(0, 3), rnd(0, 3), 0);
       M.rocks.push({ m, y: m.position.y, ph: rnd(0, 6), a, rr, sp: rnd(0.04, 0.09) * (k % 2 ? 1 : -1) });
     }
-    decorGlaciar(grp);
+    { const dg = new THREE.Group(); grp.add(dg); decorGlaciar(dg); freezeStatic(dg); }
   } else if (mi === 2) {
     // TORMENTA: una balsa redonda de tablones en el medio del mar, con barriles atados al borde
     add(scaleUV(new THREE.CylinderGeometry(R0, R0, 0.8, 28, 1), 6, 1), mat({ map: TX.dock, color: 0x9a8a78 }), 0, -0.4, 0, plat);
@@ -121,7 +122,7 @@ function buildMap(mi) {
     M.seaM = waterMat({ map: TX.water, color: 0x3a5a7a, deep: 0x08121e, sky: 0x6a7a90, refl: 0.8, glint: 0.25, foam: 0.5, wave: 0.35 });
     const sea = scaleUV(new THREE.PlaneGeometry(220, 220, 22, 22), 34); sea.rotateX(-Math.PI / 2);
     add(sea, M.seaM, 0, -2.8, 0, grp);
-    decorTormenta(grp, R0);
+    { const dg = new THREE.Group(); grp.add(dg); decorTormenta(dg, R0); freezeStatic(dg); }
   } else {
     // VOLCÁN: tierra con charcos de barro, sobre un cono de roca
     add(scaleUV(new THREE.CylinderGeometry(R0, R0 * 0.97, 0.8, 28, 1, true), 8, 1), mat({ map: TX.dirt, color: 0xc8b0a0 }), 0, -0.4, 0, plat);
@@ -148,7 +149,7 @@ function buildMap(mi) {
       m.rotation.set(rnd(0, 3), rnd(0, 3), 0);
       M.rocks.push({ m, y: m.position.y, ph: rnd(0, 6) });
     }
-    decorVolcan(grp, plat, R0, VOLC);
+    { const dg = new THREE.Group(); grp.add(dg); decorVolcan(dg, plat, R0, VOLC); freezeStatic(dg); }
   }
   W.maps.push(M);
 }

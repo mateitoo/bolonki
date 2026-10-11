@@ -3,6 +3,7 @@
 // de golpe hacen una EMBESTIDA: si pegás la pelota embistiendo sale como un cañonazo.
 // Gana el primer equipo que llega a N goles, o el que va ganando cuando se termina el tiempo.
 // Si empatan al final: gol de oro (y los arcos se van agrandando de a poco hasta que alguien meta).
+import { freezeStatic } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
@@ -52,7 +53,7 @@ const MUD = [[-7.2, 4.6], [7.2, -4.6], [0, 5.3], [0, -5.3]], MUD_R = 1.5;       
 const MAPS = [
   { name: 'ESTADIO', decor: (g) => decorFutbol(g, HX, HZ), fog: { col: 0x070a1c, near: 55, far: 130, amb: 0x4e5474, lcol: 0xe0e8ff },
     pitch: [TX.pitch, 0xffffff], lines: 0xf4f6f0, wall: TX.ads, cap: 0x2a2f3c, post: 0xf2f4f8, net: 0xdfe6ee, phys: { acc: 1, fric: 1, bfric: 1 } },
-  { name: 'POTRERO', decor: (g) => decorPotrero(g, HX, HZ), fog: { col: 0x4a2a3a, near: 50, far: 125, amb: 0x6a4a58, lcol: 0xffc898 }, extra: 'BARRO QUE FRENA · LA PELOTA SE PINCHA A LOS 3 GOLPES',
+  { name: 'POTRERO', decor: (g) => decorPotrero(g, HX, HZ), fog: { col: 0x4a2a3a, near: 50, far: 125, amb: 0x645260, lcol: 0xffdcc0 }, extra: 'BARRO QUE FRENA · LA PELOTA SE PINCHA A LOS 3 GOLPES',
     pitch: [TX.potrero, 0xffffff], lines: 0xf0e8d0, wall: TX.graffiti, cap: 0x6a5a4a, post: 0xb07a48, postMap: TX.wood, net: 0xd8d0c0, phys: { acc: 1, fric: 1, bfric: 1 }, mud: true,
     noLines: true, noNet: true, ballMap: TX.oldBall, ballFx: 'flat' },
   { name: 'LAGO HELADO', decor: (g) => decorHielo(g, HX, HZ), fog: { col: 0x0a1428, near: 50, far: 125, amb: 0x44587a, lcol: 0xc0d8ff }, extra: 'HIELO · LA PELOTA ARRANCA CONGELADA (3 GOLPES LA ROMPEN)',
@@ -174,7 +175,7 @@ function buildWorld() {
     W.rings.push(add(rg, m, 0, 0.03, 0, grp));
   }
   // decorado de cada mapa (se muestra el que toca)
-  W.maps = MAPS.map((m) => { const g = new THREE.Group(); g.visible = false; grp.add(g); m.decor(g); return g; });
+  W.maps = MAPS.map((m) => { const g = new THREE.Group(); g.visible = false; grp.add(g); m.decor(g); freezeStatic(g); return g; });
   // charcos de barro del potrero
   const mg = new THREE.Group(); grp.add(mg); W.mud = mg;
   const mm = mat({ map: TX.dirt, color: 0x8a5a38 });

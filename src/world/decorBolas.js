@@ -200,6 +200,18 @@ function clownCar(p, x, z) {                                    // autito de pay
   [[-0.35, 0xff5a4a], [0.1, 0x39d98a], [0.45, 0xb07aff]].forEach(([a, c]) => { add(new THREE.SphereGeometry(0.24, 8, 6), P.M(0xf4f2ee), a, 1.95, 0.1, g); add(new THREE.SphereGeometry(0.07, 5, 4), P.M(0xe8203a), a, 1.93, 0.33, g); add(new THREE.SphereGeometry(0.2, 6, 4), P.M(c), a, 2.12, 0.05, g); });
   add(new THREE.SphereGeometry(0.2, 6, 4), P.M(0xff3a3a), 0, 1.2, 1.25, g);   // bocina
   P.anim(g, (t) => { g.position.y = Y + Math.abs(Math.sin(t * 9)) * 0.08; g.rotation.z = Math.sin(t * 7) * 0.03; });
+  // cada tanto sale un payaso volando del techo del auto, da una vuelta en el aire y cae de nuevo adentro
+  const cl = grp(g), cols = [0xff5a4a, 0x39d98a, 0xb07aff, 0xffd23a];
+  const body = add(box(0.4, 0.5, 0.3), P.M(0xffffff, { map: TX.stripes }), 0, 0, 0, cl);
+  add(new THREE.SphereGeometry(0.2, 8, 6), P.M(0xf4f2ee), 0, 0.42, 0, cl); add(new THREE.SphereGeometry(0.06, 5, 4), P.M(0xe8203a), 0, 0.4, 0.2, cl);
+  const hair = add(new THREE.SphereGeometry(0.18, 6, 4), P.M(0xff5a4a), 0, 0.56, -0.04, cl);
+  [-1, 1].forEach((s) => add(box(0.1, 0.4, 0.1), P.M(0xffd23a), s * 0.26, 0.1, 0, cl).rotation.z = s * 2.4);
+  P.anim(cl, (t) => {
+    const u = (t % 9) / 1.4; cl.visible = u < 1;
+    if (u >= 1) return;
+    cl.position.set(Math.sin(u * Math.PI) * 0.6, 1.6 + Math.sin(u * Math.PI) * 3.2, 0); cl.rotation.x = u * Math.PI * 2;
+    hair.material = P.M(cols[Math.floor(t / 9) % cols.length]); void body;
+  });
 }
 export function decorCirco(g) {
   P.sky(g, [[0, '#1a0610'], [0.4, '#3a0a1a'], [0.5, '#5a1a2a'], [1, '#12060a']], { r: 110 });

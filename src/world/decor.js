@@ -1,7 +1,7 @@
 // Decorado de cada escenario (fuera de la zona de juego): tribunas, jardines, fábricas, dunas, nieve…
 // Solo adorna: no cambia nada de cómo se juega. Las piezas están en props.js.
 import * as THREE from 'three';
-import { add, scaleUV } from '../render/psx.js';
+import { add, scaleUV, mat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
 import * as P from './props.js';
@@ -141,6 +141,16 @@ export function decorColina(g, rim) {
   { const pts = []; for (let k = 0; k < 9; k++) { const a = (k / 9) * Math.PI * 2 + 0.5; if (Math.abs(a - (Math.PI * 2 - 0.9)) < 0.4) continue; const r = rim(a) - 1.1; pts.push([Math.sin(a) * r, Math.cos(a) * r]); } P.shyBirds(g, pts, 0.02); }
   // cangrejos caminando por la orilla
   [[0.4, 0xe8503a], [2.4, 0xff7a3a], [4.3, 0xe8503a]].forEach(([a, c], k) => { const r = rim(a) - 0.5, r2 = rim(a + 0.25) - 0.5; P.crabWalk(g, Math.sin(a) * r, 0.02, Math.cos(a) * r, Math.sin(a + 0.25) * r2, Math.cos(a + 0.25) * r2, c, 0.35, k * 2); });
+  // una ballena que asoma el lomo lejos y tira un chorro de agua
+  const wh = new THREE.Group(); wh.position.set(-34, -0.9, -22); wh.rotation.y = 0.9; g.add(wh);
+  const back = add(new THREE.SphereGeometry(2.4, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), P.M(0x3a4a6a), 0, -1.2, 0, wh); back.scale.set(1, 0.6, 2.4);
+  const tail = add(new THREE.BoxGeometry(3.2, 0.2, 1.2), P.M(0x3a4a6a), 0, -1.2, -5.5, wh);
+  const spout = []; for (let i = 0; i < 8; i++) spout.push(add(new THREE.SphereGeometry(0.3, 5, 4), P.M(0xf0f8ff, { unlit: true }), 0, 0, 1.5, wh));
+  P.anim(wh, (t) => {
+    const u = (t % 16) / 6, up = u < 1 ? Math.sin(u * Math.PI) : 0;
+    back.position.y = -1.6 + up * 1.4; tail.position.y = -1.6 + Math.max(0, Math.sin((u - 0.55) * Math.PI * 2)) * 2.4 * (u > 0.55 ? 1 : 0); tail.rotation.x = -tail.position.y * 0.3;
+    spout.forEach((sp, i) => { const k = (u - 0.25) * 3 - i * 0.06; sp.visible = k > 0 && k < 1; if (sp.visible) sp.position.set(Math.sin(i * 2.3) * k * 0.8, 0.4 + k * 3.5 - k * k * 1.5, 1.5 + Math.cos(i * 2.3) * k * 0.8); });
+  });
   // un cofre del tesoro en un islote
   const ch = new THREE.Group(); ch.position.set(-25.2, 0.7, -29.2); ch.rotation.y = 0.5; g.add(ch);
   add(new THREE.BoxGeometry(1.2, 0.6, 0.8), P.M(0x8a5a2a, { map: TX.wood }), 0, 0.3, 0, ch);
@@ -451,7 +461,7 @@ export function decorPetardos(g, deco, L) {
     });
     P.smokestack(g, -17.5, Y, -12.5, 8); P.smokestack(g, 17.5, Y, -13.5, 6.5);
     [[-16.5, 4], [-17.3, 5], [-16.3, 5.4], [17, -3], [16.4, -4.1], [17.6, 8], [16.9, 9]].forEach(([x, z], k) => P.barrel(g, x, Y, z, k % 2 ? 0xd8a02a : 0x3a6ac8));
-    P.crates(g, -17.5, Y, -4, 3); P.crates(g, 18, Y, 2.5, 2); P.crates(g, 5, Y, -14, 3); P.crates(g, -6, Y, -14.2, 2);
+    P.crates(g, -17.5, Y, -4, 3); P.crates(g, 18, Y, 2.5, 2);
     [[-13, -11.3], [13, -11.3], [-13, 11.3], [13, 11.3]].forEach(([x, z]) => P.beacon(g, x, Y, z));
     const hz = P.M(0xffffff, { map: TX.hazard, unlit: true });
     [-1, 1].forEach((sx) => add(new THREE.BoxGeometry(0.5, 0.04, 22), hz, sx * 13.1, Y + 0.02, 0, g));
@@ -462,6 +472,15 @@ export function decorPetardos(g, deco, L) {
     P.fan(g, 0, Y + 1.8, -16.4, 0, 1.1);
     P.sky(g, [[0, '#2a2a3a'], [0.45, '#8a6a6a'], [0.5, '#e0a070'], [1, '#3a3f4a']]);
     P.drift(g, 36, -18, 18, Y, Y + 6, -15, 14, 0xc8b8a0, 0.06, 0.3);       // polvo de fábrica
+    // cinta transportadora de adelante, con cajas que pasan y una lámpara que gira en la punta
+    { const bz = -12.9, bm = mat({ map: TX.belt, unlit: true });
+      const bg = scaleUV(new THREE.PlaneGeometry(22, 1.3), 1, 14); bg.rotateX(-Math.PI / 2); bg.rotateY(Math.PI / 2);
+      add(bg, bm, 0, Y + 0.62, bz, g);
+      [-1, 1].forEach((s2) => add(new THREE.BoxGeometry(22.4, 0.3, 0.12), P.M(0xffc02a, { map: TX.metal }), 0, Y + 0.62, bz + s2 * 0.7, g));
+      for (let k = -5; k <= 5; k++) add(new THREE.BoxGeometry(0.15, 0.6, 1.3), P.M(0x3a3f4a, { map: TX.metal }), k * 2.1, Y + 0.3, bz, g);
+      const boxes = []; for (let k = 0; k < 7; k++) { const c = add(new THREE.BoxGeometry(0.75, 0.6, 0.75), P.M(k % 3 ? 0xc8a070 : 0xd8b888, { map: TX.cardboard }), 0, Y + 0.95, bz, g); boxes.push({ c, u: k / 7 }); }
+      P.anim(g, (t) => { bm.uniforms.uOff.value.set(0, (-t * 0.6) % 1); boxes.forEach((q) => { const u = (q.u + t * 0.03) % 1; q.c.position.x = -10.8 + u * 21.6; q.c.visible = u > 0.02 && u < 0.98; }); });
+      P.beacon(g, 11.4, Y + 0.6, bz + 0.9); }
     // brazos robot que sueldan (chispas), operarios con casco y manchas de aceite
     [[-17.2, 0.5, 0.4], [17.4, 5.5, Math.PI + 0.3]].forEach(([x, z, ry], k) => {
       const ra = new THREE.Group(); ra.position.set(x, Y, z); ra.rotation.y = ry; g.add(ra);

@@ -272,6 +272,7 @@ export function decorGlaciar(grp) {
   });
   // pajaritos que pasan cerca
   P.flyers(grp, 0, 2, 0, 15, 3, 0x3a3a48, 0.4);
+  P.mist(grp, -3, 12, 22, 8, 0xffffff, 0.22, 16);
   // nubecitas que pasan por debajo del iceberg y un búho blanco que planea
   const cw = P.M(0xffffff), cs = P.M(0xe0e8f4);
   for (let k = 0; k < 6; k++) {
@@ -696,6 +697,7 @@ export function decorTormenta(g, R0) {
     return { tg, segs, ph: k * 2.6 };
   });
   P.anim(g, (t) => tents.forEach((q) => { const u = (t * 0.12 + q.ph / 6) % 1, up = u < 0.4 ? Math.sin((u / 0.4) * Math.PI) : 0; q.tg.position.y = -3 - 6 + up * 6; q.tg.visible = up > 0.02; q.segs.forEach((sg, i) => { sg.rotation.x = Math.sin(t * 2 + i * 0.6 + q.ph) * 0.25; sg.rotation.z = Math.cos(t * 1.6 + i * 0.5) * 0.2; }); }));
+  P.rainRipples(g, -2.55, 0, 0, 26, 24, 50, 0x8aa0c0, (x, z) => Math.hypot(x, z) < R0 + 0.5);
   // lluvia (rápida y en diagonal)
   P.drift(g, 160, -24, 24, 20, -3, -22, 22, 0xa8c0e0, 0.06, 18);
   // rayos lejanos cada tanto (se prende un zigzag en el horizonte)

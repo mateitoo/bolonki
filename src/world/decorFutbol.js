@@ -115,6 +115,7 @@ export function decorPotrero(g, HX, HZ) {
 export function decorHielo(g, HX, HZ) {
   P.twinkleStars(g, 80, 95, 16);
   P.aurora(g, 0, 13, -62, 120, 18);
+  P.mist(g, 0, HX + 8, HX + 22, 8, 0xc8e0ff, 0.14, 14);
   P.sky(g, [[0, '#040818'], [0.3, '#0a1a3a'], [0.45, '#1a3a5a'], [0.52, '#2a4a6a'], [0.56, '#0a1020'], [1, '#04060a']],
     { stars: 90, starBand: 0.45, blobs: [[0.2, 0.22, 0.25, 'rgba(60,255,160,.35)'], [0.45, 0.18, 0.2, 'rgba(80,200,255,.3)'], [0.75, 0.25, 0.22, 'rgba(160,90,255,.25)']] });
   // nieve alrededor del lago (el lago es la pista)

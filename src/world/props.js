@@ -1219,3 +1219,55 @@ function mergeGeos(geos) {
   out.computeBoundingSphere();
   return out;
 }
+
+/* ---------- atmósfera (cuarta tanda) ---------- */
+let softTex = null;
+function soft() {                                   // manchón redondo y suave (para neblina y halos)
+  if (softTex) return softTex;
+  const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+  const g = x.createRadialGradient(32, 32, 2, 32, 32, 31); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.55, 'rgba(255,255,255,.45)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  return (softTex = new THREE.CanvasTexture(c));
+}
+// Neblina baja: manchones chatos y transparentes que se desplazan despacio
+export function mist(p, y, rMin, rMax, n = 10, col = 0xffffff, op = 0.18, size = 14) {
+  const ms = [];
+  for (let i = 0; i < n; i++) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size * 0.6), new THREE.MeshBasicMaterial({ map: soft(), color: col, transparent: true, opacity: op, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.renderOrder = 2; p.add(m);
+    ms.push({ m, a: rnd(0, Math.PI * 2), r: rnd(rMin, rMax), sp: rnd(0.01, 0.03) * (i % 2 ? 1 : -1), ph: rnd(0, 6) });
+  }
+  anim(p, (t) => ms.forEach((q) => { const a = q.a + t * q.sp; q.m.position.set(Math.sin(a) * q.r, y + Math.sin(t * 0.3 + q.ph) * 0.2, Math.cos(a) * q.r); q.m.rotation.z = a; q.m.material.opacity = op * (0.7 + 0.3 * Math.sin(t * 0.4 + q.ph)); }));
+}
+// Rayos de sol entrando entre las hojas (columnas de luz suave que respiran)
+export function lightShafts(p, pts, h = 14, col = 0xfff4c0, op = 0.12) {
+  const ms = pts.map(([x, y, z, tilt = 0.25], i) => {
+    const geo = new THREE.CylinderGeometry(0.6, 2.2, h, 8, 1, true); geo.translate(0, -h / 2, 0);
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+    m.position.set(x, y, z); m.rotation.set(tilt, 0, tilt * 0.6); m.renderOrder = 3; p.add(m);
+    return { m, ph: i * 1.3 };
+  });
+  anim(p, (t) => ms.forEach((q) => { q.m.material.opacity = op * (0.6 + 0.4 * Math.sin(t * 0.5 + q.ph)); }));
+}
+// Gotas de lluvia que caen al agua: anillitos que se agrandan y desaparecen (instanciados)
+export function rainRipples(p, y, cx, cz, rx, rz, n = 40, col = 0xb8d0f0, avoid = null) {
+  const geo = new THREE.RingGeometry(0.75, 0.9, 10); geo.rotateX(-Math.PI / 2);
+  const im = new THREE.InstancedMesh(geo, M(col, { unlit: true }), n), ps = [];
+  const spot = (q) => { for (let k = 0; k < 8; k++) { q.x = cx + rnd(-rx, rx); q.z = cz + rnd(-rz, rz); if (!avoid || !avoid(q.x, q.z)) break; } };
+  for (let i = 0; i < n; i++) { const q = { k: rnd(0, 1), sp: rnd(1.2, 2) }; spot(q); ps.push(q); }
+  p.add(im);
+  const m4 = new THREE.Matrix4();
+  anim(p, (t, dt) => { ps.forEach((q, i) => { q.k += dt * q.sp; if (q.k >= 1) { q.k = 0; spot(q); } const s = 0.15 + q.k * 0.9; m4.makeScale(s, 1, s).setPosition(q.x, y, q.z); im.setMatrixAt(i, m4); }); im.instanceMatrix.needsUpdate = true; });
+  return im;
+}
+// Espuma que golpea contra un borde recto (muelle, balsa): tiras blancas que van y vienen
+export function edgeFoam(p, pts, y, w = 0.6) {
+  const fm = M(0xffffff, { unlit: true }), fs = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x1, z1] = pts[i], [x2, z2] = pts[i + 1], len = Math.hypot(x2 - x1, z2 - z1), a = Math.atan2(x2 - x1, z2 - z1);
+    const nx = Math.cos(a), nz = -Math.sin(a);
+    const f = add(box(w, 0.04, len), fm, (x1 + x2) / 2, y, (z1 + z2) / 2, p); f.rotation.y = a;
+    fs.push({ f, cx: (x1 + x2) / 2, cz: (z1 + z2) / 2, nx, nz, ph: i * 0.9 });
+  }
+  anim(p, (t) => fs.forEach((q) => { const k = Math.sin(t * 1.4 + q.ph); q.f.position.set(q.cx + q.nx * k * 0.35, y, q.cz + q.nz * k * 0.35); q.f.scale.x = 0.6 + Math.abs(k) * 0.8; }));
+}

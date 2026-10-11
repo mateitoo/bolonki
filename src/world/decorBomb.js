@@ -92,6 +92,7 @@ export function decorPuerto(g, HALF) {
     P.anim(rod, (t) => { rod.rotation.x = Math.max(0, Math.sin(t * 0.5 + k * 2)) ** 10 * -0.5; });
   });
   P.walker(g, -10.5, Y, -E + 1.2, 10.5, -E + 1.2, { shirt: 0xffffff, pants: 0x2a3a6a, hat: 0xffffff, sp: 0.16 });
+  P.edgeFoam(g, [[-E - 0.4, -E - 0.4], [E + 0.4, -E - 0.4], [E + 0.4, E + 0.4], [-E - 0.4, E + 0.4], [-E - 0.4, -E - 0.4]], -2.45, 0.7);
   const cat = new THREE.Group(); cat.position.set(9.6, Y + 1.04, -12.1); g.add(cat);
   add(box(0.22, 0.22, 0.5), P.M(0xe8a04a), 0, 0.12, 0, cat); add(box(0.22, 0.2, 0.2), P.M(0xe8a04a), 0, 0.3, 0.25, cat);
   const ct = add(box(0.05, 0.35, 0.05), P.M(0xe8a04a), 0, 0.3, -0.25, cat);
@@ -235,6 +236,8 @@ export function decorSelva(g, HALF) {
   P.flowers(g, -10.5, Y, 10.5, 1.4, 1.2, 14, [0xff5a7a, 0xffe14a, 0xff9a2a]); P.flowers(g, 10.4, Y, -10.6, 1.2, 1.4, 12, [0xb07aff, 0xffffff, 0xff5a7a]);
   // un estanque con nenúfares y una rana que salta
   P.pond(g, 12.2, Y, 1.4, 1.4); P.lilies(g, 12.2, Y + 0.33, 1.4, 1.1, 5);
+  P.mist(g, Y + 0.6, 14, 26, 9, 0xe0ffe0, 0.16, 12);
+  P.lightShafts(g, [[-13, Y + 14, -6, 0.3], [12, Y + 14, 8, 0.25], [-4, Y + 15, -14, 0.2], [9, Y + 13, -13, 0.3]], 14, 0xfff8c8, 0.1);
   // monos hamacándose de las lianas y tucanes que pasan volando
   P.monkey(g, -14.5, Y + 5.5, -11.5, 2.4, 0); P.monkey(g, 14.8, Y + 6, 11.2, 2.8, 1.7); P.monkey(g, 13.2, Y + 5, -13.8, 2.2, 3.1);
   [[-14.5, Y + 5.5, -11.5], [14.8, Y + 6, 11.2], [13.2, Y + 5, -13.8]].forEach(([x, y, z]) => add(new THREE.BoxGeometry(2.4, 0.3, 0.3), P.M(0x6b4a2a, { map: TX.wood }), x, y + 0.1, z, g));

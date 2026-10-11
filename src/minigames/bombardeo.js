@@ -146,6 +146,20 @@ function buildWorld() {
   const lg = scaleUV(new THREE.PlaneGeometry(GN * TS + 1.2, GN * TS + 1.2, 8, 8), 6); lg.rotateX(-Math.PI / 2);
   W.lava = add(lg, W.lavaM, 0, -5, 0, grp); W.lava.visible = false;
   W.lavaGlowM = waterMat({ map: TX.magma, color: 0xffffff, emit: 1, glint: 0.3, foam: 0, wave: 0.15 });
+  // cosas que flotan en lo que sube: cajones y botellas en la marea, hojas y nenúfares en el pantano, trozos de hielo en la nieve
+  W.floaters = [0, 1, 2, 3].map((mi) => {
+    const fg = new THREE.Group(); fg.visible = false; W.lava.add(fg); const items = [];
+    for (let k = 0; k < 9; k++) {
+      const it = new THREE.Group(); fg.add(it);
+      const a = (k / 9) * Math.PI * 2 + rnd(-0.3, 0.3), r = rnd(2, HALF + 0.3);
+      if (mi === 1) { if (k % 3) add(new THREE.BoxGeometry(0.7, 0.4, 0.7), mat({ map: TX.crate }), 0, 0.05, 0, it); else { add(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 6), mat({ color: 0x3a8a4a }), 0, 0.05, 0, it).rotation.z = Math.PI / 2; } }
+      else if (mi === 3) { const lg = new THREE.CircleGeometry(rnd(0.3, 0.5), 7, 0.4, Math.PI * 1.8); lg.rotateX(-Math.PI / 2); add(lg, mat({ color: 0x4aa03a }), 0, 0.02, 0, it); if (k % 3 === 0) add(new THREE.ConeGeometry(0.12, 0.2, 5), mat({ color: 0xff9ad0, unlit: true }), 0, 0.12, 0, it); }
+      else if (mi === 2) add(new THREE.DodecahedronGeometry(rnd(0.25, 0.45), 0), mat({ color: 0xffffff, map: TX.snow }), 0, 0.05, 0, it).scale.y = 0.5;
+      else { add(new THREE.DodecahedronGeometry(rnd(0.25, 0.4), 0), mat({ color: 0x2a1a14 }), 0, 0.05, 0, it).scale.y = 0.5; }   // costras de lava
+      items.push({ it, a, r, sp: rnd(0.04, 0.1) * (k % 2 ? 1 : -1), ph: rnd(0, 6) });
+    }
+    return { fg, items };
+  });
   W.riseWaterM = waterMat({ map: TX.water, color: 0x5aa0d0, deep: 0x0a2a4a, sky: 0xffb08a, glint: 1, foam: 0.5, wave: 0.12 });
   MAPS.forEach((m, i) => { m.decor(W.maps[i], HALF); freezeStatic(W.maps[i]); });
   applyMap(0);
@@ -549,6 +563,7 @@ const bombardeo = {
     }
     for (; cn < W.coils.length; cn++) W.coils[cn].visible = false;
     W.lava.visible = B.lava > 0; W.lava.position.y = Math.max(0.01, B.lava);
+    if (W.floaters) W.floaters.forEach((f, i) => { f.fg.visible = i === MAP.i; if (i === MAP.i && W.lava.visible) f.items.forEach((q) => { const a = q.a + clock * q.sp; q.it.position.set(Math.sin(a) * q.r, Math.sin(clock * 1.3 + q.ph) * 0.05, Math.cos(a) * q.r); q.it.rotation.y = clock * q.sp * 3 + q.ph; q.it.rotation.z = Math.sin(clock + q.ph) * 0.1; }); });
     W.lavaM.uniforms.uOff.value.set((clock * 0.03) % 1, (clock * 0.02) % 1); W.riseWaterM.uniforms.uOff.value.copy(W.lavaM.uniforms.uOff.value); W.lavaGlowM.uniforms.uOff.value.copy(W.lavaM.uniforms.uOff.value);
     game.burnStyle = MAPS[MAP.i].style;                  // cómo se ve el que queda tapado: lava, agua o nieve
     // avisos y cajas cayendo

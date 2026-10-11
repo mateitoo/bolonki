@@ -6,6 +6,7 @@ import { mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
 import * as P from './props.js';
+import { game } from '../state.js';
 
 export const WATER_Y = -0.9;
 export const RMAX = 14.2;          // lo más lejos que llega la costa (para la ola)
@@ -156,12 +157,22 @@ export function buildIsla(grp) {
   // puente colgante: tablones con panza, sogas y postes
   const B = BRIDGE, wood = mat({ map: TX.wood, color: 0xc89868 }), rope = mat({ color: 0xd8c8a0 });
   const dx = B.bx - B.ax, dz = B.bz - B.az, L = Math.hypot(dx, dz), ang = Math.atan2(dx, dz), NP = 11;
+  const planks = [];
   const hAt = (t) => B.ah + (B.bh - B.ah) * t - Math.sin(t * Math.PI) * B.sag;
   for (let k = 0; k < NP; k++) {
     const t = (k + 0.5) / NP;
     const m = add(new THREE.BoxGeometry(B.w, 0.1, (L / NP) * 0.82), wood, B.ax + dx * t, hAt(t) - 0.05, B.az + dz * t, grp);
     m.rotation.y = ang; m.rotation.x = Math.atan2(hAt(t + 0.05) - hAt(t - 0.05), L * 0.1) * -1;
+    planks.push({ m, y: m.position.y, x: m.position.x, z: m.position.z, t });
   }
+  // los tablones se hunden un poquito bajo el que pisa, y el puente se mece
+  P.anim(grp, (tt) => {
+    planks.forEach((q) => {
+      let d = 0;
+      for (const p of game.players) if (p && p.alive && !p.empty) { const dd = Math.hypot(p.x - q.x, p.z - q.z); if (dd < 1.6 && Math.abs((p.fy || 0) - q.y) < 0.8) d = Math.max(d, 1 - dd / 1.6); }
+      q.m.position.y = q.y - d * 0.09 - Math.sin(q.t * Math.PI) * Math.sin(tt * 1.8) * 0.03;
+    });
+  });
   [-1, 1].forEach((sd) => {
     const ox = Math.cos(ang) * sd * (B.w / 2 + 0.05), oz = -Math.sin(ang) * sd * (B.w / 2 + 0.05);
     [[B.ax, B.az, B.ah], [B.bx, B.bz, B.bh]].forEach(([x, z, h]) => add(new THREE.CylinderGeometry(0.09, 0.11, 1.4, 5), wood, x + ox, h + 0.6, z + oz, grp));

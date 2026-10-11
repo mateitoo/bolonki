@@ -35,6 +35,18 @@ export const TX = {
       x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, 1, 1);
     }
   }),
+  spaceFloor: tex(64, 64, (x, w, h) => {         // piso de la estación espacial: placas con juntas, remaches y una línea de luz
+    x.fillStyle = '#9aa6b4'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < (w * h) / 3; i++) { const v = Math.random() < 0.5 ? 0 : 255; x.fillStyle = `rgba(${v},${v},${v},${0.05 * Math.random()})`; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, 1, 1); }
+    [[0, 0, 32, 32], [32, 0, 32, 32], [0, 32, 32, 32], [32, 32, 32, 32]].forEach(([px, py, pw, ph], k) => {
+      x.fillStyle = k % 3 ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)'; x.fillRect(px + 1, py + 1, pw - 2, ph - 2);
+      x.fillStyle = 'rgba(255,255,255,.35)'; x.fillRect(px + 1, py + 1, pw - 2, 1); x.fillRect(px + 1, py + 1, 1, ph - 2);
+      x.fillStyle = 'rgba(20,30,40,.55)'; x.fillRect(px, py, pw, 1); x.fillRect(px, py, 1, ph);
+      x.fillStyle = 'rgba(40,50,60,.5)'; [[3, 3], [pw - 4, 3], [3, ph - 4], [pw - 4, ph - 4]].forEach(([a, b]) => x.fillRect(px + a, py + b, 1, 1));
+    });
+    x.fillStyle = '#5a6a7a'; x.fillRect(12, 40, 8, 8); x.fillStyle = '#8a9aaa'; for (let i = 0; i < 4; i++) x.fillRect(13, 41 + i * 2, 6, 1);   // rejilla
+    x.fillStyle = 'rgba(53,240,255,.55)'; x.fillRect(0, 31, w, 1); x.fillStyle = 'rgba(53,240,255,.25)'; x.fillRect(0, 30, w, 1); x.fillRect(0, 32, w, 1);
+  }),
   lights: tex(16, 8, (x, w, h) => {           // tira de luces cian del borde
     x.fillStyle = '#0a1418'; x.fillRect(0, 0, w, h);
     x.fillStyle = '#0f7e86'; x.fillRect(2, 1, 12, 6);
@@ -704,10 +716,13 @@ export const TX = {
     x.fillStyle = '#4a2e18'; for (let i = 0; i < 4; i++) x.fillRect(0, i * 8, w, 1);
     x.fillStyle = '#2a2a2a'; [[3, 3], [28, 3], [3, 11], [28, 11], [3, 19], [28, 19], [3, 27], [28, 27]].forEach(([a, b]) => x.fillRect(a, b, 1, 1));
   }),
-  packedSnow: tex(32, 32, (x, w, h) => {          // nieve pisada con huellas
+  packedSnow: tex(32, 32, (x, w, h) => {          // losa de hielo con nieve pisada: borde biselado, huellas, grietas y brillitos
     noisy(x, w, h, '#e8f0fa', 0.08);
-    for (let i = 0; i < 10; i++) { x.fillStyle = 'rgba(120,150,190,.18)'; x.beginPath(); x.ellipse(Math.random() * w, Math.random() * h, rnd(1.5, 3), rnd(1, 2), rnd(0, 3), 0, 7); x.fill(); }
-    x.fillStyle = 'rgba(160,190,220,.35)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+    for (let i = 0; i < 6; i++) { x.fillStyle = 'rgba(120,150,190,.16)'; x.beginPath(); x.ellipse(rnd(6, 26), rnd(6, 26), rnd(1.5, 2.5), rnd(0.8, 1.5), rnd(0, 3), 0, 7); x.fill(); }
+    x.fillStyle = 'rgba(150,185,225,.45)'; [[8, 18], [9, 19], [10, 19], [11, 20], [12, 20], [13, 21]].forEach(([a, b]) => x.fillRect(a, b, 1, 1));   // grieta
+    x.fillStyle = 'rgba(255,255,255,.9)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h); x.fillRect(1, 1, w - 2, 1);   // bisel claro
+    x.fillStyle = 'rgba(110,140,180,.55)'; x.fillRect(0, h - 1, w, 1); x.fillRect(w - 1, 0, 1, h);                         // bisel oscuro
+    x.fillStyle = '#ffffff'; [[20, 6], [6, 26], [26, 24]].forEach(([a, b]) => { x.fillRect(a, b, 1, 1); x.fillStyle = 'rgba(170,210,255,.9)'; x.fillRect(a + 1, b, 1, 1); x.fillStyle = '#ffffff'; });
   }),
   snowFence: tex(16, 8, (x, w, h) => { x.fillStyle = '#e8702a'; x.fillRect(0, 0, w, h); x.fillStyle = '#1a1a1a'; for (let i = 0; i < w; i += 4) x.fillRect(i, 2, 2, 4); x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, 1); }),
 };

@@ -25,10 +25,23 @@ export function M(color, o = {}) {
 }
 const G = (parent, x = 0, y = 0, z = 0, ry = 0) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; parent.add(g); return g; };
 const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+// Sombra redonda y suave en el piso (para que árboles, rocas y casas no parezcan flotando)
+let shadowMat = null, shadowGeo = null;
+export function blob(p, x, y, z, r = 1, sz = 1) {
+  if (!shadowMat) {
+    const c = document.createElement('canvas'); c.width = c.height = 32; const x2 = c.getContext('2d');
+    const g = x2.createRadialGradient(16, 16, 1, 16, 16, 15); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.6, 'rgba(0,0,0,.6)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x2.fillStyle = g; x2.fillRect(0, 0, 32, 32);
+    shadowMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0.32, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    shadowGeo = new THREE.PlaneGeometry(2, 2); shadowGeo.rotateX(-Math.PI / 2);
+  }
+  const m = new THREE.Mesh(shadowGeo, shadowMat); m.position.set(x, y + 0.03, z); m.scale.set(r, 1, r * sz); p.add(m);
+  return m;
+}
 
 /* ---------- plantas ---------- */
 export function tree(p, x, y, z, s = 1, leaf = 0x3f8a3a) {
-  const g = G(p, x, y, z, rnd(0, 6)); g.scale.setScalar(s);
+  const g = G(p, x, y, z, rnd(0, 6)); g.scale.setScalar(s); blob(g, 0.1, 0, 0, 1.5);
   add(new THREE.CylinderGeometry(0.22, 0.32, 1.6, 6), M(0x6b4a2a, { map: TX.wood }), 0, 0.8, 0, g);
   const lm = M(leaf, { map: TX.leaf }), lm2 = M(new THREE.Color(leaf).multiplyScalar(0.8).getHex(), { map: TX.leaf });
   add(new THREE.DodecahedronGeometry(1.1, 0), lm, 0, 2.2, 0, g);
@@ -37,7 +50,7 @@ export function tree(p, x, y, z, s = 1, leaf = 0x3f8a3a) {
   return g;
 }
 export function pine(p, x, y, z, s = 1, snow = false) {
-  const g = G(p, x, y, z, rnd(0, 6)); g.scale.setScalar(s);
+  const g = G(p, x, y, z, rnd(0, 6)); g.scale.setScalar(s); blob(g, 0, 0, 0, 1.4);
   add(new THREE.CylinderGeometry(0.2, 0.28, 1.2, 6), M(0x5a3c22, { map: TX.wood }), 0, 0.6, 0, g);
   const lm = M(0x2a6a4a, { map: TX.leaf }), sm = M(0xf4f8ff, { map: TX.snow });
   [[1.4, 1.6, 1.4], [1.1, 1.4, 2.3], [0.75, 1.2, 3.1]].forEach(([r, h, yy]) => {
@@ -59,7 +72,7 @@ export function forest(p, y, pts) {
   });
 }
 export function palm(p, x, y, z, s = 1) {
-  const g = G(p, x, y, z, rnd(0, 6)); g.scale.setScalar(s);
+  const g = G(p, x, y, z, rnd(0, 6)); g.scale.setScalar(s); blob(g, 0.7, 0, 0, 1.3);
   const tm = M(0x9a7448, { map: TX.wood });
   for (let k = 0; k < 5; k++) add(new THREE.CylinderGeometry(0.2, 0.24, 0.72, 6), tm, k * 0.12, 0.36 + k * 0.68, 0, g).rotation.z = -0.12;
   const lm = M(0x3f9a44, { map: TX.leaf });
@@ -72,7 +85,7 @@ export function palm(p, x, y, z, s = 1) {
   return g;
 }
 export function cactus(p, x, y, z, s = 1) {
-  const g = G(p, x, y, z, rnd(0, 6)); g.scale.setScalar(s);
+  const g = G(p, x, y, z, rnd(0, 6)); g.scale.setScalar(s); blob(g, 0, 0, 0, 0.8);
   const cm = M(0x4a9a52, { map: TX.leaf });
   add(new THREE.CylinderGeometry(0.34, 0.4, 3, 8), cm, 0, 1.5, 0, g);
   add(new THREE.SphereGeometry(0.34, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), cm, 0, 3, 0, g);
@@ -85,7 +98,7 @@ export function cactus(p, x, y, z, s = 1) {
   return g;
 }
 export function bush(p, x, y, z, s = 1, col = 0x3f8a3a) {
-  const g = G(p, x, y, z, rnd(0, 6)); g.scale.setScalar(s);
+  const g = G(p, x, y, z, rnd(0, 6)); g.scale.setScalar(s); blob(g, 0, 0, 0, 1.0);
   const m1 = M(col, { map: TX.leaf }), m2 = M(new THREE.Color(col).multiplyScalar(0.8).getHex(), { map: TX.leaf });
   add(new THREE.DodecahedronGeometry(0.6, 0), m1, 0, 0.45, 0, g);
   add(new THREE.DodecahedronGeometry(0.45, 0), m2, 0.5, 0.35, 0.2, g);
@@ -117,7 +130,7 @@ export function grass(p, cx, y, cz, rx, rz, n, col = 0x4a9a3a) {
 
 /* ---------- piedras y terreno ---------- */
 export function rock(p, x, y, z, s = 1, col = 0xa09a92, snow = false) {
-  const g = G(p, x, y, z, rnd(0, 6));
+  const g = G(p, x, y, z, rnd(0, 6)); blob(g, 0, 0, 0, s * 1.2);
   const r = add(new THREE.DodecahedronGeometry(s, 0), M(col, { map: TX.pebble }), 0, s * 0.45, 0, g);
   r.scale.set(1, rnd(0.55, 0.85), rnd(0.8, 1.1)); r.rotation.set(rnd(0, 1), rnd(0, 3), 0);
   if (snow) add(new THREE.SphereGeometry(s * 0.8, 7, 3, 0, Math.PI * 2, 0, Math.PI / 2), M(0xf4f8ff, { map: TX.snow }), 0, s * 0.72, 0, g).scale.set(1, 0.35, 1);
@@ -159,7 +172,7 @@ export function lamp(p, x, y, z, h = 3, col = 0xffe08a) {
   return g;
 }
 export function house(p, x, y, z, ry = 0, wall = 0xf0e0c0, roof = 0xffffff, s = 1) {
-  const g = G(p, x, y, z, ry); g.scale.setScalar(s);
+  const g = G(p, x, y, z, ry); g.scale.setScalar(s); blob(g, 0, 0, 0, 2.2, 0.9);
   add(box(2.6, 1.8, 2.2), M(wall, { map: TX.stone }), 0, 0.9, 0, g);
   const rf = new THREE.CylinderGeometry(1.75, 1.75, 2.9, 3, 1); rf.rotateZ(Math.PI / 2); rf.rotateX(Math.PI / 2);
   add(rf, M(roof, { map: TX.roof }), 0, 2.35, 0, g).scale.set(1, 0.62, 0.86);
@@ -219,7 +232,7 @@ export function beacon(p, x, y, z, col = 0xff7a1a) {
   return g;
 }
 export function snowman(p, x, y, z, ry = 0) {
-  const g = G(p, x, y, z, ry), sm = M(0xf4f8ff, { map: TX.snow });
+  const g = G(p, x, y, z, ry), sm = M(0xf4f8ff, { map: TX.snow }); blob(g, 0, 0, 0, 0.9);
   add(new THREE.SphereGeometry(0.7, 8, 6), sm, 0, 0.6, 0, g);
   add(new THREE.SphereGeometry(0.5, 8, 6), sm, 0, 1.5, 0, g);
   add(new THREE.SphereGeometry(0.36, 8, 6), sm, 0, 2.18, 0, g);

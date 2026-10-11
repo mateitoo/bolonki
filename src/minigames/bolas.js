@@ -33,7 +33,7 @@ const CAR_R = 1.5, CAR_SPIN = 6, WIND = 5;
 const COL_R = 1.15, COL_HP = 12, MOUND_R = 0.7, CRAB_R = 0.85, CRAB_SP = 3.2;
 const MAPS = [
   { name: 'ESPACIO', build: (g) => decorEspacio(g), fog: { col: 0x04060b, near: 40, far: 80, amb: 0x4a5878, lcol: 0xc8d8ff },
-    floor: [TX.floor, 0xe8eef0], outer: [TX.outer, 0xffffff, 0], rim: TX.rim, tower: [TX.tower, 0xffffff], ring: 0x35f0ff, cap: [TX.bronze, 0xffffff], ball: 'chrome', strip: [TX.lights, 22, 0], pit: [TX.pit, 0xffffff] },
+    floor: [TX.spaceFloor, 0xffffff], outer: [TX.outer, 0xffffff, 0], rim: TX.rim, tower: [TX.tower, 0xffffff], ring: 0x35f0ff, cap: [TX.bronze, 0xffffff], ball: 'chrome', strip: [TX.lights, 22, 0], pit: [TX.pit, 0xffffff] },
   { name: 'CIRCO', build: (g) => decorCirco(g), fog: { col: 0x2a0a14, near: 45, far: 110, amb: 0x6a4a50, lcol: 0xffd8b0 }, rule: 'EL TAMBOR DEL MEDIO GIRA Y DESVÍA LAS PELOTAS',
     floor: [TX.carnival, 0xffffff], outer: [TX.sand, 0xc88a58, 1], rim: TX.fairFence, tower: [TX.circus, 0xffffff], ring: 0xffd24a, cap: [TX.circus, 0xffffff], ball: 'circus', carousel: true, strip: [TX.marquee, 22, 3], pit: [TX.velvet, 0xffffff] },
   { name: 'PLAYA', build: (g) => decorPlaya(g), fog: { col: 0xd8807a, near: 55, far: 150, amb: 0x6a5070, lcol: 0xffcca8 }, rule: 'VIENTO (MIRÁ LAS FLECHAS) Y UN CANGREJO QUE CRUZA',

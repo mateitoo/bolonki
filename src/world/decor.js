@@ -742,3 +742,72 @@ export function decorTormenta(g, R0) {
     if (q.b.visible) { q.on -= dt; if (q.on <= 0) { q.b.visible = false; q.t = rnd(3, 7); } else q.b.children.forEach((c) => { c.visible = ((t * 30) | 0) % 3 !== 0; }); }
   }));
 }
+
+/* ---------- Rey de la colina, mapa NEVADA: la misma isla en invierno, con mar helado ---------- */
+export function decorColinaNieve(g, rim) {
+  const WY = -0.9;
+  P.sky(g, [[0, '#5a7ab0'], [0.4, '#a8c4e4'], [0.5, '#eef4fc'], [0.55, '#b8cce0'], [1, '#6a7a90']]);
+  P.skyClouds(g, 10, 45, 75, 12, 22, 0xe8eef8, 0.004);
+  P.iceFloes(g, WY + 0.05, 16, 34, 14);
+  // islotes nevados con pinos y un iglú, montañas atrás
+  [[-26, -30, 1.3], [30, -24, 1.0], [-34, 8, 0.9], [36, 14, 1.2], [8, -40, 1.5]].forEach(([x, z, s], k) => {
+    add(new THREE.CylinderGeometry(3.2 * s, 4.2 * s, 2.2, 10), P.M(0xf0f6ff, { map: TX.snow }), x, -0.4, z, g).rotation.y = k;
+    P.pine(g, x + 0.6 * s, 0.7, z - 0.3 * s, 1.1 * s, true);
+    if (k % 2 === 0) P.pine(g, x - 1.2 * s, 0.7, z + 0.8 * s, 0.85 * s, true); else P.igloo(g, x - 1.2 * s, 0.7, z + 0.6 * s, k, 0.7 * s);
+  });
+  const mm = P.M(0x8a9ab0, { map: TX.rock }), sm = P.M(0xffffff, { map: TX.snow });
+  [[-50, -70, 34, 22], [0, -85, 44, 26], [55, -65, 36, 22], [-80, -20, 30, 18]].forEach(([x, z, h, r]) => { add(new THREE.ConeGeometry(r, h, 7), mm, x, -1 + h / 2, z, g); add(new THREE.ConeGeometry(r * 0.44, h * 0.44, 7), sm, x, -1 + h * 0.78, z, g); });
+  // pingüinos en la orilla (se tiran al agua si alguien se acerca) y focas en témpanos
+  { const pts = []; for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2 + 0.7; if (Math.abs(a - (Math.PI * 2 - 0.9)) < 0.4) continue; const r = rim(a) - 1.0; pts.push([Math.sin(a) * r, Math.cos(a) * r]); } P.shyBirds(g, pts, 0.02, 0x1a1a24, 0x2a2a34); }
+  [[-20, 6], [22, -4], [-8, 21]].forEach(([x, z], k) => {
+    const sl = new THREE.Group(); sl.position.set(x, WY, z); sl.rotation.y = k * 2; g.add(sl);
+    add(new THREE.CylinderGeometry(1.4, 1.6, 0.4, 7), P.M(0xe8f4ff, { map: TX.snow }), 0, 0.1, 0, sl);
+    const body = add(new THREE.SphereGeometry(0.4, 8, 6), P.M(0x7a7a88), 0, 0.55, 0, sl); body.scale.set(0.8, 0.7, 1.6);
+    const hd = add(new THREE.SphereGeometry(0.25, 7, 5), P.M(0x7a7a88), 0, 0.85, 0.5, sl);
+    P.anim(sl, (t) => { sl.position.y = WY + Math.sin(t * 0.8 + k) * 0.08; hd.position.y = 0.85 + Math.max(0, Math.sin(t * 0.6 + k * 2)) * 0.25; });
+    void body;
+  });
+  // muñeco de nieve y trineo en la playa, nieve que cae
+  P.snowman(g, 6.5, 0, 11.2, 2.6); P.sled(g, -11.6, 0, 4.8, 1.2);
+  P.drift(g, 140, -26, 26, 18, -1, -24, 24, 0xffffff, 0.12, 1.4);
+  P.mist(g, WY + 0.4, 14, 26, 8, 0xffffff, 0.2, 14);
+  P.waterSparkles(g, WY + 0.2, 0, 0, 34, 30, 60, 0xffffff, (x, z) => Math.hypot(x, z) < rim(Math.atan2(x, z)) + 1.5);
+  lighthouse(g, 17.5, -14.5);
+}
+
+/* ---------- Rey de la colina, mapa DE NOCHE: la isla con luna, faroles y luciérnagas ---------- */
+export function decorColinaNoche(g, rim) {
+  const WY = -0.9;
+  P.sky(g, [[0, '#03061a'], [0.38, '#0c1840'], [0.48, '#1c2e60'], [0.53, '#0a1430'], [1, '#02040c']], { stars: 120, starBand: 0.5 });
+  P.twinkleStars(g, 90, 95, 12);
+  const moon = add(new THREE.CircleGeometry(6, 18), new THREE.MeshBasicMaterial({ color: 0xf4f0d8, fog: false }), -30, 26, -88, g); moon.lookAt(0, 0, 0); moon.renderOrder = -9;
+  // camino de luz de la luna sobre el mar
+  P.waterSparkles(g, WY + 0.2, -12, -32, 6, 26, 90, 0xfff4c8, (x, z) => Math.hypot(x, z) < rim(Math.atan2(x, z)) + 1.5);
+  // faro con el haz que gira
+  lighthouse(g, 17.5, -14.5);
+  const beam = new THREE.Mesh(new THREE.ConeGeometry(3, 34, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff0b0, transparent: true, opacity: 0.1, depthWrite: false, fog: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+  beam.geometry.translate(0, -17, 0); beam.rotation.z = Math.PI / 2;
+  const bg = new THREE.Group(); bg.position.set(17.5, 9.8, -14.5); bg.add(beam); g.add(bg);
+  P.anim(bg, (t) => { bg.rotation.y = t * 0.6; });
+  // farolitos de papel flotando en el agua y luciérnagas sobre la isla
+  for (let k = 0; k < 10; k++) {
+    const a = (k / 10) * Math.PI * 2 + 0.2, r = rim(a) + rnd(2.5, 7), c = [0xffb04a, 0xff6a5a, 0xffe07a][k % 3];
+    const lg = new THREE.Group(); lg.position.set(Math.sin(a) * r, WY, Math.cos(a) * r); g.add(lg);
+    add(new THREE.BoxGeometry(0.45, 0.4, 0.45), P.M(c, { unlit: true }), 0, 0.2, 0, lg); P.halo(lg, 0, 0.3, 0, c, 2);
+    const ph = rnd(0, 6); P.anim(lg, (t) => { lg.position.y = WY + Math.sin(t * 1.2 + ph) * 0.06; lg.rotation.y = t * 0.2 + ph; });
+  }
+  P.critters(g, 14, 0, 0, 10, 9, 1.6, 'firefly', [0xd8ff6a, 0xffe07a]);
+  // islotes con palmeras recortadas contra el cielo y fogata en la playa
+  [[-26, -30, 1.3], [30, -24, 1.0], [-34, 8, 0.9], [36, 14, 1.2], [8, -40, 1.5]].forEach(([x, z, s], k) => {
+    add(new THREE.CylinderGeometry(3.2 * s, 4.2 * s, 2.2, 10), P.M(0xa8946a, { map: TX.sand }), x, -0.4, z, g).rotation.y = k;
+    P.palm(g, x + 0.6 * s, 0.7, z - 0.3 * s, 1.1 * s);
+  });
+  const fire = new THREE.Group(); fire.position.set(-9.8, 0, 7.6); g.add(fire);
+  for (let k = 0; k < 5; k++) add(new THREE.CylinderGeometry(0.08, 0.1, 0.9, 5), P.M(0x5a3a1a, { map: TX.wood }), Math.sin(k * 1.3) * 0.2, 0.15, Math.cos(k * 1.3) * 0.2, fire).rotation.set(1.2, k * 1.3, 0);
+  const f1 = add(new THREE.ConeGeometry(0.35, 0.9, 6), P.M(0xff8a2a, { unlit: true }), 0, 0.55, 0, fire), f2 = add(new THREE.ConeGeometry(0.2, 0.6, 6), P.M(0xffe07a, { unlit: true }), 0, 0.5, 0, fire);
+  P.halo(fire, 0, 0.6, 0, 0xff9a4a, 4.5);
+  P.anim(fire, (t) => { const k = 1 + Math.sin(t * 13) * 0.15 + Math.sin(t * 7.7) * 0.1; f1.scale.set(1, k, 1); f2.scale.set(1, 2 - k, 1); if (Math.random() < 0.05) { /* chispa */ } });
+  P.drift(g, 20, -11, -8.5, 0.5, 4, 6.6, 8.6, 0xffa040, 0.08, 1.5);
+  P.lightFlicker(g, 0xff8a3a, 0.05, 3);
+  P.mist(g, WY + 0.4, 14, 26, 8, 0x8090c0, 0.14, 14);
+}

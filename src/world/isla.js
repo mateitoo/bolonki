@@ -114,14 +114,15 @@ function ringStrip(inner, outer, yIn, yOut, uvScale, cliff) {
 }
 
 export function buildIsla(grp) {
-  const W = { rings: [], ringM: [] };
+  const W = { rings: [], ringM: [], mats: {} };
   const grassM = mat({ map: TX.grass, color: 0xb8d890, side: THREE.DoubleSide }), sandM = mat({ map: TX.sand, side: THREE.DoubleSide });
   const SB = 1.5;                                  // ancho de la playa
   // pasto: dos anillos (así los triángulos no son larguísimos) · playa · acantilado
   add(ringStrip(() => 0.01, (a) => (rim(a) - SB) * 0.5, 0, 0, 3), grassM, 0, 0, 0, grp);
   add(ringStrip((a) => (rim(a) - SB) * 0.5, (a) => rim(a) - SB, 0, 0, 3), grassM, 0, 0, 0, grp);
   add(ringStrip((a) => rim(a) - SB, rim, 0, 0, 3), sandM, 0, 0, 0, grp);
-  add(ringStrip(rim, (a) => rim(a) + 0.9, 0, -3.2, 30, true), mat({ map: TX.pebble, color: 0xc8a878, side: THREE.DoubleSide }), 0, 0, 0, grp);
+  const cliffM = mat({ map: TX.pebble, color: 0xc8a878, side: THREE.DoubleSide });
+  add(ringStrip(rim, (a) => rim(a) + 0.9, 0, -3.2, 30, true), cliffM, 0, 0, 0, grp);
   // espuma siguiendo la costa
   W.foam = add(ringStrip((a) => rim(a) + 0.3, (a) => rim(a) + 1.6, WATER_Y + 0.05, WATER_Y + 0.05, 3), mat({ color: 0xe8f6ff, unlit: true, side: THREE.DoubleSide }), 0, 0, 0, grp);
 
@@ -129,6 +130,7 @@ export function buildIsla(grp) {
   const sideM = mat({ map: TX.stone, color: 0xd0c4b0 }), topM = mat({ map: TX.grass, color: 0xa8d080 });
   const plazaM = [mat({ map: TX.stone, color: 0xf0e8d8 }), mat({ map: TX.stone, color: 0xd8c8a8 }), mat({ map: TX.pebble, color: 0xb8aa98 })];
   const edgeM = mat({ color: 0x8a7a64 });
+  Object.assign(W.mats, { grassM, sandM, cliffM, sideM, topM, plazaM, edgeM });
   HILLS.forEach((c, hk) => {
     c.tiers.forEach((t, k) => {
       const y0 = k === 0 ? 0 : c.tiers[k - 1].h, hh = t.h - y0, top = k === c.tiers.length - 1;
@@ -194,7 +196,10 @@ export function buildIsla(grp) {
   W.boat = boat(grp, ux * (PIER.r0 + 4.4) + uz * 1.8, WATER_Y + 0.15, uz * (PIER.r0 + 4.4) - ux * 1.8, PIER.a + 0.15, 0x8ad0ff);
 
   // playa: palmeras, rocas, bote varado, barriles, antorchas y estrellas de mar
-  PALMS.forEach(([x, z, s]) => P.palm(grp, x, 0, z, s));
+  // lo de playa de verano va en un grupo (en la isla nevada se esconde y aparecen pinos en los mismos lugares)
+  const beach = new THREE.Group(); grp.add(beach); W.beach = beach;
+  const pines = new THREE.Group(); pines.visible = false; grp.add(pines); W.pines = pines;
+  PALMS.forEach(([x, z, s]) => { P.palm(beach, x, 0, z, s); P.pine(pines, x, 0, z, s * 0.85, true); });
   ROCKS.forEach(([x, z, s]) => P.rock(grp, x, 0, z, s, 0xa89c8c));
   boat(grp, BOAT.x, 0.05, BOAT.z, BOAT.a, 0xd85a3a).rotation.z = 0.18;
   BARRELS.forEach(([x, z], k) => P.barrel(grp, x, 0, z, k ? 0x8a5a32 : 0x3a6ac8));
@@ -203,12 +208,12 @@ export function buildIsla(grp) {
   for (let k = 0; k < 7; k++) {
     const a = rnd(0, Math.PI * 2), r = rim(a) - rnd(0.4, 1.1);
     const st = new THREE.CircleGeometry(0.22, 5); st.rotateX(-Math.PI / 2);
-    add(st, starM, Math.sin(a) * r, 0.02, Math.cos(a) * r, grp).rotation.y = rnd(0, 6);
+    add(st, starM, Math.sin(a) * r, 0.02, Math.cos(a) * r, beach).rotation.y = rnd(0, 6);
   }
   // flores y pastito en el llano (lejos de las colinas)
   for (let k = 0; k < 8; k++) {
     const a = rnd(0, Math.PI * 2), r = rnd(2, 9), x = Math.sin(a) * r, z = Math.cos(a) * r;
-    if (groundAt(x, z) === 0 && onIsland(x, z, 2)) { P.flowers(grp, x, 0.01, z, 0.9, 0.9, 5); P.grass(grp, x, 0.01, z, 1.2, 1.2, 6, 0x5aa048); }
+    if (groundAt(x, z) === 0 && onIsland(x, z, 2)) { P.flowers(beach, x, 0.01, z, 0.9, 0.9, 5); P.grass(beach, x, 0.01, z, 1.2, 1.2, 6, 0x5aa048); }
   }
   return W;
 }

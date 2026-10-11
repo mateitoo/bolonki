@@ -7,14 +7,14 @@
 // Gana el primero que llega a N puntos o el que tiene más cuando se termina el tiempo (si empatan, desempate).
 import { freezeStatic } from '../world/props.js';
 import * as THREE from 'three';
-import { register } from './registry.js';
+import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { settings } from '../settings.js';
 import { scene, mat, add, scaleUV, waterMat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
-import { decorColina } from '../world/decor.js';
+import { decorColina, decorColinaNieve, decorColinaNoche } from '../world/decor.js';
 import { HILLS, groundAt, onIsland, rim, pushOut, freeSpot, pierTip, OBST, WATER_Y, RMAX, buildIsla } from '../world/isla.js';
 import { input, actKey } from '../input.js';
 import { FX } from '../game/fx.js';
@@ -44,7 +44,18 @@ const demo = () => game.state === 'title' || game.state === 'menu';
 const matchT = () => (game.setup && game.setup.fiesta ? 90 : MATCH_T);   // en la Fiesta los partidos son más cortos
 
 /* ---------- estado ---------- */
+// Mapas: la misma isla (las colinas, el puente y el muelle no cambian), con otra estación u hora
+const MAPS = [
+  { name: 'LA ISLA', fog: { col: 0x9ad0f0, near: 55, far: 140, amb: 0x6a7088, lcol: 0xfff2d8, rain: true },
+    water: [0x5ab8e0, 0x1a6aa8, 0xd8ecff, 1], puff: 12 },
+  { name: 'NEVADA', fog: { col: 0xd0dcec, near: 45, far: 120, amb: 0x7080a0, lcol: 0xe8f0ff },
+    water: [0x5a8ab0, 0x0a2a4a, 0xe8f2ff, 0.7], puff: 4, print: 0x8098c0,
+    skin: { grass: [TX.snow, 0xffffff], sand: [TX.packedSnow, 0xd8e8f8], cliff: [TX.iceBlock, 0xc8e0f4], side: [TX.rock, 0xb8c4d8], top: [TX.snow, 0xf4f8ff], plaza: [TX.iceBlock, 0xe8f4ff] }, pines: true },
+  { name: 'DE NOCHE', fog: { col: 0x0a1430, near: 45, far: 120, amb: 0x3a4870, lcol: 0x9ab0e8 },
+    water: [0x1a3a6a, 0x040a1a, 0x4a5a8a, 0.6], puff: 12 },
+];
 const S = {
+  map: 0,
   hill: 0, next: -1, zoneT: ZONE_T, t: MATCH_T, over: false, overT: 0, extra: false,
   holders: [], contested: false,
   stick: { on: false, x: 0, z: 0, t: 6 },
@@ -89,7 +100,12 @@ function buildWorld() {
   const wv = new THREE.Group(); wv.visible = false; grp.add(wv); W.wave = wv;
   add(scaleUV(new THREE.BoxGeometry(34, 1.0, 1.6), 12, 1), mat({ map: TX.water, color: 0xb0d8ff }), 0, 0.5, 0, wv);
   add(new THREE.BoxGeometry(34, 0.22, 1.0), mat({ color: 0xf4fbff, unlit: true }), 0, 1.08, 0.25, wv);
-  { const dg = new THREE.Group(); grp.add(dg); decorColina(dg, rim); freezeStatic(dg); }
+  W.decor = [decorColina, decorColinaNieve, decorColinaNoche].map((fn) => { const dg = new THREE.Group(); grp.add(dg); fn(dg, rim); freezeStatic(dg); dg.visible = false; return dg; });
+  W.isla = I;
+  // la piel de cada mapa: guarda la de verano para volver
+  W.skin0 = {}; Object.entries({ grass: I.mats.grassM, sand: I.mats.sandM, cliff: I.mats.cliffM, side: I.mats.sideM, top: I.mats.topM }).forEach(([k, m]) => { W.skin0[k] = [m.uniforms.uMap.value, m.uniforms.uColor.value.getHex()]; });
+  W.skin0.plaza = I.mats.plazaM.map((m) => [m.uniforms.uMap.value, m.uniforms.uColor.value.getHex()]);
+  applyMap(0);
 }
 
 /* ---------- partido ---------- */
@@ -123,7 +139,23 @@ function placeAll() {
   });
 }
 
+function applyMap(i) {
+  S.map = i; const m = MAPS[i], I = W.isla; if (!I) return;
+  W.decor.forEach((d, k) => { d.visible = k === i; });
+  const set = (mt, v) => { mt.uniforms.uMap.value = v[0]; mt.uniforms.uColor.value.set(v[1]); };
+  const sk = m.skin || W.skin0;
+  set(I.mats.grassM, sk.grass); set(I.mats.sandM, sk.sand); set(I.mats.cliffM, sk.cliff); set(I.mats.sideM, sk.side); set(I.mats.topM, sk.top);
+  I.mats.plazaM.forEach((pm, k) => set(pm, m.skin ? sk.plaza : W.skin0.plaza[k]));
+  I.beach.visible = !m.pines; I.pines.visible = !!m.pines;
+  const [c, d, sky, gl] = m.water; W.waterM.uniforms.uColor.value.set(c); W.waterM.uniforms.uDeep.value.set(d); W.waterM.uniforms.uSky.value.set(sky); W.waterM.uniforms.uGlint.value = gl;
+}
+function pickMap() {
+  if (game.online === 'guest') return;
+  const f = fixedMap(MAPS.length);
+  applyMap(f >= 0 ? f : (Math.random() * MAPS.length) | 0);
+}
 function newMatch() {
+  pickMap();
   S.hill = (Math.random() * 3) | 0; S.next = -1; S.zoneT = ZONE_T; S.t = matchT(); S.over = false; S.overT = 0; S.extra = false;
   S.holders = []; S.contested = false;
   S.stick = { on: false, x: 0, z: 0, t: 5 };
@@ -440,7 +472,8 @@ const colina = {
   points: { label: 'PUNTOS PARA GANAR', values: [20, 30, 45], key: 'coronas', demo: 30 },
   fiestaPoints: 20,
   cam: { pos: new THREE.Vector3(0, 26.5, 20.5), look: new THREE.Vector3(0, 0, 0.8), rotate: false, orbit: true },
-  fog: { col: 0x9ad0f0, near: 55, far: 140, amb: 0x6a7088, lcol: 0xfff2d8, rain: true },
+  fog: () => MAPS[S.map].fog,
+  maps: MAPS.map((m) => m.name),
   humanOut: false,
   tense: () => S.extra || (S.t < 20 && !S.over),
   tagY: 2.5, tagFeet: true, markMe: true,
@@ -458,8 +491,8 @@ const colina = {
   step,
 
   visuals(dt) {
-    game.stepPuff = 12;                             // pastito al caminar
-    game.stepPrint = 0; game.crateCol = 0xd8a060;   // astillas del palo cuando se rompe
+    game.stepPuff = MAPS[S.map].puff;               // pastito (o nieve) al caminar
+    game.stepPrint = MAPS[S.map].print || 0; game.crateCol = 0xd8a060;   // astillas del palo cuando se rompe
     const clock = game.clock;
     W.waterM.uniforms.uOff.value.set((clock * 0.012) % 1, (clock * 0.008) % 1);
     W.foam.scale.setScalar(1 + Math.sin(clock * 1.6) * 0.02);
@@ -581,6 +614,7 @@ const colina = {
   /* ---------- online (el anfitrión manda todo; el invitado solo manda para dónde va y si pegó) ---------- */
   snapshot() {
     return {
+      mp: S.map,
       s: [S.hill, S.next, Math.round(S.zoneT * 10) / 10, Math.round(S.t * 10) / 10, S.extra ? 1 : 0, S.over ? 1 : 0, game.round.winner, S.holders.join('')],
       k: [S.stick.on ? 1 : 0, r2(S.stick.x), r2(S.stick.z)],
       w: [S.wave.st === 'off' ? 0 : S.wave.st === 'warn' ? 1 : 2, r2(S.wave.a), r2(S.wave.f), Math.round(S.wave.t * 10) / 10],
@@ -590,6 +624,7 @@ const colina = {
   },
   ownPos: { x: 0, z: 1, fy: 2, ang: 3 },                // online: dónde viene la posición propia en la foto (para dibujarte sin retraso)
   applySnap(A, B, f) {
+    if (B.mp !== undefined && B.mp !== S.map) applyMap(B.mp);
     const s = B.s;
     S.hill = s[0]; S.next = s[1]; S.zoneT = s[2]; S.t = s[3]; S.extra = !!s[4]; S.over = !!s[5]; game.round.winner = s[6];
     S.holders = String(s[7] || '').split('').filter((c) => c !== '').map(Number); S.contested = S.holders.length > 1;

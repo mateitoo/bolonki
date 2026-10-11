@@ -9,6 +9,7 @@ import { mg } from './minigames/registry.js';
 import { input, isTouch } from './input.js';
 import { updateProps } from './world/props.js';
 import { settings } from './settings.js';
+import { updateWeather } from './world/weather.js';
 
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
 const orbitPos = new THREE.Vector3(), ORBIT_LOOK = new THREE.Vector3(0, 0, 0);
@@ -31,16 +32,17 @@ function orbit3(pos, look, yaw, pitch) {
 const FOG0 = { col: 0x04060b, near: 40, far: 80 };
 // …y su luz: cada mapa puede teñir la luz ambiente y la del sol (atardecer, noche, selva…)
 const AMB0 = 0x5a6480, LCOL0 = 0xd0d6e8;
-function applyFog(m) {
+function applyFog(m, dt) {
   const f = (typeof m.fog === 'function' ? m.fog() : m.fog) || FOG0;
   U.uFogCol.value.set(f.col); U.uFogNear.value = f.near; U.uFogFar.value = f.far;
   U.uAmb.value.set(f.amb !== undefined ? f.amb : AMB0); U.uLCol.value.set(f.lcol !== undefined ? f.lcol : LCOL0);
+  updateWeather(f, dt || 0);
 }
 
 export function updateVisuals(dt, rdt) {
   game.clock += dt; U.uTime.value = game.clock;
   const m = mg();
-  applyFog(m);
+  applyFog(m, rdt);
 
   // animaciones de derrota (explosión, cortocircuito, eyección, caída…)
   for (const p of game.players) {

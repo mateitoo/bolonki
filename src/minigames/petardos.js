@@ -79,7 +79,7 @@ function pickPower() {
 // X = pared fija · . piso · b arbusto · q arena movediza · ~ hielo · > < ^ v cinta transportadora
 // La fábrica tiene una máquina arriba de la cinta que larga cajones cada tanto (como la cinta de las valijas).
 const CANCHAS = [
-  { name: 'PATIO', amb: 0x6a7088, lcol: 0xfff4e0, fog: 0xcfe0e8, floor: 'turf', wall: 'brick', wallCol: 0xffffff, style: 'hedge', crate: 'wood', out: 0x557755, deco: 'arboles', extra: 'ARBUSTOS PARA ESCONDERTE',
+  { name: 'PATIO', rain: true, amb: 0x6a7088, lcol: 0xfff4e0, fog: 0xcfe0e8, floor: 'turf', wall: 'brick', wallCol: 0xffffff, style: 'hedge', crate: 'wood', out: 0x557755, deco: 'arboles', extra: 'ARBUSTOS PARA ESCONDERTE',
     map: [
       '...b.........',
       '.X.X..XX.X.X.',
@@ -93,7 +93,7 @@ const CANCHAS = [
       '...XX.b.X..X.',
       '.........b...'
     ] },
-  { name: 'FÁBRICA', amb: 0x5a5a6c, lcol: 0xffdcc0, fog: 0x6a5a60, floor: 'tile', wall: 'block', wallCol: 0xffffff, style: 'metal', crate: 'cardboard', out: 0x5a6070, deco: 'cajas', extra: 'CINTA CON CAJONES',
+  { name: 'FÁBRICA', rain: true, amb: 0x5a5a6c, lcol: 0xffdcc0, fog: 0x6a5a60, floor: 'tile', wall: 'block', wallCol: 0xffffff, style: 'metal', crate: 'cardboard', out: 0x5a6070, deco: 'cajas', extra: 'CINTA CON CAJONES',
     machine: [6, 2],        // la máquina que larga cajones (columna y fila del mapa)
     fill: 0.6,              // menos cajones sueltos: la máquina va trayendo más
     map: [
@@ -944,7 +944,7 @@ const petardos = {
   _S: S,
   points: { label: 'RONDAS PARA GANAR', values: [1, 2, 3], key: 'rounds', demo: 2 },
   cam: { pos: new THREE.Vector3(0, 31.5, 15.4), look: new THREE.Vector3(0, 0, 0.4), rotate: false, orbit: true },
-  fog: () => ({ col: CANCHAS[S.cancha].fog || 0x04060b, near: 50, far: 125, amb: CANCHAS[S.cancha].amb, lcol: CANCHAS[S.cancha].lcol }),
+  fog: () => ({ col: CANCHAS[S.cancha].fog || 0x04060b, near: 50, far: 125, amb: CANCHAS[S.cancha].amb, lcol: CANCHAS[S.cancha].lcol, rain: CANCHAS[S.cancha].rain }),
   humanOut: false,
   tense: () => game.elapsed >= SD_AT,           // música más rápida en la muerte súbita
   tagY: 2.2, markMe: true,

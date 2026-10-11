@@ -51,12 +51,12 @@ const matchT = () => (game.setup && game.setup.fiesta ? 90 : MATCH_T);   // en l
    patinan y la pelota corre más. */
 const MUD = [[-7.2, 4.6], [7.2, -4.6], [0, 5.3], [0, -5.3]], MUD_R = 1.5;       // simétricos respecto del medio (parejo para los dos equipos)
 const MAPS = [
-  { name: 'ESTADIO', decor: (g) => decorFutbol(g, HX, HZ), fog: { col: 0x070a1c, near: 55, far: 130, amb: 0x4e5474, lcol: 0xe0e8ff },
+  { name: 'ESTADIO', decor: (g) => decorFutbol(g, HX, HZ), fog: { col: 0x070a1c, near: 55, far: 130, amb: 0x4e5474, lcol: 0xe0e8ff, rain: true },
     pitch: [TX.pitch, 0xffffff], lines: 0xf4f6f0, wall: TX.ads, cap: 0x2a2f3c, post: 0xf2f4f8, net: 0xdfe6ee, phys: { acc: 1, fric: 1, bfric: 1 } },
-  { name: 'POTRERO', decor: (g) => decorPotrero(g, HX, HZ), fog: { col: 0x4a2a3a, near: 50, far: 125, amb: 0x645260, lcol: 0xffdcc0 }, extra: 'BARRO QUE FRENA · LA PELOTA SE PINCHA A LOS 3 GOLPES',
+  { name: 'POTRERO', decor: (g) => decorPotrero(g, HX, HZ), fog: { col: 0x4a2a3a, near: 50, far: 125, amb: 0x645260, lcol: 0xffdcc0, rain: true }, extra: 'BARRO QUE FRENA · LA PELOTA SE PINCHA A LOS 3 GOLPES',
     pitch: [TX.potrero, 0xffffff], lines: 0xf0e8d0, wall: TX.graffiti, cap: 0x6a5a4a, post: 0xb07a48, postMap: TX.wood, net: 0xd8d0c0, phys: { acc: 1, fric: 1, bfric: 1 }, mud: true,
     noLines: true, noNet: true, ballMap: TX.oldBall, ballFx: 'flat' },
-  { name: 'LAGO HELADO', decor: (g) => decorHielo(g, HX, HZ), fog: { col: 0x0a1428, near: 50, far: 125, amb: 0x44587a, lcol: 0xc0d8ff }, extra: 'HIELO · LA PELOTA ARRANCA CONGELADA (3 GOLPES LA ROMPEN)',
+  { name: 'LAGO HELADO', decor: (g) => decorHielo(g, HX, HZ), fog: { col: 0x0a1428, near: 50, far: 125, amb: 0x44587a, lcol: 0xc0d8ff, rain: 'snow' }, extra: 'HIELO · LA PELOTA ARRANCA CONGELADA (3 GOLPES LA ROMPEN)',
     pitch: [TX.icePitch, 0xa8d0f0], lines: 0x3a9aff, wall: TX.boards, cap: 0x2a5aff, post: 0xe8303a, net: 0xf4f6fa, phys: { acc: 0.62, fric: 0.28, bfric: 0.5 }, gw: 1.75, br: 0.4, bmax: 15, ballFx: 'ice' },
   { name: 'PLAYA', decor: (g) => decorPlayaFutbol(g, HX, HZ), fog: { col: 0xbfe0f8, near: 55, far: 135, amb: 0x707888, lcol: 0xfff4dc }, extra: 'ARENA: LA PELOTA FRENA MÁS Y NADIE PATINA',
     pitch: [TX.sand, 0xfff0d0], lines: 0x2a6aff, wall: TX.beachRim, cap: 0xffffff, post: 0xffd23a, net: 0xffffff, phys: { acc: 0.9, fric: 1.2, bfric: 1.8 }, ballMap: TX.beachBall },
@@ -618,6 +618,21 @@ const futbol = {
     W.ballSh.position.set(b.x, 0.02, b.z); W.ballSh.scale.setScalar(Math.max(0.5, 1 - b.h * 0.25) * BR / BR0);
     // arcos: se estiran en el gol de oro
     W.goals.forEach((g) => { g.scale.z = S.gw / GW0; });
+    // la red se infla cuando entra la pelota (una onda que sale desde donde pegó)
+    if (!W.netBase) W.netBase = W.goals.map((g) => g.children.filter((c) => c.material === W.M.net).map((c) => ({ c, x: c.position.x, z: c.position.z, y: c.position.y })));
+    W.netK = W.netK || [0, 0]; W.netZ = W.netZ || [0, 0];
+    W.goals.forEach((g, gi) => {
+      const side = gi ? 1 : -1;
+      if (Math.abs(b.x) > HX + 0.3 && Math.sign(b.x) === side && Math.abs(b.z) < S.gw) { if (W.netK[gi] < 0.2) { W.netK[gi] = 1; W.netZ[gi] = b.z; } }
+      if (W.netK[gi] > 0) W.netK[gi] = Math.max(0, W.netK[gi] - dt * 0.8);
+      const k = W.netK[gi];
+      W.netBase[gi].forEach((q) => {
+        if (!k) { q.c.position.x = q.x; return; }
+        const depth = Math.abs(q.x) / GD;                                 // lo de atrás se mueve más
+        const d = Math.abs(q.z * (S.gw / GW0) - W.netZ[gi]), w = Math.sin((1 - k) * 14 - d * 2.2) * Math.max(0, 1 - d / 3);
+        q.c.position.x = q.x + side * depth * (0.45 * k * k + w * 0.18 * k);
+      });
+    });
     const z0 = S.gw + POST, z1 = HZ - CR;
     W.side.forEach(({ g, sz }) => { g.position.z = sz * (z0 + z1) / 2; g.scale.z = Math.max(0.01, z1 - z0); });
     for (const p of game.players) {

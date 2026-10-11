@@ -142,6 +142,7 @@ function updateFloor(f, clock) {
       const blink = ((clock * (8 + u * 10)) | 0) % 2;
       body.setColorAt(k, blink ? WARN_A : WARN_B); cap.setColorAt(k, blink ? WARN_A : WARN_B); colorDirty = true;
     } else if (s === 2) {
+      if (W.seen[f][k] !== 2) burst(c.x, FLOORS[f] - 0.1, c.z, { mat: Math.random() < 0.5 ? P.DEBRIS : MAPS[S.map].fall, n: 3, sp: 1.6, up: [-1, 1], life: [0.5, 0.9], g: 14, floor: -99 });   // migas que se desprenden
       const u = Math.max(0, tt[k]);
       y = -0.3 - 9 * u * u; rx = W.tilt[f][k * 2] * u * 2.2; rz = W.tilt[f][k * 2 + 1] * u * 2.2;
       body.setColorAt(k, WARN_B); cap.setColorAt(k, WARN_B); colorDirty = true;

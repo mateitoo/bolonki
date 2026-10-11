@@ -36,9 +36,9 @@ const MAPS = [
     floor: [TX.spaceFloor, 0xffffff], outer: [TX.outer, 0xffffff, 0], rim: TX.rim, tower: [TX.tower, 0xffffff], ring: 0x35f0ff, cap: [TX.metal, 0xb8c8d8], ball: 'chrome', strip: [TX.lights, 22, 0], pit: [TX.pit, 0xffffff] },
   { name: 'CIRCO', build: (g) => decorCirco(g), fog: { col: 0x2a0a14, near: 45, far: 110, amb: 0x6a4a50, lcol: 0xffd8b0 }, rule: 'EL TAMBOR DEL MEDIO GIRA Y DESVÍA LAS PELOTAS',
     floor: [TX.carnival, 0xffffff], outer: [TX.sand, 0xc88a58, 1], rim: TX.fairFence, tower: [TX.circus, 0xffffff], ring: 0xffd24a, cap: [TX.circus, 0xffffff], ball: 'circus', carousel: true, strip: [TX.marquee, 22, 3], pit: [TX.velvet, 0xffffff] },
-  { name: 'PLAYA', build: (g) => decorPlaya(g), fog: { col: 0xd8807a, near: 55, far: 150, amb: 0x6a5070, lcol: 0xffcca8 }, rule: 'VIENTO (MIRÁ LAS FLECHAS) Y UN CANGREJO QUE CRUZA',
+  { name: 'PLAYA', build: (g) => decorPlaya(g), fog: { col: 0xd8807a, near: 55, far: 150, amb: 0x6a5070, lcol: 0xffcca8, rain: true }, rule: 'VIENTO (MIRÁ LAS FLECHAS) Y UN CANGREJO QUE CRUZA',
     floor: [TX.beachFloor, 0xffffff], outer: [TX.sand, 0xffffff, 0.58], rim: TX.beachRim, tower: [TX.lifeguard, 0xffffff], ring: 0xffffff, cap: [TX.cloth, 0xe83a3a], ball: 'beach', wind: true, crab: true, strip: [TX.rope, 5, 0.12], pit: [TX.water, 0x9ad0e8] },
-  { name: 'TERRAZA', build: (g) => decorTerraza(g), fog: { col: 0x0c1030, near: 45, far: 110, amb: 0x404c78, lcol: 0xc0c8ff }, rule: 'LA COLUMNA SE ROMPE A PELOTAZOS Y DEJA ESCOMBROS',
+  { name: 'TERRAZA', build: (g) => decorTerraza(g), fog: { col: 0x0c1030, near: 45, far: 110, amb: 0x404c78, lcol: 0xc0c8ff, rain: true }, rule: 'LA COLUMNA SE ROMPE A PELOTAZOS Y DEJA ESCOMBROS',
     floor: [TX.roofTiles, 0xffffff], outer: [TX.roofTiles, 0x8a8a8a, 0.5], rim: TX.parapet, tower: [TX.tank, 0xffffff], ring: 0xff5fa2, cap: [TX.metal, 0xa8b0b8], ball: 'chrome', column: true, strip: [TX.tape, 18, 0], pit: [TX.gutter, 0xffffff] },
 ];
 const S = {

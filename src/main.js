@@ -25,6 +25,7 @@ import salaStage from './sala/stage.js';
 import { updateVisuals } from './visuals.js';
 import { initHud, drawHud, showToast } from './hud.js';
 import { ui } from './ui/draw.js';
+import { weather } from './world/weather.js';
 import { initDisplay, toHud, toggleFullscreen, fullscreenGesture, isFullscreen, canFullscreen, perf } from './display.js';
 import { input, initInput, pollInput, bindTouch, bindStick, bindDpad, resetZoom, pushEvent } from './input.js';
 import { syncNativeText } from './ui/textEntry.js';
@@ -193,4 +194,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // ?debug en la URL deja el estado a mano en la consola (para pruebas)
-try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { netStats, closeAllMenus, game, room, browse, settings, eliminate, resetMatch, demoSetup, fiesta: fiestaState, startFiesta, mgById, checkSongs, renderSong, musicState, TX: TXall, scene: PSX.scene, rinfo: () => ({ calls: PSX.renderer.info.render.calls, tris: PSX.renderer.info.render.triangles }) }; } catch (e) { /* nada */ }
+try { if (new URLSearchParams(location.search).has('debug')) window.__bolonki = { netStats, closeAllMenus, game, room, browse, settings, eliminate, resetMatch, demoSetup, fiesta: fiestaState, startFiesta, mgById, checkSongs, renderSong, musicState, weather, TX: TXall, scene: PSX.scene, rinfo: () => ({ calls: PSX.renderer.info.render.calls, tris: PSX.renderer.info.render.triangles }) }; } catch (e) { /* nada */ }

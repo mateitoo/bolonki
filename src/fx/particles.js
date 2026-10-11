@@ -11,6 +11,7 @@ const PCOL = [0, 1, 2, 3].map((i) => CHARS[i].col).concat(   // 0..3: color de c
 let pMats = [];
 const PARTS = [];
 const DOTS = [];
+const RIPS = [];
 let dotIdx = 0;
 
 export function initParticles() {
@@ -23,6 +24,9 @@ export function initParticles() {
   const dg = new THREE.PlaneGeometry(0.2, 0.2); dg.rotateX(-Math.PI / 2);
   const dm = new THREE.MeshBasicMaterial({ color: 0xf4fbff, transparent: true, opacity: 0.85, depthWrite: false });
   for (let k = 0; k < 220; k++) { const me = new THREE.Mesh(dg, dm); me.visible = false; scene.add(me); DOTS.push({ me, life: 0 }); }
+  // anillos que se abren en el agua cuando algo cae (salpicón)
+  const rg = new THREE.RingGeometry(0.8, 1, 18); rg.rotateX(-Math.PI / 2);
+  for (let k = 0; k < 12; k++) { const me = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, depthWrite: false })); me.visible = false; scene.add(me); RIPS.push({ me, life: 0, max: 1, r: 1 }); }
 }
 
 // o: {mat, n, sp, up:[min,max], life:[min,max], g, grow, size, spread, vx, vz}
@@ -45,6 +49,14 @@ export function burst(x, y, z, o) {
   }
 }
 
+// Ondas en el agua: n anillos uno tras otro que se agrandan y se apagan
+export function ripple(x, y, z, n = 3, r = 3) {
+  for (let i = 0; i < n; i++) {
+    const q = RIPS.find((o) => o.life <= 0); if (!q) return;
+    q.max = 1.1 + i * 0.25; q.life = q.max + i * 0.18; q.r = r * (1 - i * 0.2); q.delay = i * 0.18;
+    q.me.position.set(x, y, z); q.me.scale.setScalar(0.1); q.me.visible = false;
+  }
+}
 const DOT_LIFE = 0.32;
 export function dropDot(x, z) {
   const d = DOTS[(dotIdx = (dotIdx + 1) % DOTS.length)];
@@ -52,6 +64,14 @@ export function dropDot(x, z) {
 }
 
 export function updateParticles(dt) {
+  for (const q of RIPS) {
+    if (q.life <= 0) continue;
+    q.life -= dt;
+    const age = q.max - q.life;
+    if (age < 0) { q.me.visible = false; continue; }
+    const k = Math.min(1, age / q.max);
+    q.me.visible = q.life > 0; q.me.scale.setScalar(0.3 + k * q.r); q.me.material.opacity = 0.8 * (1 - k);
+  }
   for (const d of DOTS) {
     if (d.life <= 0) continue;
     d.life -= dt;
@@ -75,4 +95,5 @@ export function updateParticles(dt) {
 export function clearParticles() {
   for (const p of PARTS) { p.life = 0; p.me.visible = false; }
   for (const d of DOTS) { d.life = 0; d.me.visible = false; }
+  for (const q of RIPS) { q.life = 0; q.me.visible = false; }
 }

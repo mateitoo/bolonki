@@ -1,6 +1,6 @@
 // Caída al abismo (Empujón): la nave se va de la plataforma dando vueltas y cae al magma (o al vacío helado del glaciar).
 import { riderWorld } from '../world/pods.js';
-import { burst, P } from '../fx/particles.js';
+import { burst, P, ripple } from '../fx/particles.js';
 import { SFX } from '../audio.js';
 import { game } from '../state.js';
 
@@ -27,6 +27,7 @@ export default {
       // al mar de la tormenta: salpica agua y se hunde
       st.splash = true; m.root.visible = false; SFX.splash();
       burst(p.x, -3, p.z, { mat: P.CYAN, n: 12, sp: 4, up: [4, 8], life: [0.4, 0.8], size: 1.2 });
+      ripple(p.x, -2.5, p.z, 3, 3.5);
       burst(p.x, -3, p.z, { mat: P.WHITE, n: 8, sp: 3, up: [3, 6], life: [0.3, 0.6] });
     }
     if (st.y < -12 && !st.splash && game.fallStyle === 'abyss') {

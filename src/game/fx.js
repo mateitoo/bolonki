@@ -3,7 +3,7 @@
 // Los invitados reciben la lista y la reproducen con playEvent(), así todos ven lo mismo.
 import { cheer } from '../world/props.js';
 import { game, world } from '../state.js';
-import { burst, P } from '../fx/particles.js';
+import { burst, P, ripple } from '../fx/particles.js';
 import { SFX } from '../audio.js';
 import { DEATH_ANIMS } from '../deaths/index.js';
 import FALL from '../deaths/fall.js';
@@ -164,6 +164,7 @@ export const FX = {
   splash(x, z) {
     SFX.splash();
     burst(x, -0.8, z, { mat: P.CYAN, n: 10, sp: 3, up: [3, 7], life: [0.4, 0.8] });
+    ripple(x, -0.75, z, 3, 3);
     burst(x, -0.8, z, { mat: P.WHITE, n: 6, sp: 2, up: [2, 5], life: [0.3, 0.6] });
     emit(['Sw', r2(x), r2(z)]);
   },

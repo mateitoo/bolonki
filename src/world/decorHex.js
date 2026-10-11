@@ -269,6 +269,7 @@ export function decorVolcan(g, slimeY) {
       if (u >= 1) { q.m.visible = false; q.t = rnd(4, 9); }
     }
   }));
+  P.lightFlicker(g, 0xff6a2a, 0.1, 2.2);
   // fueguitos que flotan alrededor de los pisos (espíritus de fuego)
   for (let k = 0; k < 6; k++) {
     const w = grp(g), a0 = (k / 6) * Math.PI * 2, d = rnd(15, 19), y0 = rnd(-14, 2);

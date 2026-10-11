@@ -3,7 +3,7 @@
 // Nada de esto choca con nada: es solo decorado. Lo animado se registra con anim() y se mueve
 // solo mientras su escenario está a la vista (updateProps, desde visuals.js).
 import * as THREE from 'three';
-import { mat, add, scaleUV, waterMat } from '../render/psx.js';
+import { mat, add, scaleUV, waterMat, U } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
 
@@ -1236,6 +1236,17 @@ function mergeGeos(geos) {
   });
   out.computeBoundingSphere();
   return out;
+}
+
+/* ---------- luz que cambia ---------- */
+// Titileo de luz ambiente (lava, fuego) o relámpagos que iluminan todo de golpe. Se suma a la luz del mapa cada cuadro.
+export function lightFlicker(p, col = 0xff6a2a, amt = 0.12, sp = 3) {
+  const c = new THREE.Color(col);
+  anim(p, (t) => { const k = amt * (0.5 + 0.5 * Math.sin(t * sp) * Math.sin(t * sp * 1.7 + 1)); U.uAmb.value.r += c.r * k; U.uAmb.value.g += c.g * k; U.uAmb.value.b += c.b * k; });
+}
+export const flash = { t: 0 };
+export function lightningLight(p) {
+  anim(p, (t, dt) => { if (flash.t > 0) { flash.t -= dt; const k = Math.max(0, flash.t / 0.18) * (((t * 30) | 0) % 3 ? 0.9 : 0.4); U.uAmb.value.r += k * 0.7; U.uAmb.value.g += k * 0.75; U.uAmb.value.b += k * 0.9; } });
 }
 
 /* ---------- atmósfera (cuarta tanda) ---------- */

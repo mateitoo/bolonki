@@ -206,6 +206,7 @@ export function decorVolcan(grp, plat, R0, V) {
     const ph = k * 1.7; P.anim(fr, (t) => { fr.position.y = y + Math.sin(t * 0.5 + ph) * 0.5; fr.rotation.y = t * 0.08 + ph; });
   });
   P.flyers(grp, 0, 3, 0, 16, 4, 0xff6a1a, 0.45);
+  P.lightFlicker(grp, 0xff6a2a, 0.12, 2.6);
   // cristales de obsidiana que flotan girando y brillan por dentro
   [[16, -1, 6, 0xff5a1a], [-15.5, -2, -6, 0xffa01a], [4, -1.5, -16, 0xff3a2a], [-5, -2.5, 15.5, 0xffc04a]].forEach(([x, y, z, c], k) => {
     const cr = new THREE.Group(); cr.position.set(x, y, z); grp.add(cr);
@@ -698,6 +699,7 @@ export function decorTormenta(g, R0) {
   });
   P.anim(g, (t) => tents.forEach((q) => { const u = (t * 0.12 + q.ph / 6) % 1, up = u < 0.4 ? Math.sin((u / 0.4) * Math.PI) : 0; q.tg.position.y = -3 - 6 + up * 6; q.tg.visible = up > 0.02; q.segs.forEach((sg, i) => { sg.rotation.x = Math.sin(t * 2 + i * 0.6 + q.ph) * 0.25; sg.rotation.z = Math.cos(t * 1.6 + i * 0.5) * 0.2; }); }));
   P.rainRipples(g, -2.55, 0, 0, 26, 24, 50, 0x8aa0c0, (x, z) => Math.hypot(x, z) < R0 + 0.5);
+  P.lightningLight(g);
   // lluvia (rápida y en diagonal)
   P.drift(g, 160, -24, 24, 20, -3, -22, 22, 0xa8c0e0, 0.06, 18);
   // rayos lejanos cada tanto (se prende un zigzag en el horizonte)
@@ -710,7 +712,7 @@ export function decorTormenta(g, R0) {
   });
   P.anim(g, (t, dt) => bolts.forEach((q) => {
     q.t -= dt;
-    if (q.t <= 0 && !q.b.visible) { const a = rnd(-1.2, 1.2) + Math.PI; q.b.position.set(Math.sin(a) * 60, -8, Math.cos(a) * 60); q.b.lookAt(0, -8, 0); q.b.visible = true; q.on = 0.18; }
+    if (q.t <= 0 && !q.b.visible) { const a = rnd(-1.2, 1.2) + Math.PI; q.b.position.set(Math.sin(a) * 60, -8, Math.cos(a) * 60); q.b.lookAt(0, -8, 0); q.b.visible = true; q.on = 0.18; P.flash.t = 0.18; }
     if (q.b.visible) { q.on -= dt; if (q.on <= 0) { q.b.visible = false; q.t = rnd(3, 7); } else q.b.children.forEach((c) => { c.visible = ((t * 30) | 0) % 3 !== 0; }); }
   }));
 }

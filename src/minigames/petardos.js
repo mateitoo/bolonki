@@ -10,7 +10,7 @@
 //   que va largando una máquina)
 //   · desierto: arenas movedizas que te frenan · nieve: hielo, si soltás seguís resbalando
 // Gana la ronda el último que queda. Al minuto empieza la muerte súbita: las paredes se cierran en espiral.
-import { freezeStatic } from '../world/props.js';
+import { freezeStatic, blob } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
@@ -305,6 +305,8 @@ function buildCancha(ci) {
     else innerWall(sg, C, c, r, wm);
   }
   floorBits(sg, ci);
+  // sombra suave al pie de cada pared (del lado contrario al sol): le da volumen a la cancha
+  for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) if (isWall(ci, c, r)) blob(sg, cxOf(c) - TS * 0.28, 0, czOf(r) - TS * 0.42, TS * 0.62, 0.9);
   // la máquina de cajones (un arco arriba de la cinta, con cortinas de goma a la salida)
   if (C.machine) {
     const [mc, mr] = C.machine, x = cxOf(mc + 1), z = czOf(mr + 1);

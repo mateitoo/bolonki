@@ -16,8 +16,11 @@ let T = 0;
 // la gente del decorado festeja un rato cuando pasa algo (gol, alguien vuela, termina la ronda)
 export const hype = { t: 0 };
 export function cheer(sec = 2.5) { hype.t = Math.max(hype.t, sec); }
+const HALO_MATS = [];
 export function updateProps(dt) {
   T += dt; if (hype.t > 0) hype.t -= dt;
+  // halos de las luces: se notan de noche, casi nada de día
+  if (HALO_MATS.length) { const a = U.uAmb.value, lum = a.r * 0.3 + a.g * 0.5 + a.b * 0.2, op = Math.max(0.08, Math.min(0.6, (0.48 - lum) * 3)); HALO_MATS.forEach((m) => { m.opacity = op * (0.9 + Math.sin(T * 3) * 0.05); }); }
   for (const a of ANIMS) if (shown(a.owner)) a.fn(T, dt);
 }
 
@@ -175,6 +178,7 @@ export function lamp(p, x, y, z, h = 3, col = 0xffe08a) {
   add(new THREE.CylinderGeometry(0.08, 0.12, h, 6), pm, 0, h / 2, 0, g);
   add(box(0.5, 0.1, 0.5), pm, 0, h + 0.05, 0, g);
   add(box(0.36, 0.36, 0.36), M(col, { unlit: true }), 0, h - 0.18, 0, g);
+  halo(g, 0, h - 0.18, 0, col, 3.4);
   return g;
 }
 export function house(p, x, y, z, ry = 0, wall = 0xf0e0c0, roof = 0xffffff, s = 1) {
@@ -758,6 +762,7 @@ export function torch(p, x, y, z, h = 1.8) {
   add(new THREE.CylinderGeometry(0.18, 0.1, 0.25, 6), M(0x3a2a1a), 0, h + 0.05, 0, g);
   const f1 = add(new THREE.ConeGeometry(0.16, 0.5, 5), M(0xffa030, { unlit: true }), 0, h + 0.4, 0, g);
   const f2 = add(new THREE.ConeGeometry(0.09, 0.32, 5), M(0xffe070, { unlit: true }), 0, h + 0.32, 0, g);
+  halo(g, 0, h + 0.4, 0, 0xffa040, 2.6);
   const ph = rnd(0, 6);
   anim(g, (t) => { const k = 1 + Math.sin(t * 13 + ph) * 0.15 + Math.sin(t * 7.3 + ph) * 0.1; f1.scale.set(1, k, 1); f2.scale.set(1, 2 - k, 1); f1.rotation.y = t * 2; });
   return g;
@@ -767,6 +772,7 @@ export function lantern(p, x, y, z, h = 2.2, col = 0xffd27a) {
   add(new THREE.CylinderGeometry(0.07, 0.09, h, 5), pm, 0, h / 2, 0, g);
   add(box(0.5, 0.06, 0.08), pm, 0.2, h - 0.05, 0, g);
   add(box(0.28, 0.36, 0.28), M(col, { unlit: true }), 0.38, h - 0.35, 0, g);
+  halo(g, 0.38, h - 0.35, 0, col, 2.8);
   add(new THREE.ConeGeometry(0.26, 0.18, 4), pm, 0.38, h - 0.1, 0, g).rotation.y = Math.PI / 4;
   return g;
 }
@@ -936,6 +942,7 @@ export function stringLights(p, x1, y1, z1, x2, y2, z2, n = 10, cols = [0xffe08a
   for (let i = 1; i < n; i++) {
     const f = i / n, sag = Math.sin(f * Math.PI) * 0.7;
     bulbs.push(add(new THREE.SphereGeometry(0.11, 5, 4), M(cols[i % cols.length], { unlit: true }), x1 + (x2 - x1) * f, y1 + (y2 - y1) * f - sag - 0.1, z1 + (z2 - z1) * f, g));
+    halo(g, x1 + (x2 - x1) * f, y1 + (y2 - y1) * f - sag - 0.1, z1 + (z2 - z1) * f, cols[i % cols.length], 1.1);
   }
   anim(g, (t) => bulbs.forEach((b, i) => { b.visible = ((t * 2 + i * 0.5) | 0) % 4 !== 0; }));
   return g;
@@ -1242,6 +1249,14 @@ function mergeGeos(geos) {
   return out;
 }
 
+// Halo suave alrededor de una luz (sprite que siempre mira a la cámara)
+const haloCache = {};
+export function halo(p, x, y, z, col = 0xffe08a, size = 2) {
+  let m = haloCache[col];
+  if (!m) { m = haloCache[col] = new THREE.SpriteMaterial({ map: soft(), color: col, transparent: true, opacity: 0.3, depthWrite: false, blending: THREE.AdditiveBlending }); HALO_MATS.push(m); }
+  const sp = new THREE.Sprite(m); sp.position.set(x, y, z); sp.scale.set(size, size, 1); p.add(sp);
+  return sp;
+}
 /* ---------- luz que cambia ---------- */
 // Titileo de luz ambiente (lava, fuego) o relámpagos que iluminan todo de golpe. Se suma a la luz del mapa cada cuadro.
 export function lightFlicker(p, col = 0xff6a2a, amt = 0.12, sp = 3) {

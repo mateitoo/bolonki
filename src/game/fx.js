@@ -144,6 +144,10 @@ export const FX = {
     burst(x, 1, z, { mat: c, n: 16, sp: 7, up: [3, 9], life: [0.5, 1.0] });
     burst(x, 1, z, { mat: P.YELLOW, n: 10, sp: 6, up: [3, 8], life: [0.5, 1.0] });
     burst(x, 1, z, { mat: P.WHITE, n: 8, sp: 5, up: [2, 7], life: [0.4, 0.9] });
+    // cañones de papelitos desde las cuatro esquinas de la cancha, que caen despacio
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], k) => setTimeout(() => {
+      burst(sx * 13, 0.5, sz * 9, { mat: [c, P.YELLOW, P.WHITE, c][k], n: 8, sp: 2.2, up: [9, 13], life: [1.4, 2.0], g: 6, vx: -sx * 2.5, vz: -sz * 2 });
+    }, 120 + k * 90));
     emit(['Gl', team, r2(x), r2(z)]);
   },
   // Empujón, glaciar: un carámbano se hace pedazos contra el hielo

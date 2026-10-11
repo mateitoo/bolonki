@@ -137,6 +137,7 @@ export function decorColina(g, rim) {
   add(new THREE.SphereGeometry(0.18, 6, 4), P.M(0x8aa86a), 0, 0.05, 0.62, tt);
   const flip = [[-0.4, 0.3], [0.4, 0.3], [-0.35, -0.35], [0.35, -0.35]].map(([a2, b2]) => add(new THREE.BoxGeometry(0.35, 0.05, 0.18), P.M(0x8aa86a), a2, 0, b2, tt));
   P.anim(tt, (t) => { const a = -t * 0.05 + 3; tt.position.set(Math.sin(a) * 16.5, WY + 0.02, Math.cos(a) * 15); tt.rotation.y = a - Math.PI / 2; flip.forEach((f, i) => { f.rotation.y = Math.sin(t * 3 + i) * 0.5; }); });
+  P.critters(g, 5, 0, 0, 10, 9, 3.5, 'butterfly', [0xffffff, 0xffe14a, 0xff9ad0]);
   // gaviotas paradas en la playa: si alguien se acerca, salen volando
   { const pts = []; for (let k = 0; k < 9; k++) { const a = (k / 9) * Math.PI * 2 + 0.5; if (Math.abs(a - (Math.PI * 2 - 0.9)) < 0.4) continue; const r = rim(a) - 1.1; pts.push([Math.sin(a) * r, Math.cos(a) * r]); } P.shyBirds(g, pts, 0.02); }
   // cangrejos caminando por la orilla
@@ -417,6 +418,7 @@ export function decorPetardos(g, deco, L) {
     [[-13.6, -12], [13.6, -12], [-13.6, 12], [13.6, 12]].forEach(([x, z]) => P.lamp(g, x, Y, z, 3.2));
     P.flyers(g, 0, 3.5, -2, 15, 5, 0xffe14a, 0.35);
     P.windblown(g, 24, -20, 20, Y + 0.2, Y + 3, -16, 14, 1, 0.4, 1.4, 0x6ab04a, 0.1);   // hojitas que lleva el viento
+    P.critters(g, 5, 0, 0, 11, 9, Y + 3.2, 'butterfly');
     // regador que gira tirando agua, carretilla, enanito de jardín y un gato que camina por la cerca
     const spr = new THREE.Group(); spr.position.set(15.6, Y, -6.2); g.add(spr);
     add(new THREE.CylinderGeometry(0.08, 0.12, 0.5, 6), P.M(0x3a8a3a), 0, 0.25, 0, spr);

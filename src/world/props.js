@@ -1351,3 +1351,27 @@ export function shyBirds(p, pts, y, col = 0xf4f4f0, wing = 0x9aa0a8) {
   });
   return birds;
 }
+// Bichitos voladores que pasean por arriba de la cancha: mariposas, libélulas, murciélagos, luciérnagas
+export function critters(p, n, cx, cz, rx, rz, y, kind = 'butterfly', cols = [0xff8ac8, 0xffe14a, 0x8ad8ff, 0xffffff]) {
+  const list = [];
+  for (let k = 0; k < n; k++) {
+    const g = G(p), col = cols[k % cols.length];
+    let wl;
+    if (kind === 'firefly') { add(box(0.12, 0.12, 0.12), M(col, { unlit: true }), 0, 0, 0, g); halo(g, 0, 0, 0, col, 0.9); wl = []; }
+    else {
+      const ww = kind === 'bat' ? [0.5, 0.03, 0.28] : kind === 'dragonfly' ? [0.55, 0.02, 0.12] : [0.24, 0.02, 0.2];
+      const wm = M(kind === 'bat' ? 0x1a1420 : col, kind === 'dragonfly' ? { unlit: true } : {});
+      add(box(0.07, 0.07, kind === 'dragonfly' ? 0.55 : 0.22), M(kind === 'bat' ? 0x1a1420 : kind === 'dragonfly' ? 0x2a8aa8 : 0x2a2a34), 0, 0, 0, g);
+      wl = [-1, 1].map((s) => { const w = G(g, s * 0.03, 0, 0); add(box(...ww), wm, s * ww[0] / 2, 0, 0, w); return w; });
+    }
+    list.push({ g, wl, ph: rnd(0, 6), a: rnd(0.15, 0.35), b: rnd(0.15, 0.35) });
+  }
+  const flap = kind === 'bat' ? 14 : kind === 'dragonfly' ? 40 : 18;
+  anim(p, (t) => list.forEach((q) => {
+    const x = cx + Math.sin(t * q.a + q.ph) * rx, z = cz + Math.sin(t * q.b * 1.3 + q.ph * 2) * rz;
+    const nx = cx + Math.sin((t + 0.1) * q.a + q.ph) * rx, nz = cz + Math.sin((t + 0.1) * q.b * 1.3 + q.ph * 2) * rz;
+    q.g.position.set(x, y + Math.sin(t * 1.7 + q.ph) * 0.6 + (kind === 'butterfly' ? Math.abs(Math.sin(t * 9 + q.ph)) * 0.15 : 0), z);
+    q.g.rotation.y = Math.atan2(nx - x, nz - z);
+    q.wl.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * Math.sin(t * flap + q.ph) * (kind === 'dragonfly' ? 0.3 : 0.9); });
+  }));
+}

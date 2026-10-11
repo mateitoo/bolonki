@@ -516,6 +516,7 @@ export function decorTerraza(g) {
   moon.lookAt(0, 0, 0); moon.renderOrder = -9;
   skyline(g);
   P.twinkleStars(g, 80, 95, 14);
+  P.critters(g, 4, 0, -4, 14, 12, 6, 'bat'); P.critters(g, 10, 0, 0, 15, 15, 1.4, 'firefly', [0xd8ff6a, 0xffe07a]);
   // cartel luminoso en el edificio de enfrente (asoma detrás del pretil) y charcos en la azotea que reflejan el cielo
   P.jumbotron(g, 0, 5.5, -40, 0, 16, 4.5, 'BOLONKI  FIESTA  ');
   [[-16.4, -3, 1.4], [16.3, 7.5, 1.1], [-15.9, 12, 0.9], [8, -19.5, 1.2]].forEach(([x, z, r]) => {

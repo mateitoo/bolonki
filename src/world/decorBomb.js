@@ -242,6 +242,7 @@ export function decorSelva(g, HALF) {
   P.monkey(g, -14.5, Y + 5.5, -11.5, 2.4, 0); P.monkey(g, 14.8, Y + 6, 11.2, 2.8, 1.7); P.monkey(g, 13.2, Y + 5, -13.8, 2.2, 3.1);
   [[-14.5, Y + 5.5, -11.5], [14.8, Y + 6, 11.2], [13.2, Y + 5, -13.8]].forEach(([x, y, z]) => add(new THREE.BoxGeometry(2.4, 0.3, 0.3), P.M(0x6b4a2a, { map: TX.wood }), x, y + 0.1, z, g));
   P.flyers(g, 0, 7, 0, 16, 3, 0x1a1a1e, 0.6);
+  P.critters(g, 5, 0, 0, 9, 9, 3.5, 'dragonfly', [0x6af0ff, 0x8aff6a]);
   const frog = grp(g, 11.4, Y + 0.34, 2.1);
   add(new THREE.SphereGeometry(0.2, 6, 4), P.M(0x3aaa3a), 0, 0.12, 0, frog).scale.set(1, 0.7, 1.2);
   [-0.09, 0.09].forEach((a2) => add(new THREE.SphereGeometry(0.06, 4, 3), P.M(0xffffff), a2, 0.25, 0.12, frog));

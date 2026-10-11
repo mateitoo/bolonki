@@ -91,6 +91,7 @@ export function decorPotrero(g, HX, HZ) {
   for (let i = 0; i < 6; i++) add(new THREE.CylinderGeometry(0.06, 0.08, 0.4, 5), P.M(i % 2 ? 0x3a1a0a : 0x2a8a3a), HX + 3.3 + (i % 3) * 0.28, Y + 0.6, 0.45 + ((i / 3) | 0) * 0.3, g);
   // gente mirando del otro lado del alambrado y en el banco de atrás
   P.windblown(g, 26, -FX, FX, 0.4, 3.5, -FZ, FZ, 1, 0.2, 0.9, 0xffffff, 0.08, false);   // panaderos (pelusas) que vuelan
+  P.critters(g, 4, 0, 0, 13, 8, 3, 'butterfly', [0xffe14a, 0xffffff]);
   const fp = [];
   for (let k = 0; k < 9; k++) fp.push([-14 + k * 3.4 + rnd(-0.5, 0.5), -FZ - 1.2 - rnd(0, 0.8), rnd(-0.3, 0.3)]);
   for (let k = 0; k < 4; k++) { fp.push([-FX - 1.3, -8 + k * 4.5 + rnd(-0.4, 0.4), Math.PI / 2]); fp.push([FX + 1.3, -7 + k * 4.4 + rnd(-0.4, 0.4), -Math.PI / 2]); }

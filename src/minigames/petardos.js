@@ -965,7 +965,8 @@ const petardos = {
 
   visuals(dt) {
     game.stepPuff = [12, 14, 11, 4][S.cancha];      // polvito al caminar: pasto, polvo, arena, nieve
-    game.stepPrint = [0, 0, 0x9a7040, 0x8098c0][S.cancha];   // huellas en la arena y en la nieve
+    game.stepPrint = [0, 0, 0x9a7040, 0x8098c0][S.cancha];
+    game.crateCol = [0xb07a3c, 0xc8a070, 0xc0643a, 0xf4f8ff][S.cancha];   // astillas, cartón, barro cocido, nieve   // huellas en la arena y en la nieve
     const clock = game.clock;
     W.canchas.forEach((g, i) => (g.visible = i === S.cancha));
     W.beltM.uniforms.uOff.value.set(0, (-clock * CONV_V) % 1);          // las cintas corren

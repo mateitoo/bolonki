@@ -3,7 +3,7 @@
 // Los invitados reciben la lista y la reproducen con playEvent(), así todos ven lo mismo.
 import { cheer } from '../world/props.js';
 import { game, world } from '../state.js';
-import { burst, P, ripple, scorch } from '../fx/particles.js';
+import { burst, P, ripple, scorch, litter } from '../fx/particles.js';
 import { SFX } from '../audio.js';
 import { DEATH_ANIMS } from '../deaths/index.js';
 import FALL from '../deaths/fall.js';
@@ -103,7 +103,7 @@ export const FX = {
   /* ---------- Petardos ---------- */
   place() { SFX.place(); emit(['Pl']); },
   boom(x, z) { SFX.bomb(); game.shake = Math.max(game.shake, 0.35); hitStop(0.04); burst(x, 0.8, z, { mat: P.ORANGE, n: 10, sp: 5, up: [2, 6], life: [0.25, 0.5] }); burst(x, 0.8, z, { mat: P.SMOKE, n: 5, sp: 2, up: [1, 3], life: [0.5, 0.9], g: -1, grow: 2 }); emit(['Bm', r2(x), r2(z)]); },
-  crate(x, z) { burst(x, 0.6, z, { mat: P.DEBRIS, n: 6, sp: 4, up: [2, 6], life: [0.3, 0.6] }); emit(['Cr', r2(x), r2(z)]); },
+  crate(x, z) { burst(x, 0.6, z, { mat: P.DEBRIS, n: 6, sp: 4, up: [2, 6], life: [0.3, 0.6] }); if (game.crateCol) litter(x, 0, z, game.crateCol, 6, 0.75); emit(['Cr', r2(x), r2(z)]); },
   powerup(x, z) { SFX.powerup(); burst(x, 0.8, z, { mat: P.YELLOW, n: 8, sp: 3, up: [2, 5], life: [0.2, 0.5] }); emit(['Pu', r2(x), r2(z)]); },
   machine(x, z) { SFX.clunk(); burst(x, 1.2, z, { mat: P.SMOKE, n: 3, sp: 1, up: [0.5, 1.5], life: [0.4, 0.7], g: -1, grow: 1.5 }); emit(['Mc', r2(x), r2(z)]); },
   kick(x, z) { SFX.kick(); burst(x, 0.3, z, { mat: P.WHITE, n: 4, sp: 3, up: [0.5, 2], life: [0.15, 0.3] }); emit(['Kk', r2(x), r2(z)]); },

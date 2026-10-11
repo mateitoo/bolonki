@@ -314,9 +314,12 @@ export function stands(p, x, y, z, ry, w, rows = 4, stepD = 1.25, stepH = 0.9) {
   bodies.count = heads.count = seats.length;
   g.add(bodies); g.add(heads);
   const m4 = new THREE.Matrix4();
+  const wph = rnd(0, 20);
   const place = (t, amp) => {
+    const wv = ((t + wph) % 22) * 14 - 6;                                   // "la ola": cada tanto recorre la tribuna
     seats.forEach((s, k) => {
-      const j = Math.max(0, Math.sin(t * s.sp + s.ph)) * amp;
+      const d = wv - (s.x + w / 2), ola = d > 0 && d < 3.5 ? Math.sin((d / 3.5) * Math.PI) * 0.7 : 0;
+      const j = Math.max(Math.max(0, Math.sin(t * s.sp + s.ph)) * amp, ola);
       m4.makeTranslation(s.x, s.y + 0.35 + j, s.z); bodies.setMatrixAt(k, m4);
       m4.makeTranslation(s.x, s.y + 0.9 + j, s.z); heads.setMatrixAt(k, m4);
     });

@@ -13,7 +13,7 @@ import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorFutbol } from '../world/decor.js';
 import { decorPotrero, decorHielo, decorPlayaFutbol } from '../world/decorFutbol.js';
-import { burst, P, dropDot } from '../fx/particles.js';
+import { burst, P, dropDot, stepPrint } from '../fx/particles.js';
 import { SFX } from '../audio.js';
 import { input } from '../input.js';
 import { FX } from '../game/fx.js';
@@ -643,6 +643,8 @@ const futbol = {
       m.root.scale.setScalar(POD_SCALE);
       m.root.rotation.set(0, p.ang || 0, 0);
       if (p.dashVis > 0) p.dashVis -= dt;
+      // en el hielo, las naves dejan rayones al patinar (y en el potrero, marcas en la tierra)
+      if (S.map > 0 && Math.hypot(p.vx || 0, p.vz || 0) > 4) { p._scr = (p._scr || 0) - dt; if (p._scr <= 0) { p._scr = 0.07; stepPrint(p.x, 0, p.z, Math.atan2(p.vx || 0, p.vz || 0), [0, 0x5a4030, 0xffffff, 0xb08a50][S.map]); } }
       const dsh = p.dashT > 0 || p.dashVis > 0, e = dsh ? 0.9 : 0; m.hullM.uniforms.uEmissive.value.setRGB(e, e * 0.9, e * 0.6);
       m.veh.rotation.x = dsh ? -0.18 : 0;
       m.sh.position.set(p.x, 0.03, p.z); m.sh.rotation.y = p.ang || 0; m.sh.scale.set(1.95 * POD_SCALE, 1, 1.6 * POD_SCALE); m.sh.visible = true;

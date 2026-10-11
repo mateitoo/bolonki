@@ -111,6 +111,34 @@ function updateScorch(dt) {
   }
   if (any) SCORCH.instanceMatrix.needsUpdate = true;
 }
+// Pedacitos que quedan tirados en el piso (astillas de un cajón, cartón, barro cocido…) y se van achicando
+const LT_N = 120, LT_LIFE = 9; let LITTER = null; const LT = []; let ltIdx = 0;
+export function litter(x, y, z, col, n = 5, r = 0.7) {
+  if (!LITTER) {
+    LITTER = new THREE.InstancedMesh(new THREE.BoxGeometry(0.22, 0.05, 0.1), mat({ color: 0xffffff }), LT_N);
+    LITTER.frustumCulled = false; scene.add(LITTER);
+    const m4 = new THREE.Matrix4().makeScale(0, 0, 0), c = new THREE.Color(1, 1, 1);
+    for (let i = 0; i < LT_N; i++) { LT.push({ life: 0 }); LITTER.setMatrixAt(i, m4); LITTER.setColorAt(i, c); }
+  }
+  const c = new THREE.Color(col);
+  for (let j = 0; j < n; j++) {
+    const i = (ltIdx = (ltIdx + 1) % LT_N), a = rnd(0, 6.28), d = rnd(0.1, r);
+    Object.assign(LT[i], { life: LT_LIFE + rnd(0, 2), x: x + Math.cos(a) * d, y: y + 0.03, z: z + Math.sin(a) * d, a: rnd(0, 6.28), s: rnd(0.7, 1.4) });
+    LITTER.setColorAt(i, c.clone().multiplyScalar(rnd(0.75, 1.1)));
+  }
+  LITTER.instanceColor.needsUpdate = true;
+}
+function updateLitter(dt) {
+  if (!LITTER) return;
+  let any = false;
+  for (let i = 0; i < LT_N; i++) {
+    const q = LT[i]; if (q.life <= 0) continue;
+    q.life -= dt; any = true;
+    const k = q.life <= 0 ? 0 : Math.min(1, q.life / 2) * q.s;
+    prQ.setFromAxisAngle(prUp, q.a); prV.set(q.x, q.y, q.z); prS.set(k, k, k); prM.compose(prV, prQ, prS); LITTER.setMatrixAt(i, prM);
+  }
+  if (any) LITTER.instanceMatrix.needsUpdate = true;
+}
 const DOT_LIFE = 0.32;
 export function dropDot(x, z) {
   const d = DOTS[(dotIdx = (dotIdx + 1) % DOTS.length)];
@@ -118,7 +146,7 @@ export function dropDot(x, z) {
 }
 
 export function updateParticles(dt) {
-  updatePrints(dt); updateScorch(dt);
+  updatePrints(dt); updateScorch(dt); updateLitter(dt);
   for (const q of RIPS) {
     if (q.life <= 0) continue;
     q.life -= dt;
@@ -153,4 +181,5 @@ export function clearParticles() {
   for (const q of RIPS) { q.life = 0; q.me.visible = false; }
   for (const q of PR) q.life = 0.001;
   for (const q of SC) if (q.life > 0) q.life = 0.001;
+  for (const q of LT) if (q.life > 0) q.life = 0.001;
 }

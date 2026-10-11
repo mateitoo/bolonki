@@ -10,7 +10,7 @@
 //   que va largando una máquina)
 //   · desierto: arenas movedizas que te frenan · nieve: hielo, si soltás seguís resbalando
 // Gana la ronda el último que queda. Al minuto empieza la muerte súbita: las paredes se cierran en espiral.
-import { scorch } from '../fx/particles.js';
+import { scorch, burst, P } from '../fx/particles.js';
 import { freezeStatic, blob } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
@@ -1019,6 +1019,7 @@ const petardos = {
       const pop = b.age < 0.15 ? 0.3 + 0.7 * Math.sin((b.age / 0.15) * Math.PI / 2) * 1.12 : 1;   // aparece con un saltito
       g.scale.set(s * pop, pop / s, s * pop);
       g.userData.spark.visible = ((clock * 20) | 0) % 2 === 0;
+      if (Math.random() < dt * 5) burst(g.position.x + 0.1, TS * 1.0, g.position.z, { mat: Math.random() < 0.3 ? P.YELLOW : P.SMOKE, n: 1, sp: 0.3, up: [0.6, 1.2], life: [0.3, 0.6], g: -0.5, grow: 1.2, size: 0.5, floor: -9 });   // humito de la mecha
     });
     // aviso: las celdas que va a quemar un petardo a punto de explotar titilan en rojo
     W.danger.forEach((m) => (m.visible = false));
@@ -1039,12 +1040,13 @@ const petardos = {
     }
     W.flameM.uniforms.uOff.value.set((clock * 0.7) % 1, (clock * 0.9) % 1);
     // poderes flotando
-    W.pups.forEach((m) => (m.visible = false));
+    W.pups.forEach((m) => { m.visible = false; if (!m.userData.glow) { const rg = new THREE.RingGeometry(0.35, 0.7, 14); rg.rotateX(-Math.PI / 2); m.userData.glow = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: 0xfff0a0, transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending })); W.grp.add(m.userData.glow); } m.userData.glow.visible = false; });
     pups.filter((u) => u.t <= 0).forEach((u, n) => {
       const m = W.pups[n]; if (!m) return;
       m.visible = true; m.material = W.puMats[u.type];
       m.position.set(cxOf(u.k % GW), TS * 0.45 + Math.sin(clock * 4 + u.k) * 0.12, czOf((u.k / GW) | 0));
       m.rotation.set(0.3, clock * 2 + u.k, 0);
+      if (m.userData.glow) { m.userData.glow.visible = true; m.userData.glow.position.set(m.position.x, 0.03, m.position.z); const k = 0.8 + Math.sin(clock * 5 + u.k) * 0.2; m.userData.glow.scale.set(k, 1, k); }
     });
     // personajes a pie (con escudo: dos anillos girando; recién golpeado: titila; maldito: calavera arriba)
     for (const p of game.players) {

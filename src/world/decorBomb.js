@@ -81,6 +81,19 @@ export function decorPuerto(g, HALF) {
   P.rowboat(g, -E - 2.2, -2.75, -9, 0.1, 0xd8463a); P.rowboat(g, E + 2.2, -2.75, 10, -0.15, 0x3a8ad8); P.rowboat(g, -6, -2.75, E + 2.4, Math.PI / 2 + 0.2, 0xffc02a);
   P.stringLights(g, -E + 1, Y + 5, E - 1, E - 1, Y + 5, E - 1, 14);
   P.warnSign(g, -11.6, Y, 7.2, 0.5); P.tire(g, 11.6, Y + 0.17, 0.6, 0, false); P.tire(g, 11.7, Y + 0.51, 0.7, 0.4, false);
+  // pescadores sentados en el borde con la caña, un marinero que camina y un gato que mira los pescados
+  [[-E + 0.6, -4, Math.PI / 2], [E - 0.6, 7.5, -Math.PI / 2], [3, E - 0.6, 0]].forEach(([x, z, ry], k) => {
+    const f = P.fans(g, Y, [[x, z, ry]], { hats: [0xffd23a], shirts: [[0x3a5a8a, 0xd8463a, 0x2a8a5a][k]] })[0];
+    const rod = new THREE.Group(); rod.position.set(0.3, 1.1, 0.3); f.g.add(rod);
+    add(box(0.04, 0.04, 2.6), P.M(0x2a2a30), 0, 0.4, 1.2, rod).rotation.x = -0.35;
+    add(new THREE.CylinderGeometry(0.01, 0.01, 2.6, 3), P.M(0xe8e8e8), 0, -0.4, 2.45, rod);
+    P.anim(rod, (t) => { rod.rotation.x = Math.max(0, Math.sin(t * 0.5 + k * 2)) ** 10 * -0.5; });
+  });
+  P.walker(g, -10.5, Y, -E + 1.2, 10.5, -E + 1.2, { shirt: 0xffffff, pants: 0x2a3a6a, hat: 0xffffff, sp: 0.16 });
+  const cat = new THREE.Group(); cat.position.set(9.6, Y + 1.04, -12.1); g.add(cat);
+  add(box(0.22, 0.22, 0.5), P.M(0xe8a04a), 0, 0.12, 0, cat); add(box(0.22, 0.2, 0.2), P.M(0xe8a04a), 0, 0.3, 0.25, cat);
+  const ct = add(box(0.05, 0.35, 0.05), P.M(0xe8a04a), 0, 0.3, -0.25, cat);
+  P.anim(cat, (t) => { ct.rotation.x = Math.sin(t * 2.5) * 0.5; cat.rotation.y = 0.4 + Math.sin(t * 0.3) * 0.4; });
 }
 
 /* ===================== NEVADA ===================== */
@@ -138,6 +151,12 @@ export function decorNevada(g, HALF) {
   P.footprints(g, Y, [[12.2, 9], [10.4, 4], [10.6, -3], [12.5, -8]], 0xb0c0d8);
   [[-11, 10.5], [11, -11], [10.3, 8.5]].forEach(([x, z]) => P.lantern(g, x, Y, z, 2.2, 0xffd27a));
   P.stringLights(g, -14, Y + 4.6, -13, -9, Y + 3, -10.6, 7, [0xff5a5a, 0x5aff8a, 0xffe14a, 0x5ab0ff]);
+  // esquiadores sentados en la telesilla, un chico tirando bolas de nieve y otro que hace un ángel en la nieve
+  P.walker(g, 10.5, Y, 12.6, -10.5, 12.6, { shirt: 0x3a7aff, hat: 0xd83a3a, sp: 0.14, carry: (w) => { const sl = new THREE.Group(); sl.position.set(0, 0, -1.4); w.add(sl); P.sled(sl, 0, 0, 0, 0); } });
+  const ang = new THREE.Group(); ang.position.set(-10.6, Y + 0.05, -9.8); g.add(ang);
+  add(new THREE.CircleGeometry(1, 10), P.M(0xdce8f8), 0, 0.01, 0, ang).rotation.x = -Math.PI / 2;
+  const kid = P.fans(ang, 0, [[0, 0, 0]], { hats: [0xffd23a], shirts: [0x39d98a] })[0]; kid.g.rotation.x = -Math.PI / 2; kid.g.position.y = 0.15; kid.g.scale.setScalar(0.8);
+  P.anim(ang, (t) => { kid.arms.forEach((a, i) => { a.rotation.z = (i ? -1 : 1) * (1.2 + Math.sin(t * 3) * 0.6); }); kid.g.position.y = 0.15; });
 }
 
 /* ===================== SELVA: ruinas de un templo en la selva; sube el pantano ===================== */
@@ -212,6 +231,10 @@ export function decorSelva(g, HALF) {
   P.flowers(g, -10.5, Y, 10.5, 1.4, 1.2, 14, [0xff5a7a, 0xffe14a, 0xff9a2a]); P.flowers(g, 10.4, Y, -10.6, 1.2, 1.4, 12, [0xb07aff, 0xffffff, 0xff5a7a]);
   // un estanque con nenúfares y una rana que salta
   P.pond(g, 12.2, Y, 1.4, 1.4); P.lilies(g, 12.2, Y + 0.33, 1.4, 1.1, 5);
+  // monos hamacándose de las lianas y tucanes que pasan volando
+  P.monkey(g, -14.5, Y + 5.5, -11.5, 2.4, 0); P.monkey(g, 14.8, Y + 6, 11.2, 2.8, 1.7); P.monkey(g, 13.2, Y + 5, -13.8, 2.2, 3.1);
+  [[-14.5, Y + 5.5, -11.5], [14.8, Y + 6, 11.2], [13.2, Y + 5, -13.8]].forEach(([x, y, z]) => add(new THREE.BoxGeometry(2.4, 0.3, 0.3), P.M(0x6b4a2a, { map: TX.wood }), x, y + 0.1, z, g));
+  P.flyers(g, 0, 7, 0, 16, 3, 0x1a1a1e, 0.6);
   const frog = grp(g, 11.4, Y + 0.34, 2.1);
   add(new THREE.SphereGeometry(0.2, 6, 4), P.M(0x3aaa3a), 0, 0.12, 0, frog).scale.set(1, 0.7, 1.2);
   [-0.09, 0.09].forEach((a2) => add(new THREE.SphereGeometry(0.06, 4, 3), P.M(0xffffff), a2, 0.25, 0.12, frog));

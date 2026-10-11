@@ -62,7 +62,7 @@ export function decorFutbol(g, HX, HZ) {
   const marms = [-1, 1].map((sx) => { const a2 = new THREE.Group(); a2.position.set(sx * 0.85, 1.6, 0); mas.add(a2); add(new THREE.BoxGeometry(0.18, 0.7, 0.18), P.M(0x35a0ff), 0, 0.3, 0, a2); return a2; });
   P.anim(mas, (t) => {
     const u = Math.sin(t * 0.22), x = u * (HX - 2), run = Math.abs(Math.cos(t * 0.22)) > 0.15;
-    mas.position.set(x, -0.3 + (run ? Math.abs(Math.sin(t * 10)) * 0.15 : 0), HZ + 3.1); mas.rotation.y = run ? (Math.cos(t * 0.22) > 0 ? Math.PI / 2 : -Math.PI / 2) : Math.PI;
+    mas.position.set(x, -0.3 + (run ? Math.abs(Math.sin(t * 10)) * 0.15 : 0), -HZ - 3.0); mas.rotation.y = run ? (Math.cos(t * 0.22) > 0 ? Math.PI / 2 : -Math.PI / 2) : 0;
     mlegs.forEach((l, k) => { l.rotation.x = run ? Math.sin(t * 10 + k * Math.PI) * 0.7 : 0; });
     marms.forEach((a2, k) => { a2.rotation.z = (k ? -1 : 1) * (run ? 0.3 : 2.4 + Math.sin(t * 8) * 0.4); });
   });
@@ -74,6 +74,10 @@ export function decorFutbol(g, HX, HZ) {
   add(new THREE.CylinderGeometry(0.16, 0.2, 0.4, 8), P.M(0x1a1a1e), 0, 0, 0.6, head).rotation.x = Math.PI / 2;
   add(new THREE.BoxGeometry(0.08, 0.08, 0.08), P.M(0xff2a2a, { unlit: true }), 0.15, 0.27, 0.3, head);
   P.anim(tv, (t) => { head.rotation.y = 0.8 + Math.sin(t * 0.4) * 0.5; });
+  // dron de TV sobrevolando, el árbitro asistente con la bandera y un utilero que pasa con pelotas
+  P.drone(g, 0, 7, -HZ - 3.5, 7, 0.25);
+  P.walker(g, -HX + 1, -0.3, -HZ - 0.9, HX - 1, -HZ - 0.9, { shirt: 0xffd23a, pants: 0x1a1a1e, sp: 0.25, carry: (w) => { add(new THREE.CylinderGeometry(0.02, 0.02, 0.8, 3), P.M(0x1a1a1e), 0.35, 1.1, 0.1, w); add(new THREE.BoxGeometry(0.04, 0.3, 0.4), P.M(0xff3a3a), 0.35, 1.4, 0.3, w); } });
+  P.walker(g, -HX - 2.6, -0.3, HZ + 2.4, -HX - 2.6, -HZ - 2.4, { shirt: 0x39d98a, sp: 0.18, ph: 0.6, carry: (w) => { add(new THREE.BoxGeometry(0.6, 0.4, 0.4), P.M(0x2a2a30, { map: TX.cloth }), 0, 0.75, 0.35, w); for (let i = 0; i < 3; i++) add(new THREE.SphereGeometry(0.13, 6, 4), P.M(0xffffff, { map: TX.stripes }), -0.18 + i * 0.18, 1.0, 0.35, w); } });
 }
 
 /* ---------- Rey de la colina: isla en el mar ---------- */
@@ -126,6 +130,8 @@ export function decorColina(g, rim) {
   add(new THREE.SphereGeometry(0.18, 6, 4), P.M(0x8aa86a), 0, 0.05, 0.62, tt);
   const flip = [[-0.4, 0.3], [0.4, 0.3], [-0.35, -0.35], [0.35, -0.35]].map(([a2, b2]) => add(new THREE.BoxGeometry(0.35, 0.05, 0.18), P.M(0x8aa86a), a2, 0, b2, tt));
   P.anim(tt, (t) => { const a = -t * 0.05 + 3; tt.position.set(Math.sin(a) * 16.5, WY + 0.02, Math.cos(a) * 15); tt.rotation.y = a - Math.PI / 2; flip.forEach((f, i) => { f.rotation.y = Math.sin(t * 3 + i) * 0.5; }); });
+  // cangrejos caminando por la orilla
+  [[0.4, 0xe8503a], [2.4, 0xff7a3a], [4.3, 0xe8503a]].forEach(([a, c], k) => { const r = rim(a) - 0.5, r2 = rim(a + 0.25) - 0.5; P.crabWalk(g, Math.sin(a) * r, 0.02, Math.cos(a) * r, Math.sin(a + 0.25) * r2, Math.cos(a + 0.25) * r2, c, 0.35, k * 2); });
   // un cofre del tesoro en un islote
   const ch = new THREE.Group(); ch.position.set(-25.2, 0.7, -29.2); ch.rotation.y = 0.5; g.add(ch);
   add(new THREE.BoxGeometry(1.2, 0.6, 0.8), P.M(0x8a5a2a, { map: TX.wood }), 0, 0.3, 0, ch);
@@ -193,6 +199,13 @@ export function decorVolcan(grp, plat, R0, V) {
     const ph = k * 1.7; P.anim(fr, (t) => { fr.position.y = y + Math.sin(t * 0.5 + ph) * 0.5; fr.rotation.y = t * 0.08 + ph; });
   });
   P.flyers(grp, 0, 3, 0, 16, 4, 0xff6a1a, 0.45);
+  // cristales de obsidiana que flotan girando y brillan por dentro
+  [[16, -1, 6, 0xff5a1a], [-15.5, -2, -6, 0xffa01a], [4, -1.5, -16, 0xff3a2a], [-5, -2.5, 15.5, 0xffc04a]].forEach(([x, y, z, c], k) => {
+    const cr = new THREE.Group(); cr.position.set(x, y, z); grp.add(cr);
+    add(new THREE.OctahedronGeometry(0.9, 0), P.M(0x1a1018), 0, 0, 0, cr).scale.set(0.6, 1.6, 0.6);
+    const core = add(new THREE.OctahedronGeometry(0.5, 0), P.M(c, { unlit: true }), 0, 0, 0, cr); core.scale.set(0.5, 1.4, 0.5);
+    P.anim(cr, (t) => { cr.rotation.y = t * 0.8 + k; cr.position.y = y + Math.sin(t * 0.9 + k) * 0.5; core.scale.setScalar(0.45 + Math.abs(Math.sin(t * 2 + k)) * 0.15); core.scale.y = 1.4; });
+  });
   // piedras sueltas en el borde de la plataforma (se achican con ella)
   const rk = P.M(0x7a6a5e, { map: TX.rock });
   for (let k = 0; k < 18; k++) {
@@ -252,6 +265,19 @@ export function decorGlaciar(grp) {
   });
   // pajaritos que pasan cerca
   P.flyers(grp, 0, 2, 0, 15, 3, 0x3a3a48, 0.4);
+  // nubecitas que pasan por debajo del iceberg y un búho blanco que planea
+  const cw = P.M(0xffffff), cs = P.M(0xe0e8f4);
+  for (let k = 0; k < 6; k++) {
+    const c = new THREE.Group(); grp.add(c);
+    for (let j = 0; j < 4; j++) add(new THREE.DodecahedronGeometry(rnd(1, 1.8), 1), j % 2 ? cw : cs, rnd(-2.5, 2.5), rnd(-0.4, 0.4), rnd(-1, 1), c);
+    const a0 = (k / 6) * Math.PI * 2, d = rnd(13, 18), y = rnd(-7, -4), sp = rnd(0.02, 0.04);
+    P.anim(c, (t) => { const a = a0 + t * sp; c.position.set(Math.sin(a) * d, y, Math.cos(a) * d); });
+  }
+  const owl = new THREE.Group(); grp.add(owl);
+  add(new THREE.SphereGeometry(0.4, 8, 6), P.M(0xf4f4f0), 0, 0, 0, owl).scale.set(0.9, 1, 1.2);
+  [-0.12, 0.12].forEach((sx) => add(new THREE.SphereGeometry(0.07, 5, 4), P.M(0xffc02a, { unlit: true }), sx, 0.15, 0.4, owl));
+  const ow = [-1, 1].map((sd) => { const w = new THREE.Group(); w.position.x = sd * 0.3; owl.add(w); add(new THREE.BoxGeometry(1.2, 0.05, 0.5), P.M(0xe8e8e0), sd * 0.6, 0, 0, w); return w; });
+  P.anim(owl, (t) => { const a = t * 0.25; owl.position.set(Math.sin(a) * 13, 4 + Math.sin(t * 0.7) * 1, Math.cos(a) * 11); owl.rotation.y = a + Math.PI / 2; owl.rotation.z = -0.3; ow.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * Math.sin(t * 2.5) * 0.5; }); });
 }
 
 /* ---------- Bombardeo: depósito espacial ---------- */
@@ -338,6 +364,14 @@ export function decorBombardeo(grp, HALF) {
   add(new THREE.BoxGeometry(1.2, 1.1, 0.6), P.M(0xd83a3a, { map: TX.metal }), 0, 0.55, 0, tb);
   for (let i = 0; i < 3; i++) add(new THREE.BoxGeometry(1.1, 0.04, 0.02), P.M(0x1a1a1e), 0, 0.3 + i * 0.3, 0.31, tb);
   add(new THREE.BoxGeometry(0.5, 0.06, 0.08), P.M(0xc8ccd8, { map: TX.metal }), 0.1, 1.14, 0, tb).rotation.y = 0.5;
+  // un mecánico con traje que camina revisando y un perro robot que lo sigue
+  const mech = P.walker(grp, -9, Y, HALF + 2.9, 9, HALF + 2.9, { shirt: 0xe8e8ee, pants: 0xe8e8ee, skin: 0x3a5a8a, sp: 0.15, carry: (w) => add(new THREE.BoxGeometry(0.3, 0.2, 0.15), P.M(0xffc02a, { map: TX.metal }), 0.35, 0.8, 0.1, w) });
+  const rd = new THREE.Group(); grp.add(rd);
+  add(new THREE.BoxGeometry(0.4, 0.3, 0.8), P.M(0xc8ccd8, { map: TX.metal }), 0, 0.5, 0, rd);
+  add(new THREE.BoxGeometry(0.3, 0.25, 0.3), P.M(0xc8ccd8, { map: TX.metal }), 0, 0.7, 0.5, rd);
+  add(new THREE.BoxGeometry(0.2, 0.06, 0.04), P.M(0x35f0ff, { unlit: true }), 0, 0.75, 0.66, rd);
+  const rl = [[-0.15, 0.3], [0.15, 0.3], [-0.15, -0.3], [0.15, -0.3]].map(([a2, b2]) => add(new THREE.BoxGeometry(0.08, 0.4, 0.08), P.M(0x3a3f4a), a2, 0.2, b2, rd));
+  P.anim(rd, (t) => { rd.position.set(mech.position.x + (Math.sin(mech.rotation.y) > 0 ? -1.2 : 1.2), Y, mech.position.z + 0.7); rd.rotation.y = mech.rotation.y; rl.forEach((l, i) => { l.rotation.x = Math.sin(t * 12 + (i % 2) * Math.PI) * 0.5; }); });
 }
 
 /* ---------- Petardos: una por cancha ---------- */
@@ -384,6 +418,16 @@ export function decorPetardos(g, deco, L) {
     P.anim(cat, (t) => { const u = Math.sin(t * 0.12); cat.position.set(-13.6, Y + 1.0, u * 10); cat.rotation.y = Math.cos(t * 0.12) > 0 ? 0 : Math.PI; tail.rotation.x = Math.sin(t * 3) * 0.4; });
     for (let k = 0; k < 4; k++) { const bf = new THREE.Group(); g.add(bf); const wl = [-1, 1].map((sd) => add(new THREE.BoxGeometry(0.22, 0.02, 0.18), P.M([0xff8ac8, 0xffe14a, 0x8ad8ff, 0xffffff][k], { side: THREE.DoubleSide }), sd * 0.11, 0, 0, bf));
       P.anim(bf, (t) => { const a = t * 0.3 + k * 1.6; bf.position.set((k % 2 ? 15 : -15.5) + Math.sin(a * 1.3) * 1.5, Y + 0.8 + Math.sin(t * 2 + k) * 0.4, -3 + k * 3 + Math.cos(a) * 1.5); wl.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * Math.sin(t * 18) * 0.9; }); }); }
+    // hamaca con un chico que se hamaca
+    const sw = new THREE.Group(); sw.position.set(-17.5, Y, -1.2); sw.rotation.y = 0; g.add(sw);
+    const fm = P.M(0xd83a3a, { map: TX.metal });
+    [-1, 1].forEach((sx) => { [-0.6, 0.6].forEach((sz) => { const l = add(new THREE.BoxGeometry(0.1, 2.6, 0.1), fm, sx * 1.1, 1.25, sz, sw); l.rotation.x = sz * 0.35; }); });
+    add(new THREE.BoxGeometry(2.4, 0.1, 0.1), fm, 0, 2.45, 0, sw);
+    const seat = new THREE.Group(); seat.position.y = 2.4; sw.add(seat);
+    [-0.3, 0.3].forEach((sx) => add(new THREE.BoxGeometry(0.03, 1.8, 0.03), P.M(0x8a92a6), sx, -0.9, 0, seat));
+    add(new THREE.BoxGeometry(0.7, 0.06, 0.35), P.M(0x3a8ad8), 0, -1.8, 0, seat);
+    const kid = P.fans(seat, -2.25, [[0, 0, 0]], { shirts: [0xffd23a] })[0]; kid.g.scale.setScalar(0.6);
+    P.anim(sw, (t) => { seat.rotation.x = Math.sin(t * 1.6) * 0.6; kid.g.position.y = -2.3; });
   } else if (deco === 'cajas') {                                // FÁBRICA: caños, chimeneas, tambores
     [-1, 1].forEach((sx) => {
       P.pipe(g, sx * 14.2, Y + 1.0, -12, sx * 14.2, Y + 1.0, 12, 0.42);
@@ -418,6 +462,7 @@ export function decorPetardos(g, deco, L) {
     });
     P.fans(g, Y, [[-16.2, -1.6, 1.4], [16.4, 0.2, -1.2], [15.6, 11.4, -2.4]], { shirts: [0x3a6ad8, 0xff8a1a, 0x3a6ad8], hats: [0xffd23a, 0xffd23a, 0xffffff] });
     [[-15.6, 7.5, 0.7], [16, -1.5, 0.6], [-3, -13.9, 0.8]].forEach(([x, z, r]) => P.patch(g, x, Y, z, r, 0x14161c));
+    P.walker(g, -16.4, Y, -11, -16.4, 11, { shirt: 0xff8a1a, hat: 0xffd23a, sp: 0.16, carry: (w) => add(new THREE.BoxGeometry(0.6, 0.5, 0.5), P.M(0xc8a070, { map: TX.crate }), 0, 1.0, 0.35, w) });
   } else if (deco === 'cactus') {                               // DESIERTO: dunas, cactus, huesos, oasis
     [[-17, -6, 5, 4], [18, -9, 6, 4], [-18, 8, 5, 5], [17, 4, 4, 5], [-4, -16, 8, 3], [9, -15.5, 6, 3]].forEach(([x, z, sx, sz]) => P.dune(g, x, Y - 0.1, z, sx, sz, 0xecc888));
     P.mesa(g, -25, Y, -17, 7, 6, 5); P.mesa(g, 26, Y, -13, 6, 4.5, 5, 0xb86a3a); P.mesa(g, -27, Y, 9, 5, 3.5, 4, 0xd08a4a);
@@ -446,6 +491,9 @@ export function decorPetardos(g, deco, L) {
     P.anim(cm, (t) => { neck.rotation.x = Math.sin(t * 0.6) * 0.15; neck.rotation.y = Math.sin(t * 0.25) * 0.4; });
     const lz = new THREE.Group(); g.add(lz);
     add(new THREE.BoxGeometry(0.14, 0.06, 0.5), P.M(0x6aa83a), 0, 0.04, 0, lz); add(new THREE.BoxGeometry(0.04, 0.03, 0.4), P.M(0x6aa83a), 0, 0.03, -0.42, lz);
+    const sn = new THREE.Group(); g.add(sn);
+    const segs = []; for (let i = 0; i < 8; i++) segs.push(add(new THREE.SphereGeometry(0.13 - i * 0.008, 6, 4), P.M(i % 2 ? 0xc8a03a : 0x8a6a2a), 0, 0.1, 0, sn));
+    P.anim(sn, (t) => segs.forEach((sg, i) => { const u = t * 0.4 - i * 0.06; sg.position.set(-15 + Math.sin(u) * 1.5 + Math.sin(u * 8) * 0.2, Y + 0.1, -6 + Math.cos(u) * 1.5); }));
     P.anim(lz, (t) => { const u = (t * 0.25) % 1, v = Math.min(1, u / 0.25), back = Math.floor(t * 0.25) % 2; lz.position.set(14.2 + Math.sin(v * 20) * 0.1, Y, back ? -5 - v * 6 : -11 + v * 6); lz.rotation.y = back ? Math.PI : 0; });
   } else {                                                      // NIEVE: pinos nevados, muñecos, iglú y nieve que cae
     const pinePts = [[-16.5, -8.5], [16.8, -3], [-17.2, 2.5], [16, 6.5], [-18.5, 10], [19, 11], [-10, -14.5], [9.5, -14.8], [-15, -12], [18, -11], [-19, -2], [19.5, 4], [-12.5, -15.5], [12, -15.5]].map(([x, z]) => [x, z, rnd(0.8, 1.2)]);
@@ -472,6 +520,7 @@ export function decorPetardos(g, deco, L) {
     P.anim(dr, (t) => { const graze = Math.sin(t * 0.4) > 0.2; dh.rotation.x = graze ? 1.1 : 0; dh.rotation.y = graze ? 0 : Math.sin(t * 1.3) * 0.4; });
     [[15.2, 9.6], [-15.6, 2.2]].forEach(([x, z]) => { for (let i = 0; i < 6; i++) add(new THREE.SphereGeometry(0.2, 6, 5), P.M(0xffffff, { map: TX.snow }), x + (i % 3) * 0.36 - 0.36, Y + 0.18 + (i >= 3 ? 0.3 : 0), z + (i >= 3 ? 0.1 : 0), g); P.snowPile(g, x, Y, z - 0.9, 0.9); });
     P.stringLights(g, -13.6, Y + 3, -11.6, 13.6, Y + 3, -11.6, 18, [0xff5a5a, 0x5aff8a, 0xffe14a, 0x5ab0ff]);
+    P.walker(g, 16.6, Y, 11, 16.6, -9, { shirt: 0xd83a3a, hat: 0x3a7aff, sp: 0.14, carry: (w) => { const sl = new THREE.Group(); sl.position.set(0, 0, -1.4); w.add(sl); P.sled(sl, 0, 0, 0, 0); } });
   }
 }
 
@@ -622,6 +671,16 @@ export function decorTormenta(g, R0) {
     P.anim(w, (t) => { w.position.y = -2.78 + Math.sin(t * 1.6 + ph) * 0.25; w.scale.x = 0.5 + Math.abs(Math.sin(t * 0.8 + ph)); });
   }
   for (let k = 0; k < 5; k++) { const a = rnd(0, 6), d = rnd(R0 + 2, 14); const pl = add(new THREE.BoxGeometry(0.5, 0.12, rnd(1.8, 3)), P.M(0x6a4a2a, { map: TX.wood }), Math.sin(a) * d, -2.7, Math.cos(a) * d, g); pl.rotation.y = rnd(0, 3); bob(pl, -2.7, k * 1.3, 0.5); }
+  // tentáculos de un pulpo gigante que asoman del agua cada tanto
+  const tm = P.M(0x8a3a6a), sm = P.M(0xe8b0c8);
+  const tents = [[-R0 - 6, 6], [R0 + 7, -3], [3, R0 + 8]].map(([x, z], k) => {
+    const tg = new THREE.Group(); tg.position.set(x, -3, z); g.add(tg);
+    const segs = [];
+    let parent = tg;
+    for (let i = 0; i < 6; i++) { const sg = new THREE.Group(); sg.position.y = i ? 0.9 : 0; parent.add(sg); add(new THREE.CylinderGeometry(0.42 - i * 0.06, 0.48 - i * 0.06, 0.95, 7), tm, 0, 0.45, 0, sg); add(new THREE.SphereGeometry(0.1, 5, 4), sm, 0, 0.45, 0.4 - i * 0.05, sg); segs.push(sg); parent = sg; }
+    return { tg, segs, ph: k * 2.6 };
+  });
+  P.anim(g, (t) => tents.forEach((q) => { const u = (t * 0.12 + q.ph / 6) % 1, up = u < 0.4 ? Math.sin((u / 0.4) * Math.PI) : 0; q.tg.position.y = -3 - 6 + up * 6; q.tg.visible = up > 0.02; q.segs.forEach((sg, i) => { sg.rotation.x = Math.sin(t * 2 + i * 0.6 + q.ph) * 0.25; sg.rotation.z = Math.cos(t * 1.6 + i * 0.5) * 0.2; }); }));
   // lluvia (rápida y en diagonal)
   P.drift(g, 160, -24, 24, 20, -3, -22, 22, 0xa8c0e0, 0.06, 18);
   // rayos lejanos cada tanto (se prende un zigzag en el horizonte)

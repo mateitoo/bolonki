@@ -238,6 +238,16 @@ export function decorCirco(g) {
   clownCar(g, 17.2, -5.5);
   // guirnaldas de lamparitas colgadas del techo hasta el borde de la pista
   for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2 + 0.2; P.chaseLights(g, 0, 22, 0, Math.sin(a) * 17, 9, Math.cos(a) * 17, 10, [0xffe07a, 0xff5fa2, 0x7ae0ff][k % 3], 2); }
+  // acróbata colgado de un trapecio, hamacándose sobre la pista
+  const ac = grp(g, 0, Y + 14, -16), acs = grp(ac);
+  [-0.5, 0.5].forEach((sx) => add(box(0.04, 6, 0.04), P.M(0xd8c8a0), sx, -3, 0, acs));
+  add(new THREE.CylinderGeometry(0.05, 0.05, 1.1, 5), P.M(0xffd24a), 0, -6, 0, acs).rotation.z = Math.PI / 2;
+  const body = grp(acs, 0, -6, 0);
+  add(box(0.35, 0.7, 0.25), P.M(0xff5fa2, { map: TX.cloth }), 0, -0.55, 0, body);
+  add(new THREE.SphereGeometry(0.18, 7, 5), P.M(0xf0c8a8), 0, -1.05, 0, body);
+  [-0.15, 0.15].forEach((sx) => { add(box(0.1, 0.5, 0.1), P.M(0xf0c8a8), sx, -0.1, 0, body); add(box(0.12, 0.6, 0.12), P.M(0xff5fa2), sx, -1.25, 0, body).rotation.x = 0.2; });
+  body.rotation.x = Math.PI;
+  P.anim(ac, (t) => { acs.rotation.x = Math.sin(t * 1.3) * 0.8; body.rotation.x = Math.PI + Math.sin(t * 1.3 - 0.5) * 0.4; });
   // un payaso en monociclo que da vueltas alrededor de la pista haciendo malabares
   const uc = grp(g), cl = grp(uc, 0, 0, 0);
   const wh = add(new THREE.TorusGeometry(0.45, 0.08, 4, 12), P.M(0x1a1a1e), 0, 0.45, 0, cl); wh.rotation.y = Math.PI / 2;
@@ -422,6 +432,10 @@ export function decorPlaya(g) {
   add(new THREE.CylinderGeometry(0.7, 0.55, 0.06, 10), P.M(0xa8885a, { map: TX.sand }), 15.8, Y + 0.02, 12, g);
   P.dune(g, 17, Y, 12.6, 0.7, 0.5, 0xe6c98e);
   P.footprints(g, Y, [[-12, -19], [-16.5, -14], [-16, -6], [-12, -2]], 0xc8a870, 0.6);
+  P.crabWalk(g, 15.5, Y, -14, 18, -9, 0xe8503a, 0.5); P.crabWalk(g, -18, Y, 13, -15.5, 15.5, 0xff7a3a, 0.4, 2);
+  P.walker(g, -18.5, Y, -16, -18.5, 14, { shirt: 0xffffff, pants: 0xe8e0c8, hat: 0xf0d080, sp: 0.35, carry: (w) => {
+    const c = add(new THREE.CylinderGeometry(0.4, 0.3, 0.3, 8), P.M(0xc8a060, { map: TX.wood }), 0.45, 0.95, 0.1, w);
+    add(new THREE.SphereGeometry(0.3, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2), P.M(0xffe0a0), 0.45, 1.08, 0.1, w); void c; } });
   P.scatter(g, 0, Y + 0.01, 0, 19, 19, 50, 0xffd0c0, 0.12, [15, 15]);
 }
 
@@ -527,6 +541,8 @@ export function decorTerraza(g) {
   sleepyDog(g, 4.2, -19.4);
   P.lamp(g, -10.4, Y, -20.2, 3.2, 0xffd27a); P.lamp(g, 10.6, Y, -20.4, 3.2, 0xffd27a);
   P.patch(g, -15.5, Y, 4, 0.9, 0x5a4a50); P.patch(g, 15.4, Y, -2, 0.7, 0x4a5a6a);
+  kite(g, -6, 11, -26); P.flyers(g, 0, 6, -6, 18, 5, 0x8a8a9a, 0.4);
+  P.walker(g, 13, Y, -21.5, 18.5, -21.5, { shirt: 0xd83a3a, hat: 0xffffff, sp: 0.12, carry: (w) => add(box(0.06, 0.06, 0.7), P.M(0x8a92a6, { map: TX.metal }), 0.32, 0.85, 0.3, w) });
 }
 function pelopincho(p, x, z) {                                // pileta de lona con agua, una pelota y el patito
   const g = grp(p, x, Y, z, 0.3);
@@ -776,6 +792,9 @@ export function decorEspacio(g) {
   P.asteroids(g, 18, 26, 44, -14, -4);
   // cerca de la arena: satélites que dan vueltas, una nave chiquita estacionada en un muelle, balizas y un astronauta flotando
   P.satellite(g, 0, 2, 0, 19, 0.12, 0); P.satellite(g, 0, -1, 0, 22, -0.09, 2.5);
+  // medusas espaciales que brillan y un platito volador que pasa
+  P.jelly(g, -19, -3, 6, 0.9, 0x8ad8ff); P.jelly(g, 20, -5, -9, 0.7, 0xff8ad8); P.jelly(g, -8, -7, -19, 1.1, 0xb08aff);
+  P.ufo(g, 0, 6, -10, 18, 0.12, 0x6aff9a);
   const dock = grp(g, -17.6, -2.4, -6);
   add(new THREE.BoxGeometry(4, 0.4, 3.2), P.M(0x3a4458, { map: TX.metal }), 0, 0, 0, dock);
   add(new THREE.BoxGeometry(3.4, 0.4, 0.4), P.M(0x2a3040, { map: TX.metal }), 1.8, -0.1, 0, dock).rotation.z = 0.1;

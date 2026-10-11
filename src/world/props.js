@@ -984,3 +984,79 @@ export function satellite(p, cx, cy, cz, r, sp = 0.15, ph = 0) {
   anim(g, (t) => { const a = t * sp + ph; g.position.set(cx + Math.sin(a) * r, cy + Math.sin(t * 0.3 + ph) * 0.6, cz + Math.cos(a) * r); g.rotation.set(t * 0.2, a, 0.3); led.visible = (t % 1) < 0.3; });
   return g;
 }
+
+/* ---------- bichos y personajes animados (tercera tanda) ---------- */
+// Cangrejo que camina de costado entre dos puntos
+export function crabWalk(p, x1, y, z1, x2, z2, col = 0xe8503a, sp = 0.4, ph = 0) {
+  const g = G(p), m = M(col);
+  add(new THREE.SphereGeometry(0.25, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2), m, 0, 0.08, 0, g).scale.set(1.3, 0.8, 1);
+  const cl = [-1, 1].map((s) => add(box(0.14, 0.1, 0.12), m, s * 0.34, 0.14, 0.18, g));
+  [-1, 1].forEach((s) => add(new THREE.SphereGeometry(0.04, 4, 3), M(0x1a1a1e), s * 0.08, 0.26, 0.18, g));
+  const legs = [];
+  for (let i = 0; i < 6; i++) legs.push(add(box(0.2, 0.03, 0.03), m, (i % 2 ? 1 : -1) * 0.3, 0.05, -0.12 + Math.floor(i / 2) * 0.12, g));
+  const a = Math.atan2(x2 - x1, z2 - z1);
+  anim(g, (t) => { const u = Math.sin(t * sp + ph) * 0.5 + 0.5; g.position.set(x1 + (x2 - x1) * u, y, z1 + (z2 - z1) * u); g.rotation.y = a + Math.PI / 2; legs.forEach((l, i) => { l.rotation.z = Math.sin(t * 16 + i) * 0.4; }); cl.forEach((c, i) => { c.rotation.x = Math.sin(t * 3 + i) * 0.4; }); });
+  return g;
+}
+// Mono colgado de una liana que se hamaca
+export function monkey(p, x, y, z, len = 2.5, ph = 0) {
+  const g = G(p, x, y, z, rnd(0, 6)), sw = G(g), fm = M(0x7a4a2a), lm = M(0xd8a878);
+  add(new THREE.CylinderGeometry(0.03, 0.03, len, 3), M(0x3a7a2a), 0, -len / 2, 0, sw);
+  const b = G(sw, 0, -len, 0);
+  add(new THREE.SphereGeometry(0.28, 7, 5), fm, 0, -0.35, 0, b).scale.set(0.9, 1.2, 0.8);
+  add(new THREE.SphereGeometry(0.22, 7, 5), fm, 0, 0.05, 0.05, b); add(new THREE.SphereGeometry(0.14, 6, 4), lm, 0, 0.0, 0.2, b);
+  [-1, 1].forEach((s) => add(new THREE.SphereGeometry(0.08, 5, 4), lm, s * 0.2, 0.1, 0, b));
+  add(box(0.08, 0.45, 0.08), fm, 0.12, 0.2, 0, b).rotation.z = -0.2;
+  const tail = add(box(0.05, 0.05, 0.6), fm, 0, -0.55, -0.3, b); tail.rotation.x = -0.6;
+  [-1, 1].forEach((s) => add(box(0.08, 0.4, 0.08), fm, s * 0.12, -0.75, 0, b));
+  anim(g, (t) => { sw.rotation.x = Math.sin(t * 1.4 + ph) * 0.5; sw.rotation.z = Math.cos(t * 0.9 + ph) * 0.15; tail.rotation.y = Math.sin(t * 3) * 0.5; });
+  return g;
+}
+// Dirigible con un cartel, que pasa despacio
+export function blimp(p, cx, cy, cz, r, sp = 0.03, col = 0xf0f0f4, banner = 0xff5a4a) {
+  const g = G(p);
+  add(new THREE.SphereGeometry(2, 14, 10), M(col, { map: TX.metal }), 0, 0, 0, g).scale.set(1, 0.85, 2.6);
+  add(box(0.8, 0.5, 1.6), M(0x3a3f4a, { map: TX.metal }), 0, -1.85, 0.3, g);
+  [[0, 1.4], [1.4, 0], [-1.4, 0]].forEach(([a, b]) => { const f = add(box(0.1, 1.4, 1.2), M(banner), a * 0.6, b * 0.9 + (a ? 0 : 0.3), -4.6, g); if (a) f.rotation.z = Math.PI / 2; });
+  [-1, 1].forEach((s) => add(box(0.05, 1.2, 4), M(banner, { unlit: true }), s * 2.02, 0, 0, g));
+  const prop = add(box(0.1, 1, 0.1), M(0x1a1a1e), 0, 0, -5.4, g);
+  anim(g, (t) => { const a = t * sp; g.position.set(cx + Math.sin(a) * r, cy + Math.sin(t * 0.4) * 0.4, cz + Math.cos(a) * r); g.rotation.y = a + Math.PI / 2 * Math.sign(sp); prop.rotation.z = t * 12; });
+  return g;
+}
+// Plato volador con luces que giran, que va y viene
+export function ufo(p, cx, cy, cz, r, sp = 0.2, col = 0x3af0ff) {
+  const g = G(p);
+  add(new THREE.SphereGeometry(1.8, 14, 6), M(0xb8c0d0, { map: TX.metal }), 0, 0, 0, g).scale.set(1, 0.25, 1);
+  add(new THREE.SphereGeometry(0.8, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), M(col, { unlit: true }), 0, 0.2, 0, g);
+  const lights = [];
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; lights.push(add(new THREE.SphereGeometry(0.12, 5, 4), M([0xff3aa8, 0xffe03a, col][i % 3], { unlit: true }), Math.sin(a) * 1.6, -0.1, Math.cos(a) * 1.6, g)); }
+  anim(g, (t) => { const a = t * sp; g.position.set(cx + Math.sin(a) * r, cy + Math.sin(t * 1.3) * 0.5, cz + Math.cos(a * 1.3) * r * 0.6); g.rotation.y = t * 1.5; g.rotation.z = Math.sin(t) * 0.1; lights.forEach((l, i) => { l.visible = ((t * 6 + i) | 0) % 2 === 0; }); });
+  return g;
+}
+// Medusa que flota latiendo
+export function jelly(p, x, y, z, s = 1, col = 0xff8ad8) {
+  const g = G(p, x, y, z); g.scale.setScalar(s);
+  const bell = add(new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), M(col, { unlit: true }), 0, 0, 0, g);
+  const tents = [];
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; tents.push(add(box(0.08, 2.4, 0.08), M(col, { unlit: true }), Math.sin(a) * 0.6, -1.2, Math.cos(a) * 0.6, g)); }
+  const ph = rnd(0, 6);
+  anim(g, (t) => { const k = Math.sin(t * 2 + ph); bell.scale.set(1 + k * 0.12, 0.8 - k * 0.15, 1 + k * 0.12); g.position.y = y + Math.sin(t * 0.5 + ph) * 1.2; tents.forEach((tt, i) => { tt.rotation.x = Math.sin(t * 2 + i) * 0.2; tt.rotation.z = Math.cos(t * 1.7 + i) * 0.2; }); });
+  return g;
+}
+// Persona simple que camina ida y vuelta entre dos puntos (balanceando brazos y piernas)
+export function walker(p, x1, y, z1, x2, z2, o = {}) {
+  const g = G(p), sh = M(o.shirt || 0x3a7ad8), sk = M(o.skin || 0xf0c8a0), pm = M(o.pants || 0x2a3050);
+  const legs = [-1, 1].map((s) => { const l = G(g, s * 0.12, 0.55, 0); add(box(0.16, 0.55, 0.16), pm, 0, -0.27, 0, l); return l; });
+  add(box(0.45, 0.55, 0.28), sh, 0, 0.85, 0, g);
+  add(box(0.3, 0.3, 0.28), sk, 0, 1.3, 0, g);
+  if (o.hat) add(new THREE.CylinderGeometry(0.22, 0.24, 0.12, 8), M(o.hat), 0, 1.5, 0, g);
+  const arms = [-1, 1].map((s) => { const a = G(g, s * 0.29, 1.08, 0); add(box(0.12, 0.48, 0.12), sh, 0, -0.22, 0, a); return a; });
+  if (o.carry) o.carry(g);
+  const sp = o.sp || 0.15, ph = o.ph || 0, len = Math.hypot(x2 - x1, z2 - z1), a0 = Math.atan2(x2 - x1, z2 - z1);
+  anim(g, (t) => {
+    const u = (t * sp * 4 / Math.max(1, len) + ph) % 2, f = u < 1 ? u : 2 - u, back = u >= 1;
+    g.position.set(x1 + (x2 - x1) * f, y, z1 + (z2 - z1) * f); g.rotation.y = back ? a0 + Math.PI : a0;
+    const w = Math.sin(t * 7 + ph * 3) * 0.5; legs[0].rotation.x = w; legs[1].rotation.x = -w; arms[0].rotation.x = -w; arms[1].rotation.x = w;
+  });
+  return g;
+}

@@ -55,6 +55,15 @@ export function decorHexagonos(g, slimeY) {
     P.anim(hb, (t) => { hb.position.y = y + Math.sin(t * 0.25 + k * 2) * 2.5; hb.rotation.y = t * 0.08 + k; });
   });
   P.flyers(g, 0, 6, 0, 24, 6, 0x2a2a34, 0.45); P.flyers(g, -6, -4, 8, 19, 4, 0xffffff, 0.4);
+  P.blimp(g, 0, 6, -4, 26, 0.035, 0xfff4e6, 0xff5a4a);
+  // mariposas gigantes de colores que revolotean cerca de los pisos
+  for (let k = 0; k < 4; k++) {
+    const bf = grp(g), col = [0xff8ac8, 0xffe14a, 0x8ad8ff, 0xb08aff][k];
+    const wl = [-1, 1].map((sd) => add(new THREE.BoxGeometry(1.2, 0.04, 0.9), P.M(col, { side: THREE.DoubleSide }), sd * 0.6, 0, 0, grp(bf)).parent);
+    add(new THREE.BoxGeometry(0.15, 0.15, 0.9), P.M(0x2a2a34), 0, 0, 0, bf);
+    const a0 = (k / 4) * Math.PI * 2, d = 17 + k, y0 = -2 - k * 3;
+    P.anim(bf, (t) => { const a = a0 + t * 0.15; bf.position.set(Math.sin(a) * d, y0 + Math.sin(t * 1.5 + k) * 1.2, Math.cos(a) * d); bf.rotation.y = a + Math.PI / 2; wl.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * Math.sin(t * 9 + k) * 0.8; }); });
+  }
   return slimeM;
 }
 
@@ -132,6 +141,12 @@ export function decorDulces(g, slimeY) {
     [-0.3, 0.3].forEach((sx) => { add(new THREE.SphereGeometry(0.16, 6, 4), bm, sx, 1.2, 0, bear); add(new THREE.SphereGeometry(0.2, 6, 4), bm, sx * 1.6, 0.1, 0, bear); add(new THREE.SphereGeometry(0.22, 6, 4), bm, sx, -0.6, 0, bear); });
     const ph = k * 1.1; P.anim(bear, (t) => { const u = Math.abs(Math.sin(t * 2.4 + ph)); bear.position.y = 2.2 + u * 1.4; bear.scale.set(1 + (1 - u) * 0.15, 1 - (1 - u) * 0.15, 1); bear.rotation.y = t + ph; });
   });
+  // una fuente de chocolate flotando, con el chorro que cae
+  const fu = grp(g, -18, -6, -8);
+  [2, 1.4, 0.8].forEach((r, i) => { add(new THREE.CylinderGeometry(r, r * 0.9, 0.35, 12), P.M(0xffffff, { map: TX.wafer }), 0, i * 1.3, 0, fu); add(new THREE.CylinderGeometry(r * 0.92, r * 0.92, 0.1, 12), P.M(0x7a3a1a, { map: TX.choco }), 0, i * 1.3 + 0.2, 0, fu); });
+  add(new THREE.CylinderGeometry(0.2, 0.2, 2.8, 6), P.M(0xffffff, { map: TX.wafer }), 0, 1.3, 0, fu);
+  const fall = add(new THREE.CylinderGeometry(1.6, 2.1, 1.2, 12, 1, true), P.M(0x6a2a10, { map: TX.choco, side: THREE.DoubleSide }), 0, 0.6, 0, fu);
+  P.anim(fu, (t) => { fu.position.y = -6 + Math.sin(t * 0.5) * 0.6; fall.scale.set(1 + Math.sin(t * 6) * 0.03, 1, 1 + Math.cos(t * 6) * 0.03); });
   return choco;
 }
 
@@ -191,6 +206,7 @@ export function decorNeon(g, slimeY) {
     const a0 = (k / 10) * Math.PI * 2, d = rnd(16, 22), y0 = rnd(-14, 3), sp = rnd(0.05, 0.1); g.add(cu);
     P.anim(cu, (t) => { const a = a0 + t * sp; cu.position.set(Math.sin(a) * d, y0 + Math.sin(t + k) * 0.8, Math.cos(a) * d); cu.rotation.set(t * 0.8 + k, t * 0.6, 0); });
   }
+  P.ufo(g, 0, 4, 0, 20, 0.15, 0x3af0ff);
   return grid;
 }
 
@@ -250,5 +266,12 @@ export function decorVolcan(g, slimeY) {
       if (u >= 1) { q.m.visible = false; q.t = rnd(4, 9); }
     }
   }));
+  // fueguitos que flotan alrededor de los pisos (espíritus de fuego)
+  for (let k = 0; k < 6; k++) {
+    const w = grp(g), a0 = (k / 6) * Math.PI * 2, d = rnd(15, 19), y0 = rnd(-14, 2);
+    const f1 = add(new THREE.ConeGeometry(0.5, 1.4, 6), P.M(0xff7a1a, { unlit: true }), 0, 0, 0, w), f2 = add(new THREE.ConeGeometry(0.28, 0.9, 6), P.M(0xffe07a, { unlit: true }), 0, -0.15, 0, w);
+    [-0.15, 0.15].forEach((sx) => add(new THREE.BoxGeometry(0.1, 0.12, 0.05), P.M(0x2a0a0a), sx, -0.2, 0.42, w));
+    P.anim(w, (t) => { const a = a0 + t * 0.2; w.position.set(Math.sin(a) * d, y0 + Math.sin(t * 1.4 + k) * 1, Math.cos(a) * d); w.rotation.y = a + Math.PI; const s2 = 1 + Math.sin(t * 10 + k) * 0.15; f1.scale.set(1, s2, 1); f2.scale.set(1, 2 - s2, 1); });
+  }
   return magma;
 }

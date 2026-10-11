@@ -94,6 +94,19 @@ export function decorPotrero(g, HX, HZ) {
   for (let k = 0; k < 4; k++) { fp.push([-FX - 1.3, -8 + k * 4.5 + rnd(-0.4, 0.4), Math.PI / 2]); fp.push([FX + 1.3, -7 + k * 4.4 + rnd(-0.4, 0.4), -Math.PI / 2]); }
   P.fans(g, Y, fp);
   P.fans(g, Y, [[-2.5, -HZ - 2.3, 0], [2.6, -HZ - 2.4, 0]], { shirts: [0x3a7ad8, 0xd83a3a] });
+  // pibes peloteando contra el alambrado y el heladero con su carrito y la campanita
+  const kb = add(new THREE.SphereGeometry(0.2, 7, 5), P.M(0xffffff, { map: TX.stripes }), 0, 0, 0, g);
+  const kids = P.fans(g, Y, [[HX + 2.5, -HZ - 1.6, Math.PI * 0.75], [HX + 4.2, -HZ + 0.4, -Math.PI * 0.6]], { shirts: [0x6ac8ff, 0xffffff] });
+  kids.forEach((k) => k.g.scale.setScalar(0.75));
+  P.anim(kb, (t) => { const u = (t * 0.7) % 2, f = u < 1 ? u : 2 - u; kb.position.set(HX + 2.5 + f * 1.7, Y + 0.2 + Math.sin(f * Math.PI) * 1.2, -HZ - 1.6 + f * 2); kb.rotation.x = t * 5; });
+  P.walker(g, -FX + 1.2, Y, FZ - 1.2, FX - 1.2, FZ - 1.2, { shirt: 0xffffff, hat: 0xffffff, sp: 0.2, carry: (w) => {
+    const c = new THREE.Group(); c.position.set(0, 0, 0.9); w.add(c);
+    add(box(0.9, 0.7, 0.7), P.M(0x6ac8ff, { map: TX.metal }), 0, 0.55, 0, c);
+    add(box(1.0, 0.08, 0.8), P.M(0xffffff), 0, 0.93, 0, c);
+    add(new THREE.CylinderGeometry(0.02, 0.02, 1.2, 3), P.M(0xd8d8e0), 0.4, 1.5, 0, c);
+    add(new THREE.ConeGeometry(0.8, 0.4, 8), P.M(0xff5a8a, { map: TX.stripes }), 0.4, 2.1, 0, c);
+    [-0.3, 0.3].forEach((sx) => add(new THREE.TorusGeometry(0.18, 0.04, 4, 8), P.M(0x1a1a1e), sx, 0.18, 0.36, c));
+  } });
 }
 
 /* ===================== LAGO HELADO ===================== */
@@ -153,6 +166,10 @@ export function decorHielo(g, HX, HZ) {
   add(box(1.8, 0.08, 0.1), P.M(0x6b4a2a, { map: TX.wood }), 0, 0.9, 0, rk);
   [-0.8, 0.8].forEach((sx) => add(box(0.1, 1, 0.1), P.M(0x6b4a2a, { map: TX.wood }), sx, 0.5, 0, rk));
   [-0.45, 0, 0.45].forEach((sx, i) => { add(box(0.18, 0.35, 0.4), P.M([0xffffff, 0x1a1a1e, 0xd83a3a][i]), sx, 0.6, 0.08, rk); add(box(0.04, 0.04, 0.45), P.M(0xd8d8e0), sx, 0.4, 0.08, rk); });
+  // chicos tirando de un trineo y un muñeco de nieve a medio hacer
+  P.walker(g, -HX - 3, Y, -HZ - 2.8, HX + 3, -HZ - 2.8, { shirt: 0xd83a3a, hat: 0x3a7aff, sp: 0.18, carry: (w) => { const sl = new THREE.Group(); sl.position.set(0, 0, -1.4); w.add(sl); P.sled(sl, 0, 0, 0, 0); add(box(0.03, 0.03, 1.0), P.M(0x1a1a1e), 0.2, 0.6, -0.8, w).rotation.x = -0.4; } });
+  [[HX + 4.8, 5.5, 0.55], [HX + 4.8, 5.5, 0.4]].forEach(([x, z, r], k) => add(new THREE.SphereGeometry(r, 8, 6), P.M(0xffffff, { map: TX.snow }), x, Y + (k ? 1.25 : 0.5), z, g));
+  P.fans(g, Y, [[HX + 6, 5.2, -Math.PI / 2]], { hats: [0xffd23a], shirts: [0x39d98a] })[0].g.scale.setScalar(0.75);
   [[-6, -HZ - 4.6], [6.5, -HZ - 4.7], [-HX - 7, -2], [HX + 7.5, 3]].forEach(([x, z]) => P.pine(g, x, Y, z, 1.1, true));
 }
 
@@ -199,4 +216,8 @@ export function decorPlayaFutbol(g, HX, HZ) {
   P.beachBall(g, -HX - 2.2, Y, 0, 0.4, 1); P.beachBall(g, 0, Y, -HZ - 2.2, 0.35, 2.5);
   add(box(0.9, 0.55, 0.6), P.M(0xff5a3a, { map: TX.metal }), HX + 4.4, Y + 0.28, 2.8, g); add(box(0.92, 0.12, 0.62), P.M(0xffffff), HX + 4.4, Y + 0.6, 2.8, g);
   P.footprints(g, Y, [[-HX - 2, -HZ - 1.5], [-6, -HZ - 2.4], [4, -HZ - 1.8], [HX + 2, -HZ - 2.6]], 0xd8b878, 0.6);
+  P.crabWalk(g, -HX - 1.5, Y, -HZ - 1.5, -HX + 3, -HZ - 1.8, 0xe8503a, 0.45);
+  P.walker(g, -HX - 1.5, Y, HZ + 2.2, HX + 1.5, HZ + 2.2, { shirt: 0xffffff, pants: 0xe8e0c8, hat: 0xf0d080, sp: 0.2, carry: (w) => {
+    add(new THREE.CylinderGeometry(0.4, 0.3, 0.3, 8), P.M(0xc8a060, { map: TX.wood }), 0.45, 0.95, 0.1, w);
+    add(new THREE.SphereGeometry(0.3, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2), P.M(0xffe0a0), 0.45, 1.08, 0.1, w); } });
 }

@@ -50,14 +50,14 @@ const matchT = () => (game.setup && game.setup.fiesta ? 90 : MATCH_T);   // en l
    patinan y la pelota corre más. */
 const MUD = [[-7.2, 4.6], [7.2, -4.6], [0, 5.3], [0, -5.3]], MUD_R = 1.5;       // simétricos respecto del medio (parejo para los dos equipos)
 const MAPS = [
-  { name: 'ESTADIO', decor: (g) => decorFutbol(g, HX, HZ), fog: { col: 0x070a1c, near: 55, far: 130 },
+  { name: 'ESTADIO', decor: (g) => decorFutbol(g, HX, HZ), fog: { col: 0x070a1c, near: 55, far: 130, amb: 0x4e5474, lcol: 0xe0e8ff },
     pitch: [TX.pitch, 0xffffff], lines: 0xf4f6f0, wall: TX.ads, cap: 0x2a2f3c, post: 0xf2f4f8, net: 0xdfe6ee, phys: { acc: 1, fric: 1, bfric: 1 } },
-  { name: 'POTRERO', decor: (g) => decorPotrero(g, HX, HZ), fog: { col: 0x4a2a3a, near: 50, far: 125 }, extra: 'BARRO QUE FRENA · LA PELOTA SE PINCHA A LOS 3 GOLPES',
+  { name: 'POTRERO', decor: (g) => decorPotrero(g, HX, HZ), fog: { col: 0x4a2a3a, near: 50, far: 125, amb: 0x6a4a58, lcol: 0xffc898 }, extra: 'BARRO QUE FRENA · LA PELOTA SE PINCHA A LOS 3 GOLPES',
     pitch: [TX.potrero, 0xffffff], lines: 0xf0e8d0, wall: TX.graffiti, cap: 0x6a5a4a, post: 0xb07a48, postMap: TX.wood, net: 0xd8d0c0, phys: { acc: 1, fric: 1, bfric: 1 }, mud: true,
     noLines: true, noNet: true, ballMap: TX.oldBall, ballFx: 'flat' },
-  { name: 'LAGO HELADO', decor: (g) => decorHielo(g, HX, HZ), fog: { col: 0x0a1428, near: 50, far: 125 }, extra: 'HIELO · LA PELOTA ARRANCA CONGELADA (3 GOLPES LA ROMPEN)',
+  { name: 'LAGO HELADO', decor: (g) => decorHielo(g, HX, HZ), fog: { col: 0x0a1428, near: 50, far: 125, amb: 0x44587a, lcol: 0xc0d8ff }, extra: 'HIELO · LA PELOTA ARRANCA CONGELADA (3 GOLPES LA ROMPEN)',
     pitch: [TX.icePitch, 0xa8d0f0], lines: 0x3a9aff, wall: TX.boards, cap: 0x2a5aff, post: 0xe8303a, net: 0xf4f6fa, phys: { acc: 0.62, fric: 0.28, bfric: 0.5 }, gw: 1.75, br: 0.4, bmax: 15, ballFx: 'ice' },
-  { name: 'PLAYA', decor: (g) => decorPlayaFutbol(g, HX, HZ), fog: { col: 0xbfe0f8, near: 55, far: 135 }, extra: 'ARENA: LA PELOTA FRENA MÁS Y NADIE PATINA',
+  { name: 'PLAYA', decor: (g) => decorPlayaFutbol(g, HX, HZ), fog: { col: 0xbfe0f8, near: 55, far: 135, amb: 0x707888, lcol: 0xfff4dc }, extra: 'ARENA: LA PELOTA FRENA MÁS Y NADIE PATINA',
     pitch: [TX.sand, 0xfff0d0], lines: 0x2a6aff, wall: TX.beachRim, cap: 0xffffff, post: 0xffd23a, net: 0xffffff, phys: { acc: 0.9, fric: 1.2, bfric: 1.8 }, ballMap: TX.beachBall },
 ];
 const mapGw = () => MAPS[S.map].gw || GW0;              // medio ancho del arco en este mapa

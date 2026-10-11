@@ -1,3 +1,6 @@
+import { game } from '../state.js';
+import { burst } from '../fx/particles.js';
+
 // Personajes a pie (minijuegos sin nave): esconde la nave, muestra las piernas y anima la caminata.
 // p.vx / p.vz: velocidad (para el paso), p.onGround: si está en el piso, p.fy: altura de los pies.
 export function drawWalker(p, dt, scale, groundY) {
@@ -9,7 +12,13 @@ export function drawWalker(p, dt, scale, groundY) {
   // caminata: piernas que van y vienen y un rebotecito; en el aire, piernas encogidas
   const onGround = p.onGround !== false;
   const sp = Math.hypot(p.vx || 0, p.vz || 0);
+  const w0 = p.walk || 0;
   if (onGround) p.walk = (p.walk || 0) + dt * sp * (2.2 / Math.max(0.5, scale / 0.86));
+  // polvito en cada pisada (del color del piso: arena, pasto, nieve, tierra…), si el minijuego lo pide
+  if (game.stepPuff !== undefined && game.stepPuff !== null && onGround && sp > 2.2 && Math.floor(w0 / Math.PI) !== Math.floor(p.walk / Math.PI)) {
+    const back = (p.ang || 0) + Math.PI;
+    burst(p.x + Math.sin(back) * 0.3, (p.fy || 0) + 0.12, p.z + Math.cos(back) * 0.3, { mat: game.stepPuff, n: 2, sp: 0.9, up: [0.6, 1.6], life: [0.25, 0.45], g: 2, grow: 1.2, size: 0.55, floor: (p.fy || 0) + 0.05 });
+  }
   const sw = onGround ? Math.sin(p.walk || 0) * Math.min(1, sp / 3) * 0.7 : -0.5;
   me.legL.rotation.x = sw; me.legR.rotation.x = onGround ? -sw : -0.3;
   // brazos (personajes con ropa): al revés que las piernas; en el aire, para arriba

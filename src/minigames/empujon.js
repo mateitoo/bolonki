@@ -48,9 +48,9 @@ const lerpAng = (a, b, f) => { let d = b - a; while (d > Math.PI) d -= Math.PI *
 const MUD = [[-3.5, 2.0, 1.9], [3.8, -2.6, 2.1], [1.2, 4.9, 1.5], [-4.6, -4.2, 1.6], [5.9, 3.0, 1.3], [-0.6, -0.4, 1.1]];
 const VOLC = { x: 2, y: -6, z: -30 };      // el cráter del volcán que tira bolas de fuego
 const MAPS = [
-  { name: 'GLACIAR', extra: 'HIELO Y CARÁMBANOS QUE MAREAN', fog: { col: 0xc8d8ea, near: 32, far: 118 }, fall: 'abyss' },
-  { name: 'VOLCÁN', extra: 'BARRO Y BOLAS DE FUEGO', fog: { col: 0x2a0c08, near: 45, far: 115 }, fall: 'lava' },
-  { name: 'TORMENTA', extra: 'MADERA MOJADA Y RAYOS QUE MAREAN', fog: { col: 0x1a2230, near: 38, far: 100 }, fall: 'water' },
+  { name: 'GLACIAR', extra: 'HIELO Y CARÁMBANOS QUE MAREAN', fog: { col: 0xc8d8ea, near: 32, far: 118, amb: 0x7080a0, lcol: 0xe8f0ff }, fall: 'abyss' },
+  { name: 'VOLCÁN', extra: 'BARRO Y BOLAS DE FUEGO', fog: { col: 0x2a0c08, near: 45, far: 115, amb: 0x6a4038, lcol: 0xffb888 }, fall: 'lava' },
+  { name: 'TORMENTA', extra: 'MADERA MOJADA Y RAYOS QUE MAREAN', fog: { col: 0x1a2230, near: 38, far: 100, amb: 0x3e4e6c, lcol: 0xb0c0e0 }, fall: 'water' },
 ];
 const S = { map: 0, fb: [], fbT: 5, fbId: 1, ic: [], icT: 5 };
 const onMud = (x, z) => { const k = (game.radius || R0) / R0; return MUD.some(([mx, mz, r]) => Math.hypot(x - mx * k, z - mz * k) < r * k); };

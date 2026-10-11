@@ -60,11 +60,11 @@ const NB = (k) => { const c = k % GN, r = (k / GN) | 0, o = []; if (c > 0) o.pus
 const MAPS = [
   { name: 'HANGAR', decor: decorBombardeo, fog: { col: 0x05070f, near: 45, far: 115 }, base: [TX.metal, 0x6a7288], outer: [TX.outer, 0xffffff, true],
     tiles: 'hangar', rail: TX.hazard, box: [TX.block, 0xd6dae6], rise: [TX.magma, 0xffffff, true], riseName: 'LAVA', warn: '¡EL PISO ES LAVA! ¡SUBÍ!', dead: '¡TE QUEMASTE!', style: 'lava' },
-  { name: 'PUERTO', decor: decorPuerto, fog: { col: 0x6a4a6a, near: 50, far: 125 }, base: [TX.stone, 0x8a8a88], outer: [TX.outer, 0xffffff, false],
+  { name: 'PUERTO', decor: decorPuerto, fog: { col: 0x6a4a6a, near: 50, far: 125, amb: 0x6a4a60, lcol: 0xffc898 }, base: [TX.stone, 0x8a8a88], outer: [TX.outer, 0xffffff, false],
     tiles: 'dock', rail: TX.rope, box: [TX.crate, 0xffffff], rise: [TX.water, 0x5aa0d0, false], riseName: 'LA MAREA', warn: '¡SUBE LA MAREA! ¡SUBÍ!', dead: '¡AL AGUA!', style: 'water' },
-  { name: 'NEVADA', decor: decorNevada, fog: { col: 0xc8d4e8, near: 45, far: 115 }, base: [TX.iceBlock, 0xb8c8e0], outer: [TX.outer, 0xffffff, false],
+  { name: 'NEVADA', decor: decorNevada, fog: { col: 0xc8d4e8, near: 45, far: 115, amb: 0x7080a0, lcol: 0xe8f0ff }, base: [TX.iceBlock, 0xb8c8e0], outer: [TX.outer, 0xffffff, false],
     tiles: 'snow', rail: TX.snowFence, box: [TX.iceBlock, 0xe8f4ff], rise: [TX.snow, 0xdce8ff, false], riseName: 'LA NIEVE', warn: '¡AVALANCHA! ¡SUBÍ!', dead: '¡TAPADO DE NIEVE!', style: 'snow' },
-  { name: 'SELVA', decor: decorSelva, fog: { col: 0x3a5a3a, near: 45, far: 115 }, base: [TX.stone, 0x8a9a78], outer: [TX.outer, 0xffffff, false],
+  { name: 'SELVA', decor: decorSelva, fog: { col: 0x3a5a3a, near: 45, far: 115, amb: 0x4e6a4a, lcol: 0xe8f4c0 }, base: [TX.stone, 0x8a9a78], outer: [TX.outer, 0xffffff, false],
     tiles: 'temple', rail: TX.rope, box: [TX.crate, 0xd8e0b8], rise: [TX.water, 0x5a8a4a, false], riseName: 'EL PANTANO', warn: '¡SUBE EL PANTANO! ¡SUBÍ!', dead: '¡AL PANTANO!', style: 'water' },
 ];
 const MAP = { i: 0 };
@@ -526,6 +526,7 @@ const bombardeo = {
   step,
 
   visuals(dt) {
+    game.stepPuff = [14, 14, 4, 13][MAP.i];         // polvo, polvo, nieve, tierra
     const clock = game.clock;
     // pilas
     // (las cajas tapadas por la lava no se dibujan)

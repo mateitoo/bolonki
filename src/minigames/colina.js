@@ -439,7 +439,7 @@ const colina = {
   points: { label: 'PUNTOS PARA GANAR', values: [20, 30, 45], key: 'coronas', demo: 30 },
   fiestaPoints: 20,
   cam: { pos: new THREE.Vector3(0, 26.5, 20.5), look: new THREE.Vector3(0, 0, 0.8), rotate: false, orbit: true },
-  fog: { col: 0x9ad0f0, near: 55, far: 140 },
+  fog: { col: 0x9ad0f0, near: 55, far: 140, amb: 0x6a7088, lcol: 0xfff2d8 },
   humanOut: false,
   tense: () => S.extra || (S.t < 20 && !S.over),
   tagY: 2.5, tagFeet: true, markMe: true,
@@ -457,6 +457,7 @@ const colina = {
   step,
 
   visuals(dt) {
+    game.stepPuff = 12;                             // pastito al caminar
     const clock = game.clock;
     W.waterM.uniforms.uOff.value.set((clock * 0.012) % 1, (clock * 0.008) % 1);
     W.foam.scale.setScalar(1 + Math.sin(clock * 1.6) * 0.02);

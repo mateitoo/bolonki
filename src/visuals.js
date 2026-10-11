@@ -29,9 +29,12 @@ function orbit3(pos, look, yaw, pitch) {
 
 // Niebla de cada escenario: lo lejano se funde con el color del horizonte (el cielo queda atrás)
 const FOG0 = { col: 0x04060b, near: 40, far: 80 };
+// …y su luz: cada mapa puede teñir la luz ambiente y la del sol (atardecer, noche, selva…)
+const AMB0 = 0x5a6480, LCOL0 = 0xd0d6e8;
 function applyFog(m) {
   const f = (typeof m.fog === 'function' ? m.fog() : m.fog) || FOG0;
   U.uFogCol.value.set(f.col); U.uFogNear.value = f.near; U.uFogFar.value = f.far;
+  U.uAmb.value.set(f.amb !== undefined ? f.amb : AMB0); U.uLCol.value.set(f.lcol !== undefined ? f.lcol : LCOL0);
 }
 
 export function updateVisuals(dt, rdt) {

@@ -266,6 +266,7 @@ export function decorCirco(g) {
     balls.forEach((b, k) => { const u = ((t * 1.3 + k / 3) % 1); b.position.set(0, 2.4 + Math.sin(u * Math.PI) * 0.9, 0.3 + (u - 0.5) * 0.7 * (k % 2 ? 1 : -1)); });
   });
   P.scatter(g, 0, Y + 0.01, 0, 30, 30, 200, 0xffe14a, 0.12, [15, 15]);        // papel picado
+  [0xff5fa2, 0xffe14a, 0x7ae0ff].forEach((c) => P.drift(g, 30, -22, 22, 16, Y, -22, 22, c, 0.16, 1.2));   // papelitos que caen del techo
   P.scatter(g, 0, Y + 0.01, 0, 30, 30, 200, 0xff5fa2, 0.12, [15, 15]);
 }
 
@@ -796,6 +797,7 @@ export function decorEspacio(g) {
   // medusas espaciales que brillan y un platito volador que pasa
   P.jelly(g, -19, -3, 6, 0.9, 0x8ad8ff); P.jelly(g, 20, -5, -9, 0.7, 0xff8ad8); P.jelly(g, -8, -7, -19, 1.1, 0xb08aff);
   P.ufo(g, 0, 6, -10, 18, 0.12, 0x6aff9a);
+  P.drift(g, 50, -24, 24, -10, 8, -24, 20, 0xb8d8ff, 0.08, 0.4);          // polvo de estrellas que sube despacio
   const dock = grp(g, -17.6, -2.4, -6);
   add(new THREE.BoxGeometry(4, 0.4, 3.2), P.M(0x3a4458, { map: TX.metal }), 0, 0, 0, dock);
   add(new THREE.BoxGeometry(3.4, 0.4, 0.4), P.M(0x2a3040, { map: TX.metal }), 1.8, -0.1, 0, dock).rotation.z = 0.1;

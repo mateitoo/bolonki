@@ -76,6 +76,7 @@ export function decorFutbol(g, HX, HZ) {
   P.anim(tv, (t) => { head.rotation.y = 0.8 + Math.sin(t * 0.4) * 0.5; });
   // dron de TV sobrevolando, el árbitro asistente con la bandera y un utilero que pasa con pelotas
   P.drone(g, 0, 7, -HZ - 3.5, 7, 0.25);
+  [0xffffff, 0x35a0ff, 0xff5a4a].forEach((c) => P.drift(g, 24, -HX - 6, HX + 6, 12, -0.3, -HZ - 6, HZ + 2, c, 0.14, 1.1));   // papelitos de la hinchada
   P.walker(g, -HX + 1, -0.3, -HZ - 0.9, HX - 1, -HZ - 0.9, { shirt: 0xffd23a, pants: 0x1a1a1e, sp: 0.25, carry: (w) => { add(new THREE.CylinderGeometry(0.02, 0.02, 0.8, 3), P.M(0x1a1a1e), 0.35, 1.1, 0.1, w); add(new THREE.BoxGeometry(0.04, 0.3, 0.4), P.M(0xff3a3a), 0.35, 1.4, 0.3, w); } });
   P.walker(g, -HX - 2.6, -0.3, HZ + 2.4, -HX - 2.6, -HZ - 2.4, { shirt: 0x39d98a, sp: 0.18, ph: 0.6, carry: (w) => { add(new THREE.BoxGeometry(0.6, 0.4, 0.4), P.M(0x2a2a30, { map: TX.cloth }), 0, 0.75, 0.35, w); for (let i = 0; i < 3; i++) add(new THREE.SphereGeometry(0.13, 6, 4), P.M(0xffffff, { map: TX.stripes }), -0.18 + i * 0.18, 1.0, 0.35, w); } });
 }
@@ -104,6 +105,7 @@ export function decorColina(g, rim) {
   }
   const WY = -0.9;
   // destellos del sol sobre el mar (fuera de la isla)
+  P.windblown(g, 30, -20, 20, 0.5, 4, -18, 18, 1, 0.3, 1.2, 0xfff4a0, 0.07, false);   // polen que lleva la brisa
   P.waterSparkles(g, WY + 0.2, 0, 0, 34, 30, 90, 0xffffff, (x, z) => Math.hypot(x, z) < rim(Math.atan2(x, z)) + 1.5);
   // un velero que da vueltas lejos de la isla
   const sb = new THREE.Group(); g.add(sb);
@@ -342,6 +344,7 @@ export function decorBombardeo(grp, HALF) {
     add(new THREE.BoxGeometry(0.08, 0.02, 60), gl, v, Y + 0.02, 0, grp);
     add(new THREE.BoxGeometry(60, 0.02, 0.08), gl, 0, Y + 0.02, v, grp);
   }
+  P.drift(grp, 40, -16, 16, Y, 6, -16, 14, 0x8aa0c0, 0.06, 0.25);        // polvito flotando a la luz
   // robotitos de limpieza que dan la vuelta a la cancha, conos, manchas de aceite y una caja de herramientas
   [0, Math.PI].forEach((ph, k) => {
     const rb = new THREE.Group(); grp.add(rb);
@@ -394,6 +397,7 @@ export function decorPetardos(g, deco, L) {
     P.sky(g, [[0, '#3a7ad8'], [0.45, '#9ac8f4'], [0.5, '#e8f0f8'], [1, '#6a9a5a']]);
     [[-13.6, -12], [13.6, -12], [-13.6, 12], [13.6, 12]].forEach(([x, z]) => P.lamp(g, x, Y, z, 3.2));
     P.flyers(g, 0, 3.5, -2, 15, 5, 0xffe14a, 0.35);
+    P.windblown(g, 24, -20, 20, Y + 0.2, Y + 3, -16, 14, 1, 0.4, 1.4, 0x6ab04a, 0.1);   // hojitas que lleva el viento
     // regador que gira tirando agua, carretilla, enanito de jardín y un gato que camina por la cerca
     const spr = new THREE.Group(); spr.position.set(15.6, Y, -6.2); g.add(spr);
     add(new THREE.CylinderGeometry(0.08, 0.12, 0.5, 6), P.M(0x3a8a3a), 0, 0.25, 0, spr);
@@ -448,6 +452,7 @@ export function decorPetardos(g, deco, L) {
     P.container(g, 0, Y, -15.2, 0, 0x3a7ac8, 4.4);
     P.fan(g, 0, Y + 1.8, -16.4, 0, 1.1);
     P.sky(g, [[0, '#2a2a3a'], [0.45, '#8a6a6a'], [0.5, '#e0a070'], [1, '#3a3f4a']]);
+    P.drift(g, 36, -18, 18, Y, Y + 6, -15, 14, 0xc8b8a0, 0.06, 0.3);       // polvo de fábrica
     // brazos robot que sueldan (chispas), operarios con casco y manchas de aceite
     [[-17.2, 0.5, 0.4], [17.4, 5.5, Math.PI + 0.3]].forEach(([x, z, ry], k) => {
       const ra = new THREE.Group(); ra.position.set(x, Y, z); ra.rotation.y = ry; g.add(ra);
@@ -476,6 +481,7 @@ export function decorPetardos(g, deco, L) {
     P.pond(g, 17.6, Y, 7.5, 1.8); P.palm(g, 16, Y, 5.5, 1); P.palm(g, 19.3, Y, 9.5, 0.9);
     P.sign(g, -14.2, Y, 6.2, 0.4);
     P.tumbleweed(g, -26, Y, -13, 26, -12.2, 11, 0); P.tumbleweed(g, 26, Y, 12.4, -26, 12, 13, 6);
+    P.windblown(g, 60, -24, 24, Y + 0.1, Y + 1.6, -17, 16, 1, 0.15, 4, 0xe8c888, 0.08);   // arena que vuela al ras del piso
     // buitres dando vueltas, una carreta vieja, un camello echado y una lagartija que corre
     P.flyers(g, 0, 9, -2, 12, 3, 0x2a1a1a, 0.7);
     const wg = new THREE.Group(); wg.position.set(-17.4, Y, -2); wg.rotation.y = 1.3; g.add(wg);

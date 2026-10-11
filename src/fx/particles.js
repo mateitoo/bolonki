@@ -4,9 +4,9 @@ import { CHARS, rnd } from '../config.js';
 import { scene, mat } from '../render/psx.js';
 
 // Índices de color: 0-3 = color de cada personaje
-export const P = { WHITE: 4, ORANGE: 5, YELLOW: 6, SMOKE: 7, DEBRIS: 8, CYAN: 9, RED: 10 };
+export const P = { WHITE: 4, ORANGE: 5, YELLOW: 6, SMOKE: 7, DEBRIS: 8, CYAN: 9, RED: 10, SAND: 11, GRASS: 12, DIRT: 13, DUST: 14 };
 const PCOL = [0, 1, 2, 3].map((i) => CHARS[i].col).concat(   // 0..3: color de cada lugar (se tiñe con su personaje)
-  ['#ffffff', '#ff7a1a', '#ffe14a', '#8b8f99', '#2a2a2e', '#6ff6ff', '#ff2030']);
+  ['#ffffff', '#ff7a1a', '#ffe14a', '#8b8f99', '#2a2a2e', '#6ff6ff', '#ff2030', '#e0c080', '#5aa040', '#7a5a3a', '#c8c8d0']);
 
 let pMats = [];
 const PARTS = [];

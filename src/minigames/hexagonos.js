@@ -28,10 +28,10 @@ const FLOORS = [0, -6, -12, -18], SLIME_Y = -40, OUT_Y = -30;         // alto de
 const FLOOR_COL = [0xff6fae, 0xffc83a, 0x5ae07a, 0x4ad8ff];
 // mapas: los mismos 4 pisos con otra pinta y otro fondo (abajo de todo: slime, chocolate o la grilla de neón)
 const MAPS = [
-  { name: 'CIELO', decor: decorHexagonos, fog: { col: 0xbfe0ff, near: 42, far: 100 }, top: 'hexTop', side: 'hexSide', cols: FLOOR_COL, bottom: 'SLIME', fall: P.YELLOW },
-  { name: 'DULCES', decor: decorDulces, fog: { col: 0xffd8f0, near: 42, far: 100 }, top: 'frosting', side: 'wafer', cols: [0xffb0d8, 0xb0e8ff, 0xfff0a0, 0xc8ffb0], bottom: 'CHOCOLATE', fall: P.DEBRIS },
-  { name: 'NEÓN', decor: decorNeon, fog: { col: 0x14062a, near: 45, far: 110 }, top: 'neonTop', side: 'neonSide', cols: [0xff3aa8, 0x3af0ff, 0xffe03a, 0x9a5aff], bottom: 'VACÍO', fall: P.CYAN, glow: true },
-  { name: 'VOLCÁN', decor: decorVolcan, fog: { col: 0x2a0806, near: 45, far: 110 }, top: 'hexTop', side: 'hexSide', cols: [0xff9a4a, 0xd8c8b8, 0xffd23a, 0xb89aff], bottom: 'MAGMA', fall: P.YELLOW, lava: true },
+  { name: 'CIELO', decor: decorHexagonos, fog: { col: 0xbfe0ff, near: 42, far: 100, amb: 0x6a7898, lcol: 0xfff8e8 }, top: 'hexTop', side: 'hexSide', cols: FLOOR_COL, bottom: 'SLIME', fall: P.YELLOW },
+  { name: 'DULCES', decor: decorDulces, fog: { col: 0xffd8f0, near: 42, far: 100, amb: 0x806a80, lcol: 0xfff0f8 }, top: 'frosting', side: 'wafer', cols: [0xffb0d8, 0xb0e8ff, 0xfff0a0, 0xc8ffb0], bottom: 'CHOCOLATE', fall: P.DEBRIS },
+  { name: 'NEÓN', decor: decorNeon, fog: { col: 0x14062a, near: 45, far: 110, amb: 0x5a3a80, lcol: 0xffb8ff }, top: 'neonTop', side: 'neonSide', cols: [0xff3aa8, 0x3af0ff, 0xffe03a, 0x9a5aff], bottom: 'VACÍO', fall: P.CYAN, glow: true },
+  { name: 'VOLCÁN', decor: decorVolcan, fog: { col: 0x2a0806, near: 45, far: 110, amb: 0x6a4038, lcol: 0xffb888 }, top: 'hexTop', side: 'hexSide', cols: [0xff9a4a, 0xd8c8b8, 0xffd23a, 0xb89aff], bottom: 'MAGMA', fall: P.YELLOW, lava: true },
 ];
 const PR = 0.45, CHAR_SCALE = 0.98;
 const ACC = 55, MAXV = 5.4, FRICTION = 14, GRAV = 24;
@@ -450,6 +450,7 @@ const hexagonos = {
   step,
 
   visuals(dt) {
+    game.stepPuff = null;
     const clock = game.clock;
     for (let f = 0; f < FLOORS.length; f++) updateFloor(f, clock);
     if (W.slimeM) W.slimeM.uniforms.uOff.value.set(MAPS[S.map].glow ? 0 : (clock * 0.03) % 1, MAPS[S.map].glow ? (clock * 0.25) % 1 : (clock * 0.02) % 1);

@@ -56,6 +56,7 @@ export function decorHexagonos(g, slimeY) {
   });
   P.flyers(g, 0, 6, 0, 24, 6, 0x2a2a34, 0.45); P.flyers(g, -6, -4, 8, 19, 4, 0xffffff, 0.4);
   P.blimp(g, 0, 6, -4, 26, 0.035, 0xfff4e6, 0xff5a4a);
+  P.windblown(g, 30, -26, 26, -14, 6, -26, 26, 1, 0.5, 2, 0xffffff, 0.12);    // plumitas que pasan volando
   // mariposas gigantes de colores que revolotean cerca de los pisos
   for (let k = 0; k < 4; k++) {
     const bf = grp(g), col = [0xff8ac8, 0xffe14a, 0x8ad8ff, 0xb08aff][k];

@@ -1079,3 +1079,21 @@ export function waterSparkles(p, y, cx, cz, rx, rz, n = 60, col = 0xffffff, avoi
   });
   return im;
 }
+// Partículas que vuela el viento de costado (arena, hojas, pelusas), dando la vuelta al salir del área
+export function windblown(p, n, x0, x1, y0, y1, z0, z1, dx, dz, speed, col, size = 0.12, flat = true) {
+  const geo = flat ? box(size * 2.2, size * 0.4, size) : box(size, size, size);
+  const im = new THREE.InstancedMesh(geo, M(col, { unlit: true }), n), ps = [];
+  for (let i = 0; i < n; i++) ps.push({ x: rnd(x0, x1), y: rnd(y0, y1), z: rnd(z0, z1), sp: rnd(0.6, 1.4), ph: rnd(0, 6) });
+  p.add(im);
+  const m4 = new THREE.Matrix4(), L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L, a = Math.atan2(ux, uz) + Math.PI / 2;
+  anim(p, (t, dt) => {
+    ps.forEach((q, i) => {
+      q.x += ux * speed * q.sp * dt; q.z += uz * speed * q.sp * dt;
+      if (q.x > x1) q.x = x0; else if (q.x < x0) q.x = x1;
+      if (q.z > z1) q.z = z0; else if (q.z < z0) q.z = z1;
+      m4.makeRotationY(a + Math.sin(t * 3 + q.ph) * 0.3).setPosition(q.x, q.y + Math.sin(t * 2 + q.ph) * 0.3, q.z); im.setMatrixAt(i, m4);
+    });
+    im.instanceMatrix.needsUpdate = true;
+  });
+  return im;
+}

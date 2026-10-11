@@ -10,6 +10,7 @@
 //   que va largando una máquina)
 //   · desierto: arenas movedizas que te frenan · nieve: hielo, si soltás seguís resbalando
 // Gana la ronda el último que queda. Al minuto empieza la muerte súbita: las paredes se cierran en espiral.
+import { scorch } from '../fx/particles.js';
 import { freezeStatic, blob } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
@@ -201,7 +202,7 @@ function makeMap(ci) {
 
 /* ---------- mundo ---------- */
 let popPrev = null, popTxt = '', popT = 0;   // cartelito del poder que agarraste
-const W = { grp: null, canchas: [], crates: [], bombs: [], flames: [], pups: [], puMats: [], shields: [], sdWalls: [], sdFall: [], skulls: [], bushes: [] };
+const W = { scorched: new Set(), grp: null, canchas: [], crates: [], bombs: [], flames: [], pups: [], puMats: [], shields: [], sdWalls: [], sdFall: [], skulls: [], bushes: [] };
 
 // Materiales y formas de las paredes de adentro y de los cajones de cada cancha
 const WM = {};
@@ -964,6 +965,7 @@ const petardos = {
 
   visuals(dt) {
     game.stepPuff = [12, 14, 11, 4][S.cancha];      // polvito al caminar: pasto, polvo, arena, nieve
+    game.stepPrint = [0, 0, 0x9a7040, 0x8098c0][S.cancha];   // huellas en la arena y en la nieve
     const clock = game.clock;
     W.canchas.forEach((g, i) => (g.visible = i === S.cancha));
     W.beltM.uniforms.uOff.value.set(0, (-clock * CONV_V) % 1);          // las cintas corren
@@ -1030,7 +1032,8 @@ const petardos = {
     // fuego
     for (let k = 0; k < N; k++) {
       const t = flames.get(k), m = W.flames[k];
-      if (t === undefined) { m.visible = false; continue; }
+      if (t === undefined) { m.visible = false; W.scorched.delete(k); continue; }
+      if (!W.scorched.has(k)) { W.scorched.add(k); scorch(cxOf(k % GW), 0, czOf((k / GW) | 0), TS * 0.48); }   // el fuego deja el piso quemado
       m.visible = true; const s = 0.7 + (t / FLAME_T) * 0.35 + Math.sin(clock * 40 + k) * 0.05; m.scale.set(s, 0.6 + t / FLAME_T, s);
     }
     W.flameM.uniforms.uOff.value.set((clock * 0.7) % 1, (clock * 0.9) % 1);

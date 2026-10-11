@@ -459,6 +459,7 @@ const colina = {
 
   visuals(dt) {
     game.stepPuff = 12;                             // pastito al caminar
+    game.stepPrint = 0;
     const clock = game.clock;
     W.waterM.uniforms.uOff.value.set((clock * 0.012) % 1, (clock * 0.008) % 1);
     W.foam.scale.setScalar(1 + Math.sin(clock * 1.6) * 0.02);

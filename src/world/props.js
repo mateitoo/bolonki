@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { mat, add, scaleUV, waterMat, U } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
+import { game } from '../state.js';
 
 /* ---------- animaciones ---------- */
 const ANIMS = [];
@@ -1299,4 +1300,36 @@ export function edgeFoam(p, pts, y, w = 0.6) {
     fs.push({ f, cx: (x1 + x2) / 2, cz: (z1 + z2) / 2, nx, nz, ph: i * 0.9 });
   }
   anim(p, (t) => fs.forEach((q) => { const k = Math.sin(t * 1.4 + q.ph); q.f.position.set(q.cx + q.nx * k * 0.35, y, q.cz + q.nz * k * 0.35); q.f.scale.x = 0.6 + Math.abs(k) * 0.8; }));
+}
+
+/* ---------- bichos que reaccionan a los jugadores ---------- */
+// Pájaros (gaviotas, palomas) parados en el piso que picotean; si alguien se acerca, salen volando y vuelven al rato.
+export function shyBirds(p, pts, y, col = 0xf4f4f0, wing = 0x9aa0a8) {
+  const bm = M(col), wm = M(wing), bk = M(0xffa020);
+  const birds = pts.map(([x, z]) => {
+    const g = G(p, x, y, z, rnd(0, 6)), body = G(g);
+    add(new THREE.SphereGeometry(0.2, 6, 5), bm, 0, 0.2, 0, body).scale.set(0.8, 0.8, 1.3);
+    const head = G(body, 0, 0.34, 0.2); add(new THREE.SphereGeometry(0.11, 6, 5), bm, 0, 0, 0, head); add(new THREE.ConeGeometry(0.04, 0.14, 4), bk, 0, -0.01, 0.13, head).rotation.x = Math.PI / 2;
+    const wings = [-1, 1].map((s) => { const w = G(body, s * 0.12, 0.25, 0); add(box(0.4, 0.03, 0.22), wm, s * 0.2, 0, 0, w); return w; });
+    return { g, body, head, wings, hx: x, hz: z, st: 0, t: 0, ph: rnd(0, 6), dx: 0, dz: 0 };
+  });
+  anim(p, (t, dt) => {
+    const pl = (game.players || []).filter((q) => q && q.alive && !q.empty);
+    birds.forEach((b) => {
+      if (b.st === 0) {                                           // picoteando
+        b.head.rotation.x = Math.max(0, Math.sin(t * 3 + b.ph)) * 0.9; b.wings.forEach((w) => { w.rotation.z = 0; });
+        const near = pl.find((q) => Math.hypot(q.x - b.hx, q.z - b.hz) < 2.6);
+        if (near) { b.st = 1; b.t = 0; const a = Math.atan2(b.hx - near.x, b.hz - near.z) + rnd(-0.5, 0.5); b.dx = Math.sin(a); b.dz = Math.cos(a); b.g.rotation.y = a; }
+      } else if (b.st === 1) {                                    // se va volando
+        b.t += dt; const k = b.t;
+        b.g.position.set(b.hx + b.dx * k * 6, y + k * k * 2.2 + k * 1.5, b.hz + b.dz * k * 6);
+        b.wings.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * Math.sin(t * 22) * 0.9; });
+        if (k > 3) { b.st = 2; b.t = 0; b.g.visible = false; }
+      } else {                                                    // vuelve cuando no hay nadie cerca
+        b.t += dt;
+        if (b.t > 6 && !pl.some((q) => Math.hypot(q.x - b.hx, q.z - b.hz) < 4)) { b.st = 0; b.g.visible = true; b.g.position.set(b.hx, y, b.hz); }
+      }
+    });
+  });
+  return birds;
 }

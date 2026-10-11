@@ -451,7 +451,7 @@ const hexagonos = {
   step,
 
   visuals(dt) {
-    game.stepPuff = null;
+    game.stepPuff = null; game.stepPrint = 0;
     const clock = game.clock;
     for (let f = 0; f < FLOORS.length; f++) updateFloor(f, clock);
     if (W.slimeM) W.slimeM.uniforms.uOff.value.set(MAPS[S.map].glow ? 0 : (clock * 0.03) % 1, MAPS[S.map].glow ? (clock * 0.25) % 1 : (clock * 0.02) % 1);

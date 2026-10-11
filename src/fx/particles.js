@@ -12,6 +12,7 @@ let pMats = [];
 const PARTS = [];
 const DOTS = [];
 const RIPS = [];
+let PRINTS = null; const PR = []; let prIdx = 0;
 let dotIdx = 0;
 
 export function initParticles() {
@@ -57,6 +58,59 @@ export function ripple(x, y, z, n = 3, r = 3) {
     q.me.position.set(x, y, z); q.me.scale.setScalar(0.1); q.me.visible = false;
   }
 }
+// Huellas que quedan en la nieve o la arena y se borran solas a los segundos
+const PR_N = 140, PR_LIFE = 7;
+export function stepPrint(x, y, z, ang, col) {
+  if (!PRINTS) {
+    const g = new THREE.CircleGeometry(0.11, 6); g.rotateX(-Math.PI / 2); g.scale(1, 1, 1.7);
+    PRINTS = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false }), PR_N);
+    PRINTS.frustumCulled = false; scene.add(PRINTS);
+    const m4 = new THREE.Matrix4().makeScale(0, 0, 0), c = new THREE.Color(1, 1, 1);
+    for (let i = 0; i < PR_N; i++) { PR.push({ life: 0, x: 0, y: 0, z: 0, a: 0 }); PRINTS.setMatrixAt(i, m4); PRINTS.setColorAt(i, c); }
+  }
+  const i = (prIdx = (prIdx + 1) % PR_N), q = PR[i];
+  q.life = PR_LIFE; q.x = x; q.y = y + 0.025; q.z = z; q.a = ang;
+  PRINTS.setColorAt(i, new THREE.Color(col)); PRINTS.instanceColor.needsUpdate = true;
+}
+const prM = new THREE.Matrix4(), prQ = new THREE.Quaternion(), prV = new THREE.Vector3(), prS = new THREE.Vector3(), prUp = new THREE.Vector3(0, 1, 0);
+function updatePrints(dt) {
+  if (!PRINTS) return;
+  let any = false;
+  for (let i = 0; i < PR_N; i++) {
+    const q = PR[i]; if (q.life <= 0) continue;
+    q.life -= dt; any = true;
+    const k = q.life <= 0 ? 0 : Math.min(1, q.life / 1.5);
+    prQ.setFromAxisAngle(prUp, q.a); prV.set(q.x, q.y, q.z); prS.set(k, 1, k); prM.compose(prV, prQ, prS); PRINTS.setMatrixAt(i, prM);
+  }
+  if (any) PRINTS.instanceMatrix.needsUpdate = true;
+}
+// Marcas quemadas en el piso (explosiones): manchón oscuro irregular que se va borrando
+const SC_N = 60, SC_LIFE = 12; let SCORCH = null; const SC = []; let scIdx = 0;
+export function scorch(x, y, z, r = 1) {
+  if (!SCORCH) {
+    const c = document.createElement('canvas'); c.width = c.height = 32; const x2 = c.getContext('2d');
+    for (let i = 0; i < 9; i++) { const g = x2.createRadialGradient(16 + rnd(-6, 6), 16 + rnd(-6, 6), 0, 16, 16, rnd(8, 15)); g.addColorStop(0, 'rgba(30,20,12,.38)'); g.addColorStop(1, 'rgba(30,20,12,0)'); x2.fillStyle = g; x2.fillRect(0, 0, 32, 32); }
+    const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter;
+    const g = new THREE.PlaneGeometry(2, 2); g.rotateX(-Math.PI / 2);
+    SCORCH = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 }), SC_N);
+    SCORCH.frustumCulled = false; scene.add(SCORCH);
+    const m4 = new THREE.Matrix4().makeScale(0, 0, 0);
+    for (let i = 0; i < SC_N; i++) { SC.push({ life: 0 }); SCORCH.setMatrixAt(i, m4); }
+  }
+  const i = (scIdx = (scIdx + 1) % SC_N);
+  Object.assign(SC[i], { life: SC_LIFE, x, y: y + 0.02, z, r: r * rnd(0.85, 1.15), a: rnd(0, 6.28) });
+}
+function updateScorch(dt) {
+  if (!SCORCH) return;
+  let any = false;
+  for (let i = 0; i < SC_N; i++) {
+    const q = SC[i]; if (q.life <= 0) continue;
+    q.life -= dt; any = true;
+    const k = q.life <= 0 ? 0 : Math.min(1, q.life / 3) * q.r;
+    prQ.setFromAxisAngle(prUp, q.a); prV.set(q.x, q.y, q.z); prS.set(k, 1, k); prM.compose(prV, prQ, prS); SCORCH.setMatrixAt(i, prM);
+  }
+  if (any) SCORCH.instanceMatrix.needsUpdate = true;
+}
 const DOT_LIFE = 0.32;
 export function dropDot(x, z) {
   const d = DOTS[(dotIdx = (dotIdx + 1) % DOTS.length)];
@@ -64,6 +118,7 @@ export function dropDot(x, z) {
 }
 
 export function updateParticles(dt) {
+  updatePrints(dt); updateScorch(dt);
   for (const q of RIPS) {
     if (q.life <= 0) continue;
     q.life -= dt;
@@ -96,4 +151,6 @@ export function clearParticles() {
   for (const p of PARTS) { p.life = 0; p.me.visible = false; }
   for (const d of DOTS) { d.life = 0; d.me.visible = false; }
   for (const q of RIPS) { q.life = 0; q.me.visible = false; }
+  for (const q of PR) q.life = 0.001;
+  for (const q of SC) if (q.life > 0) q.life = 0.001;
 }

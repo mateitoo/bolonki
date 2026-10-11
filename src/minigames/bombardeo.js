@@ -528,6 +528,7 @@ const bombardeo = {
 
   visuals(dt) {
     game.stepPuff = [14, 14, 4, 13][MAP.i];         // polvo, polvo, nieve, tierra
+    game.stepPrint = MAP.i === 2 ? 0x8098c0 : 0;
     const clock = game.clock;
     // pilas
     // (las cajas tapadas por la lava no se dibujan)

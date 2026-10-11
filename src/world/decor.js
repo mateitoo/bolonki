@@ -137,6 +137,8 @@ export function decorColina(g, rim) {
   add(new THREE.SphereGeometry(0.18, 6, 4), P.M(0x8aa86a), 0, 0.05, 0.62, tt);
   const flip = [[-0.4, 0.3], [0.4, 0.3], [-0.35, -0.35], [0.35, -0.35]].map(([a2, b2]) => add(new THREE.BoxGeometry(0.35, 0.05, 0.18), P.M(0x8aa86a), a2, 0, b2, tt));
   P.anim(tt, (t) => { const a = -t * 0.05 + 3; tt.position.set(Math.sin(a) * 16.5, WY + 0.02, Math.cos(a) * 15); tt.rotation.y = a - Math.PI / 2; flip.forEach((f, i) => { f.rotation.y = Math.sin(t * 3 + i) * 0.5; }); });
+  // gaviotas paradas en la playa: si alguien se acerca, salen volando
+  { const pts = []; for (let k = 0; k < 9; k++) { const a = (k / 9) * Math.PI * 2 + 0.5; if (Math.abs(a - (Math.PI * 2 - 0.9)) < 0.4) continue; const r = rim(a) - 1.1; pts.push([Math.sin(a) * r, Math.cos(a) * r]); } P.shyBirds(g, pts, 0.02); }
   // cangrejos caminando por la orilla
   [[0.4, 0xe8503a], [2.4, 0xff7a3a], [4.3, 0xe8503a]].forEach(([a, c], k) => { const r = rim(a) - 0.5, r2 = rim(a + 0.25) - 0.5; P.crabWalk(g, Math.sin(a) * r, 0.02, Math.cos(a) * r, Math.sin(a + 0.25) * r2, Math.cos(a + 0.25) * r2, c, 0.35, k * 2); });
   // un cofre del tesoro en un islote

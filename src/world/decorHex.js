@@ -1,6 +1,6 @@
 // Decorado de HEXÁGONOS: los pisos flotan en un cielo celeste con nubes, globos y un arcoíris; abajo de todo, el slime.
 import * as THREE from 'three';
-import { add, mat, scaleUV } from '../render/psx.js';
+import { add, mat, scaleUV, waterMat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
 import * as P from './props.js';
@@ -27,7 +27,7 @@ export function decorHexagonos(g, slimeY) {
   P.sky(g, [[0, '#2a6ae0'], [0.35, '#5aa8ff'], [0.48, '#bfe6ff'], [0.52, '#e8f6ff'], [0.62, '#9ad8a0'], [1, '#2a6a20']], { r: 120, y: -10 });
   // slime abajo de todo
   const sg = scaleUV(new THREE.PlaneGeometry(240, 240, 20, 20), 36); sg.rotateX(-Math.PI / 2);
-  const slimeM = mat({ map: TX.slime, color: 0xffffff });
+  const slimeM = waterMat({ map: TX.slime, color: 0xe0ffb0, deep: 0x3a8a1a, sky: 0xf0ffd8, glint: 1, foam: 0.15, wave: 0.35 });
   add(sg, slimeM, 0, slimeY, 0, g);
   P.drift(g, 24, -18, 18, slimeY, slimeY + 3, -18, 18, 0xc8ff6a, 0.35, 0.8);      // burbujas que suben
   // nubes alrededor (algunas abajo, entre los pisos y el slime)
@@ -106,7 +106,7 @@ function cottonCloud(p, x, y, z, s, col) {
 export function decorDulces(g, slimeY) {
   P.sky(g, [[0, '#ff9ad8'], [0.35, '#ffc8e8'], [0.5, '#fff0f8'], [0.6, '#d8b0ff'], [1, '#8a5ac8']], { r: 120, y: -10 });
   const sg = scaleUV(new THREE.PlaneGeometry(240, 240, 20, 20), 30); sg.rotateX(-Math.PI / 2);
-  const choco = mat({ map: TX.choco, color: 0xffffff });
+  const choco = waterMat({ map: TX.choco, color: 0xd09070, deep: 0x3a1a08, sky: 0xffd8c0, glint: 0.9, foam: 0, wave: 0.3 });
   add(sg, choco, 0, slimeY, 0, g);
   P.drift(g, 20, -18, 18, slimeY, slimeY + 3, -18, 18, 0x8a4a2a, 0.35, 0.6);          // burbujas de chocolate
   for (let k = 0; k < 12; k++) {
@@ -225,7 +225,7 @@ export function decorVolcan(g, slimeY) {
   P.sky(g, [[0, '#0a0204'], [0.3, '#2a0808'], [0.46, '#6a1a0a'], [0.5, '#ff6a1a'], [0.54, '#5a1208'], [1, '#1a0404']], { stars: 30, starBand: 0.3, r: 120, y: -10 });
   // el magma de abajo, que corre despacio (la animación del piso la maneja el minijuego)
   const sg = scaleUV(new THREE.PlaneGeometry(240, 240, 20, 20), 26); sg.rotateX(-Math.PI / 2);
-  const magma = mat({ map: TX.magma, unlit: true });
+  const magma = waterMat({ map: TX.magma, color: 0xffffff, emit: 1, glint: 0.3, foam: 0, wave: 0.3 });
   add(sg, magma, 0, slimeY, 0, g);
   P.lavaBubbles(g, slimeY + 0.2, 8, 40, 26);
   // volcanes a lo lejos (uno grande que escupe bolas de fuego)

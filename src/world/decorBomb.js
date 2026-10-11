@@ -1,7 +1,7 @@
 // Decorado de los mapas nuevos de Bombardeo: PUERTO (muelle al atardecer, sube la marea) y NEVADA
 // (refugio en la montaña, sube la nieve). La grilla es la misma; el piso de afuera está a y = -1.7.
 import * as THREE from 'three';
-import { add, scaleUV, mat } from '../render/psx.js';
+import { add, scaleUV, mat, waterMat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
 import * as P from './props.js';
@@ -46,8 +46,9 @@ export function decorPuerto(g, HALF) {
   const sun = add(new THREE.CircleGeometry(12, 20), new THREE.MeshBasicMaterial({ color: 0xffb04a, fog: false }), 20, 2, -104, g); sun.renderOrder = -9;
   // el mar alrededor y el muelle de hormigón con bordes amarillos
   const wg = scaleUV(new THREE.PlaneGeometry(260, 260, 20, 20), 40); wg.rotateX(-Math.PI / 2);
-  const sea = add(wg, mat({ map: TX.water, color: 0x4a8ab0 }), 0, -2.6, 0, g);
+  const sea = add(wg, waterMat({ map: TX.water, color: 0x6aaad8, deep: 0x2a4a7a, sky: 0xffa070, glint: 1, wave: 0.15 }), 0, -2.6, 0, g);
   P.anim(g, (t) => { sea.material.uniforms.uOff.value.set((t * 0.015) % 1, (t * 0.03) % 1); });
+  P.waterSparkles(g, -2.3, 0, 0, 40, 40, 90, 0xffd0a0, (x, z) => Math.abs(x) < HALF + 7.5 && Math.abs(z) < HALF + 7.5);
   const E = HALF + 7;
   add(box(2 * E, 1, 2 * E), P.M(0x9a9a98, { map: TX.stone }), 0, Y - 0.5, 0, g);
   const ym = P.M(0xffc02a, { unlit: true });

@@ -70,17 +70,24 @@ export const TX = {
     x.fillStyle = '#e8fbff'; x.fillRect(3, 3, 2, 1); x.fillRect(20, 14, 3, 1);
   }),
   // Fiesta: pasto de la isla, bloque del dado
-  grass: tex(32, 32, (x, w, h) => {
+  grass: tex(32, 32, (x, w, h) => {              // pasto: manchones de tono, briznas y alguna florcita, sin costuras
     x.fillStyle = '#3f8a3a'; x.fillRect(0, 0, w, h);
-    for (let i = 0; i < 90; i++) { x.fillStyle = ['#4fa246', '#357a31', '#5cb450', '#2e6b2a'][(Math.random() * 4) | 0]; x.fillRect(Math.random() * w, Math.random() * h, 1, rnd(1, 3)); }
-    x.fillStyle = '#e8e070'; x.fillRect(6, 9, 1, 1); x.fillRect(22, 25, 1, 1);
+    const W4 = (f) => { for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) f(ox, oy); };
+    for (let i = 0; i < 7; i++) { const cx = Math.random() * w, cy = Math.random() * h, r = rnd(4, 9), c = ['rgba(90,170,70,.35)', 'rgba(40,100,40,.35)', 'rgba(110,160,60,.25)'][i % 3]; W4((ox, oy) => { x.fillStyle = c; x.beginPath(); x.arc(cx + ox, cy + oy, r, 0, 7); x.fill(); }); }
+    for (let i = 0; i < 130; i++) { const bx = (Math.random() * w) | 0, by = (Math.random() * h) | 0, l = (rnd(1, 4)) | 0; x.fillStyle = ['#5cb450', '#2e6b2a', '#4fa246', '#6cc45a', '#357a31'][(Math.random() * 5) | 0]; for (let k = 0; k < l; k++) x.fillRect((bx + (k > 1 ? 1 : 0)) % w, (by - k + h) % h, 1, 1); }
+    x.fillStyle = '#e8e070'; x.fillRect(6, 9, 1, 1); x.fillRect(22, 25, 1, 1); x.fillStyle = '#ffffff'; x.fillRect(14, 4, 1, 1);
   }),
   dice: tex(16, 16, (x, w, h) => {
     x.fillStyle = '#ffc83a'; x.fillRect(0, 0, w, h);
     x.fillStyle = '#b8801a'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h); x.fillRect(0, h - 1, w, 1); x.fillRect(w - 1, 0, 1, h);
     x.fillStyle = '#fff6d0'; [[6, 3], [7, 3], [8, 3], [9, 4], [9, 5], [8, 6], [7, 7], [7, 8], [7, 11], [7, 12]].forEach(([a, b]) => x.fillRect(a, b, 2, 1));
   }),
-  rock: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#3a3440', 0.3); x.fillStyle = '#26212b'; x.fillRect(0, 5, w, 1); x.fillRect(0, 12, w, 1); }),
+  rock: tex(16, 16, (x, w, h) => {               // roca oscura con vetas, grietas y cantos claros
+    noisy(x, w, h, '#3a3440', 0.28);
+    x.fillStyle = '#26212b'; x.fillRect(0, 5, w, 1); x.fillRect(0, 12, w, 1); x.fillRect(4, 5, 1, 4); x.fillRect(11, 12, 1, 3); x.fillRect(9, 0, 1, 3);
+    x.fillStyle = 'rgba(140,130,150,.45)'; x.fillRect(0, 6, w, 1); x.fillRect(0, 13, w, 1); x.fillRect(5, 6, 3, 1);
+    x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(2, 1, 3, 2); x.fillRect(12, 8, 2, 2);
+  }),
   pebble: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#d8d2ca', 0.22); x.fillStyle = 'rgba(0,0,0,.12)'; x.fillRect(0, 6, w, 1); x.fillRect(5, 11, w, 1); }),   // piedra clara (se tiñe)
   magma: tex(32, 32, (x, w, h) => {
     x.fillStyle = '#3a0a04'; x.fillRect(0, 0, w, h);
@@ -127,15 +134,17 @@ export const TX = {
     for (let i = 0; i < w - 6; i++) { x.fillRect(3 + i, 3 + i * ((h - 8) / (w - 6)), 3, 2); }
     x.fillStyle = '#d8d0b0'; [[1, 1], [w - 3, 1], [1, h - 3], [w - 3, h - 3]].forEach(([a, b]) => x.fillRect(a, b, 2, 2));
   }),
-  sand: tex(32, 32, (x, w, h) => {
+  sand: tex(32, 32, (x, w, h) => {               // arena: ondas del viento, granitos claros y oscuros
     x.fillStyle = '#d8b26a'; x.fillRect(0, 0, w, h);
-    for (let i = 0; i < 80; i++) { x.fillStyle = ['#e2c07c', '#c9a15a', '#ecd092'][(Math.random() * 3) | 0]; x.fillRect(Math.random() * w, Math.random() * h, rnd(1, 3), 1); }
-    x.fillStyle = 'rgba(0,0,0,.1)'; x.fillRect(0, h - 1, w, 1); x.fillRect(w - 1, 0, 1, h);
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) { const r = Math.sin((xx / w) * Math.PI * 2 * 2 + (yy / h) * Math.PI * 2 * 3 + Math.sin((xx / w) * Math.PI * 2) * 1.2); if (r > 0.75) { x.fillStyle = 'rgba(255,236,180,.35)'; x.fillRect(xx, yy, 1, 1); } else if (r < -0.85) { x.fillStyle = 'rgba(150,110,50,.25)'; x.fillRect(xx, yy, 1, 1); } }
+    for (let i = 0; i < 90; i++) { x.fillStyle = ['#e2c07c', '#c9a15a', '#ecd092', '#b8904a', '#f4e0a8'][(Math.random() * 5) | 0]; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, 1, 1); }
   }),
-  snow: tex(32, 32, (x, w, h) => {
+  snow: tex(32, 32, (x, w, h) => {               // nieve: sombras azuladas suaves y brillitos
     x.fillStyle = '#e8eef8'; x.fillRect(0, 0, w, h);
-    for (let i = 0; i < 60; i++) { x.fillStyle = ['#f8fbff', '#d6e0ee', '#ffffff'][(Math.random() * 3) | 0]; x.fillRect(Math.random() * w, Math.random() * h, rnd(1, 3), 1); }
-    x.fillStyle = 'rgba(0,0,40,.08)'; x.fillRect(0, h - 1, w, 1); x.fillRect(w - 1, 0, 1, h);
+    const W4 = (f) => { for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) f(ox, oy); };
+    for (let i = 0; i < 6; i++) { const cx = Math.random() * w, cy = Math.random() * h, r = rnd(4, 8), c = i % 2 ? 'rgba(170,190,225,.22)' : 'rgba(255,255,255,.5)'; W4((ox, oy) => { x.fillStyle = c; x.beginPath(); x.ellipse(cx + ox, cy + oy, r * 1.6, r * 0.7, 0, 0, 7); x.fill(); }); }
+    for (let i = 0; i < 50; i++) { x.fillStyle = ['#f8fbff', '#d6e0ee', '#ffffff', '#c8d4ea'][(Math.random() * 4) | 0]; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, 1, 1); }
+    x.fillStyle = '#ffffff'; for (let i = 0; i < 4; i++) { const a = (Math.random() * w) | 0, b = (Math.random() * h) | 0; x.fillRect(a, b, 1, 1); x.fillStyle = 'rgba(160,200,255,.9)'; x.fillRect((a + 1) % w, b, 1, 1); x.fillStyle = '#ffffff'; }
   }),
   belt: tex(16, 16, (x, w, h) => {                 // cinta transportadora: flechas hacia "arriba" de la textura
     x.fillStyle = '#2a2d36'; x.fillRect(0, 0, w, h);
@@ -186,19 +195,36 @@ export const TX = {
     x.fillStyle = '#ffd23a'; x.fillRect(1, 5, 3, 1); x.fillRect(0, 8, 3, 1); x.fillRect(1, 11, 2, 1);
   }),
   /* ---------- decorado de los escenarios ---------- */
-  water: tex(32, 32, (x, w, h) => {
-    x.fillStyle = '#2f78c8'; x.fillRect(0, 0, w, h);
-    for (let i = 0; i < 14; i++) { x.fillStyle = i % 2 ? 'rgba(170,220,255,.55)' : 'rgba(20,60,130,.4)'; x.fillRect((Math.random() * w) | 0, (Math.random() * h) | 0, rnd(4, 10), 1); }
+  water: tex(64, 64, (x, w, h) => {              // agua: celdas de luz (cáusticas) sobre azul, con vetas que se repiten sin costura
+    x.fillStyle = '#2a70c0'; x.fillRect(0, 0, w, h);
+    const g = x.createImageData(w, h), d = g.data, pts = [];
+    for (let i = 0; i < 18; i++) pts.push([Math.random() * w, Math.random() * h]);
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+      let a = 1e9, b = 1e9;                                       // distancia a las dos semillas más cercanas (con vuelta)
+      for (const [px, py] of pts) { let dx = Math.abs(xx - px), dy = Math.abs(yy - py); dx = Math.min(dx, w - dx); dy = Math.min(dy, h - dy); const q = dx * dx + dy * dy; if (q < a) { b = a; a = q; } else if (q < b) b = q; }
+      const e = Math.sqrt(b) - Math.sqrt(a), k = Math.max(0, 1 - e / 3);          // borde entre celdas = línea de luz
+      const v = 0.82 + Math.sin((xx + yy * 0.5) * 0.35) * 0.05;
+      const i4 = (yy * w + xx) * 4;
+      const kk = k * k, sh = Math.min(1, Math.sqrt(a) / 9) * 0.12;   // centro de cada celda un poco más oscuro
+      d[i4] = (42 * (v - sh) + 95 * kk) | 0; d[i4 + 1] = (112 * (v - sh) + 95 * kk) | 0; d[i4 + 2] = (192 * (v - sh) + 55 * kk) | 0; d[i4 + 3] = 255;
+    }
+    x.putImageData(g, 0, 0);
   }),
-  wood: tex(16, 16, (x, w, h) => {
+  wood: tex(16, 16, (x, w, h) => {               // madera: vetas onduladas y algún nudo
     noisy(x, w, h, '#9a6a3c', 0.08);
-    x.fillStyle = 'rgba(60,30,10,.35)'; for (let i = 3; i < h; i += 5) x.fillRect(0, i, w, 1);
+    for (let i = 1; i < h; i += 4) for (let xx = 0; xx < w; xx++) { const yy = (i + Math.round(Math.sin((xx / w) * Math.PI * 2 + i) * 0.8) + h) % h; x.fillStyle = 'rgba(60,30,10,.35)'; x.fillRect(xx, yy, 1, 1); }
+    x.fillStyle = 'rgba(200,150,90,.25)'; for (let i = 3; i < h; i += 4) x.fillRect(0, i, w, 1);
+    x.fillStyle = 'rgba(50,25,8,.55)'; x.fillRect(10, 6, 2, 2); x.fillStyle = 'rgba(80,45,15,.4)'; x.fillRect(9, 5, 4, 4);
   }),
   roof: tex(16, 16, (x, w, h) => {
     x.fillStyle = '#b8402e'; x.fillRect(0, 0, w, h);
     x.fillStyle = 'rgba(60,10,5,.4)'; for (let i = 0; i < h; i += 4) { x.fillRect(0, i, w, 1); for (let j = (i / 4) % 2 ? 0 : 2; j < w; j += 4) x.fillRect(j, i, 1, 4); }
   }),
-  leaf: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#ffffff', 0.18); }),
+  leaf: tex(16, 16, (x, w, h) => {               // hojas (máscara clara que se tiñe): hojitas con nervadura y huecos de sombra
+    noisy(x, w, h, '#f0f0f0', 0.14);
+    for (let i = 0; i < 9; i++) { const a = (Math.random() * w) | 0, b = (Math.random() * h) | 0; x.fillStyle = 'rgba(255,255,255,.6)'; x.fillRect(a, b, 2, 1); x.fillRect((a + 1) % w, (b + 1) % h, 1, 1); x.fillStyle = 'rgba(0,0,0,.22)'; x.fillRect((a + 2) % w, (b + 1) % h, 1, 1); }
+    x.fillStyle = 'rgba(0,0,0,.18)'; [[3, 12], [12, 3], [8, 9]].forEach(([a, b]) => x.fillRect(a, b, 2, 2));
+  }),
   stone: tex(16, 16, (x, w, h) => { noisy(x, w, h, '#b8b4ae', 0.14); x.fillStyle = 'rgba(0,0,0,.18)'; x.fillRect(0, 7, w, 1); x.fillRect(7, 0, 1, 7); x.fillRect(3, 8, 1, 8); }),
   window: tex(8, 8, (x, w, h) => { x.fillStyle = '#ffe9a0'; x.fillRect(0, 0, w, h); x.fillStyle = '#6b4a2a'; x.fillRect(3, 0, 2, h); x.fillRect(0, 3, w, 2); }),
   /* ---------- personajes con ropa (payaso, gnomo) ---------- */

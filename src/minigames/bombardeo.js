@@ -12,7 +12,7 @@ import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
-import { scene, mat, add, scaleUV, camera } from '../render/psx.js';
+import { scene, mat, add, scaleUV, camera, waterMat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorBombardeo } from '../world/decor.js';
 import { decorPuerto, decorNevada, decorSelva } from '../world/decorBomb.js';
@@ -144,6 +144,8 @@ function buildWorld() {
   W.lavaM = mat({ map: TX.magma, unlit: true });
   const lg = scaleUV(new THREE.PlaneGeometry(GN * TS + 1.2, GN * TS + 1.2, 8, 8), 6); lg.rotateX(-Math.PI / 2);
   W.lava = add(lg, W.lavaM, 0, -5, 0, grp); W.lava.visible = false;
+  W.lavaGlowM = waterMat({ map: TX.magma, color: 0xffffff, emit: 1, glint: 0.3, foam: 0, wave: 0.15 });
+  W.riseWaterM = waterMat({ map: TX.water, color: 0x5aa0d0, deep: 0x0a2a4a, sky: 0xffb08a, glint: 1, foam: 0.5, wave: 0.12 });
   MAPS.forEach((m, i) => m.decor(W.maps[i], HALF));
   applyMap(0);
 }
@@ -165,6 +167,9 @@ function applyMap(i) {
   W.fallMats.n.uniforms.uMap.value = m.box[0]; W.fallMats.s.uniforms.uMap.value = m.box[0]; W.fallMats.x.uniforms.uMap.value = m.box[0];
   set(W.stackMat, m.box[0], m.box[1]);
   set(W.lavaM, m.rise[0], m.rise[1]); W.lavaM.uniforms.uUnlit.value = m.rise[2] ? 1 : 0;
+  // la marea y el pantano son agua de verdad (con reflejos); la lava y la nieve, material común
+  W.lava.material = m.style === 'water' ? W.riseWaterM : m.style === 'lava' ? W.lavaGlowM : W.lavaM;
+  if (m.style === 'water') { W.riseWaterM.uniforms.uColor.value.set(m.rise[1]); W.riseWaterM.uniforms.uDeep.value.set(i === 3 ? 0x1a2a10 : 0x0a2a4a); W.riseWaterM.uniforms.uSky.value.set(i === 3 ? 0xc8e8a0 : 0xffb08a); }
 }
 function pickMap() {
   if (game.online === 'guest') return;
@@ -541,7 +546,7 @@ const bombardeo = {
     }
     for (; cn < W.coils.length; cn++) W.coils[cn].visible = false;
     W.lava.visible = B.lava > 0; W.lava.position.y = Math.max(0.01, B.lava);
-    W.lavaM.uniforms.uOff.value.set((clock * 0.03) % 1, (clock * 0.02) % 1);
+    W.lavaM.uniforms.uOff.value.set((clock * 0.03) % 1, (clock * 0.02) % 1); W.riseWaterM.uniforms.uOff.value.copy(W.lavaM.uniforms.uOff.value); W.lavaGlowM.uniforms.uOff.value.copy(W.lavaM.uniforms.uOff.value);
     game.burnStyle = MAPS[MAP.i].style;                  // cómo se ve el que queda tapado: lava, agua o nieve
     // avisos y cajas cayendo
     // aviso: la sombra de la caja en el piso (cada vez más grande y oscura) y la caja que baja flotando desde arriba

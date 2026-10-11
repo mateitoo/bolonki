@@ -11,7 +11,7 @@ import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { settings } from '../settings.js';
-import { scene, mat, add, scaleUV } from '../render/psx.js';
+import { scene, mat, add, scaleUV, waterMat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorColina } from '../world/decor.js';
 import { HILLS, groundAt, onIsland, rim, pushOut, freeSpot, pierTip, OBST, WATER_Y, RMAX, buildIsla } from '../world/isla.js';
@@ -59,7 +59,7 @@ function buildWorld() {
   // la isla (costa, colinas, puente, muelle, playa)
   const I = buildIsla(grp); W.rings = I.rings; W.ringM = I.ringM; W.foam = I.foam;
   // mar
-  W.waterM = mat({ map: TX.water, color: 0xd0e8ff });
+  W.waterM = waterMat({ map: TX.water, color: 0x5ab8e0, deep: 0x1a6aa8, sky: 0xd8ecff, glint: 1, wave: 0.12 });
   const wg = scaleUV(new THREE.PlaneGeometry(220, 220, 22, 22), 40); wg.rotateX(-Math.PI / 2);
   W.water = add(wg, W.waterM, 0, WATER_Y, 0, grp);
   // corona que flota sobre la colina que vale

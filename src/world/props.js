@@ -3,7 +3,7 @@
 // Nada de esto choca con nada: es solo decorado. Lo animado se registra con anim() y se mueve
 // solo mientras su escenario está a la vista (updateProps, desde visuals.js).
 import * as THREE from 'three';
-import { mat, add, scaleUV } from '../render/psx.js';
+import { mat, add, scaleUV, waterMat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
 
@@ -131,7 +131,7 @@ export function dune(p, x, y, z, sx, sz, col = 0xd8b070) {
 export function pond(p, x, y, z, r = 2) {
   const g = G(p, x, y, z);
   add(new THREE.CylinderGeometry(r + 0.35, r + 0.45, 0.3, 12), M(0xa8a29a, { map: TX.stone }), 0, 0.15, 0, g);
-  const wm = mat({ map: TX.water, unlit: true, color: 0xcfe8ff });
+  const wm = waterMat({ map: TX.water, color: 0x6ac0e8, deep: 0x1a5a7a, sky: 0xe8f6ff, wave: 0, glint: 1 });
   add(new THREE.CylinderGeometry(r, r, 0.32, 12), wm, 0, 0.17, 0, g);
   anim(g, (t) => wm.uniforms.uOff.value.set((t * 0.03) % 1, (t * 0.02) % 1));
   return g;
@@ -1059,4 +1059,23 @@ export function walker(p, x1, y, z1, x2, z2, o = {}) {
     const w = Math.sin(t * 7 + ph * 3) * 0.5; legs[0].rotation.x = w; legs[1].rotation.x = -w; arms[0].rotation.x = -w; arms[1].rotation.x = w;
   });
   return g;
+}
+// Brillitos que titilan sobre el agua (destellos del sol), instanciados. avoid(x, z) → true para no ponerlos ahí
+export function waterSparkles(p, y, cx, cz, rx, rz, n = 60, col = 0xffffff, avoid = null) {
+  const geo = box(0.32, 0.02, 0.1), im = new THREE.InstancedMesh(geo, M(col, { unlit: true }), n), ps = [];
+  for (let i = 0, tries = 0; i < n && tries < n * 6; tries++) {
+    const x = cx + rnd(-rx, rx), z = cz + rnd(-rz, rz);
+    if (avoid && avoid(x, z)) continue;
+    ps.push({ x, z, ph: rnd(0, 6), sp: rnd(1.5, 3.5) }); i++;
+  }
+  im.count = ps.length; p.add(im);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  anim(p, (t) => {
+    ps.forEach((s, i) => {
+      const k = Math.max(0, Math.sin(t * s.sp + s.ph)) ** 6;
+      q.setFromAxisAngle(up, s.ph); v.set(s.x, y, s.z); sc.set(0.2 + k * 1.6, 1, 0.2 + k * 1.6); m4.compose(v, q, sc); im.setMatrixAt(i, m4);
+    });
+    im.instanceMatrix.needsUpdate = true;
+  });
+  return im;
 }

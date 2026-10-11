@@ -2,7 +2,7 @@
 // LAGO HELADO (pista de hielo en un lago del bosque, de noche con aurora). La cancha mide lo mismo en todos
 // (HX × HZ); los cambios de juego (charcos de barro, hielo que patina) están en minigames/futbol.js.
 import * as THREE from 'three';
-import { add, scaleUV, mat } from '../render/psx.js';
+import { add, scaleUV, mat, waterMat } from '../render/psx.js';
 import { umbrella, lifeguardChair, sandcastle, parador, surfboards, beachKit, kite, boat, seagulls } from './decorBolas.js';
 import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
@@ -183,8 +183,9 @@ export function decorPlayaFutbol(g, HX, HZ) {
   const fl = scaleUV(new THREE.PlaneGeometry(120, 70, 20, 12), 24, 14); fl.rotateX(-Math.PI / 2);
   add(fl, P.M(0xf0d8a0, { map: TX.sand }), 0, -0.31, 8, g);
   const wg = scaleUV(new THREE.PlaneGeometry(260, 140, 20, 12), 40, 22); wg.rotateX(-Math.PI / 2);
-  const sea = add(wg, mat({ map: TX.water, color: 0x3aa0d8 }), 0, -0.75, -HZ - 78, g);
+  const sea = add(wg, waterMat({ map: TX.water, color: 0x4ab8e8, deep: 0x0a4a7a, sky: 0xd8f0ff, glint: 1, wave: 0.15 }), 0, -0.75, -HZ - 78, g);
   P.anim(g, (t) => { sea.material.uniforms.uOff.value.set((t * 0.02) % 1, (t * 0.035) % 1); });
+  P.waterSparkles(g, -0.5, 0, -HZ - 30, 60, 20, 90, 0xffffff, (x, z) => z > -HZ - 9.5);
   const foam = add(new THREE.BoxGeometry(130, 0.05, 1.2), P.M(0xffffff, { unlit: true }), 0, -0.68, -HZ - 8.4, g);
   P.anim(foam, (t) => { foam.position.z = -HZ - 8.4 + Math.sin(t * 0.9) * 0.9; foam.scale.z = 1 + Math.sin(t * 1.3) * 0.4; });
   // cancha de fútbol playa: cuerdas en el borde con banderines y palos en las esquinas

@@ -2,7 +2,7 @@
 // torres en las esquinas); cada mapa cambia las texturas de la arena (bolas.js), el piso de afuera y todo esto
 // de alrededor. El suelo de afuera está a y = -2.2 (ver world/arena.js).
 import * as THREE from 'three';
-import { add, scaleUV, mat } from '../render/psx.js';
+import { add, scaleUV, mat, waterMat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
 import * as P from './props.js';
@@ -392,8 +392,9 @@ export function decorPlaya(g) {
   sun.renderOrder = -9;
   // el mar: un plano grande que se mueve
   const wg = scaleUV(new THREE.PlaneGeometry(260, 260, 20, 20), 40); wg.rotateX(-Math.PI / 2);
-  const sea = add(wg, mat({ map: TX.water, color: 0x4a9ac8 }), 0, -2.6, 0, g);
+  const sea = add(wg, waterMat({ map: TX.water, color: 0x5aa8d8, deep: 0x1a2a5a, sky: 0xffb07a, glint: 1, wave: 0.18 }), 0, -2.6, 0, g);
   P.anim(g, (t) => { sea.material.uniforms.uOff.value.set((t * 0.02) % 1, (t * 0.035) % 1); });
+  P.waterSparkles(g, -2.3, 0, 0, 60, 60, 110, 0xffe0b0, (x, z) => Math.abs(x) < 32.5 && Math.abs(z) < 32.5);
   // espuma en la orilla (alrededor de la arena de la playa, que mide ±31)
   const E = 31.5;
   [[0, -E, 2 * E + 2, 1], [0, E, 2 * E + 2, 1], [-E, 0, 1, 2 * E], [E, 0, 1, 2 * E]].forEach(([x, z, w, d], k) => {

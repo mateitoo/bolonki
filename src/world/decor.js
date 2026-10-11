@@ -103,6 +103,8 @@ export function decorColina(g, rim) {
     P.rock(g, Math.sin(a) * r, -1.0, Math.cos(a) * r, 0.6 + (k % 3) * 0.35, 0x9a9488);
   }
   const WY = -0.9;
+  // destellos del sol sobre el mar (fuera de la isla)
+  P.waterSparkles(g, WY + 0.2, 0, 0, 34, 30, 90, 0xffffff, (x, z) => Math.hypot(x, z) < rim(Math.atan2(x, z)) + 1.5);
   // un velero que da vueltas lejos de la isla
   const sb = new THREE.Group(); g.add(sb);
   add(new THREE.BoxGeometry(1.6, 0.8, 4.4), P.M(0xf4f0e8, { map: TX.wood }), 0, 0.2, 0, sb);

@@ -34,7 +34,8 @@ export function buildArena() {
     add(strip, arenaMats.strip, s.nx * (H + 0.35), 0.02, s.nz * (H + 0.35)).rotation.y = rt;
     const pit = new THREE.PlaneGeometry(2 * G, 3.2); pit.rotateX(-Math.PI / 2);
     arenaMats.pit = arenaMats.pit || mat({ map: TX.pit });
-    add(pit, arenaMats.pit, s.nx * (H + 2.3), -1.2, s.nz * (H + 2.3)).rotation.y = rt;
+    const pm = add(pit, arenaMats.pit, s.nx * (H + 2.3), -1.2, s.nz * (H + 2.3)); pm.rotation.y = rt;
+    (arenaMats.pitMeshes = arenaMats.pitMeshes || []).push(pm);
     const wall = scaleUV(new THREE.BoxGeometry(2 * G + 2, 1.4, 0.6), 8, 1);
     add(wall, arenaMats.rim, s.nx * (H + 4.1), -0.5, s.nz * (H + 4.1)).rotation.y = rt;
 

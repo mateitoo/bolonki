@@ -10,7 +10,7 @@ import { register, fixedMap } from './registry.js';
 import { DIFFICULTIES, rnd, clamp } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
-import { scene, mat, add, scaleUV } from '../render/psx.js';
+import { scene, mat, add, scaleUV, waterMat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorGlaciar, decorVolcan, decorTormenta } from '../world/decor.js';
 import { input } from '../input.js';
@@ -118,7 +118,7 @@ function buildMap(mi) {
     const logM = mat({ map: TX.wood, color: 0x6a4a2a });
     for (let k = 0; k < 7; k++) { const x = -R0 + 1.2 + k * ((R0 * 2 - 2.4) / 6), len = 2 * Math.sqrt(Math.max(1, R0 * R0 - x * x)) - 0.6; const l = add(new THREE.CylinderGeometry(0.7, 0.7, len, 10), logM, x, -1.2, 0, plat); l.rotation.x = Math.PI / 2; }
     for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2 + 0.2; add(new THREE.CylinderGeometry(0.55, 0.55, 1.2, 10), mat({ map: TX.metal, color: [0x3a6ac8, 0xd83a3a][k % 2] }), Math.sin(a) * (R0 + 0.6), -0.7, Math.cos(a) * (R0 + 0.6), plat); }
-    M.seaM = mat({ map: TX.water, color: 0x243a52 });
+    M.seaM = waterMat({ map: TX.water, color: 0x3a5a7a, deep: 0x08121e, sky: 0x6a7a90, refl: 0.8, glint: 0.25, foam: 0.5, wave: 0.35 });
     const sea = scaleUV(new THREE.PlaneGeometry(220, 220, 22, 22), 34); sea.rotateX(-Math.PI / 2);
     add(sea, M.seaM, 0, -2.8, 0, grp);
     decorTormenta(grp, R0);
@@ -138,7 +138,7 @@ function buildMap(mi) {
     add(new THREE.CylinderGeometry(R0 + 0.03, R0 + 0.03, 0.12, 28, 1, true), M.rimM, 0, -0.06, 0, plat);
     const cone = scaleUV(new THREE.ConeGeometry(R0 * 0.98, 6.5, 14, 2, true), 5, 2); cone.rotateX(Math.PI);
     add(cone, mat({ map: TX.rock, color: 0x9a8f9e }), 0, -4.05, 0, plat);
-    M.lavaM = mat({ map: TX.magma, unlit: true, color: 0xffffff });
+    M.lavaM = waterMat({ map: TX.magma, color: 0xffffff, emit: 1, glint: 0.3, foam: 0, wave: 0.4 });
     const lava = scaleUV(new THREE.PlaneGeometry(220, 220, 16, 16), 34); lava.rotateX(-Math.PI / 2);
     add(lava, M.lavaM, 0, -26, 0, grp);
     const rockM = mat({ map: TX.rock, color: 0xb0a4b6 });

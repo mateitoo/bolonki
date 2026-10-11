@@ -8,7 +8,7 @@ import { R, CORN, H, SIDES } from '../config.js';
 import { P as PART } from '../fx/particles.js';
 import { decorEspacio, decorCirco, decorPlaya, decorTerraza, carousel, column, rubble, crab } from '../world/decorBolas.js';
 import { TX } from '../render/textures.js';
-import { mat } from '../render/psx.js';
+import { mat, waterMat } from '../render/psx.js';
 import { buildBalls, removeBall } from '../world/balls.js';
 import { dropDot } from '../fx/particles.js';
 import { step as ballStep, movePod, arenaMods } from '../game/physics.js';
@@ -92,6 +92,9 @@ function applyMap(i) {
     uv.needsUpdate = true;
   });
   setM(arenaMats.pit, m.pit[0], m.pit[1]);
+  // en la playa, los pozos de los arcos son agua de verdad (con reflejos y brillitos)
+  if (!arenaMats.pitWater) arenaMats.pitWater = waterMat({ map: TX.water, color: 0x6ac0e8, deep: 0x1a4a7a, sky: 0xffc89a, glint: 1, foam: 0.5, wave: 0.08 });
+  (arenaMats.pitMeshes || []).forEach((pm) => { pm.material = m.pit[0] === TX.water ? arenaMats.pitWater : arenaMats.pit; });
   setM(arenaMats.cap, m.cap[0], m.cap[1]); setM(arenaMats.capRim, m.cap[0], new THREE.Color(m.cap[1]).multiplyScalar(0.7).getHex());
   game.balls.forEach((b) => {
     if (!b.chromeM) { b.chromeM = b.m; b.beachM = mat({ map: TX.beachBall }); b.circusM = mat({ map: TX.circusBall }); }
@@ -320,7 +323,7 @@ const sandM4 = new THREE.Matrix4(), sandQ = new THREE.Quaternion(), sandV = new 
 function mapVisuals(dt, clock) {
   const m = MAPS[S.map];
   if (m.strip[2]) arenaMats.strip.uniforms.uOff.value.x = (clock * m.strip[2] / m.strip[1]) % 1;     // foquitos / boyas que se mueven
-  if (m.pit[0] === TX.water) arenaMats.pit.uniforms.uOff.value.set((clock * 0.05) % 1, (clock * 0.08) % 1);
+  if (m.pit[0] === TX.water && arenaMats.pitWater) arenaMats.pitWater.uniforms.uOff.value.set((clock * 0.05) % 1, (clock * 0.08) % 1);
   if (m.column && MG.col) {
     if (game.online !== 'guest' && S.colHitT > 0) S.colHitT -= dt;
     const C = MG.col, k = S.hp / COL_HP;

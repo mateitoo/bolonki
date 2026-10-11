@@ -35,7 +35,7 @@ function applyFog(m) {
 }
 
 export function updateVisuals(dt, rdt) {
-  game.clock += dt;
+  game.clock += dt; U.uTime.value = game.clock;
   const m = mg();
   applyFog(m);
 

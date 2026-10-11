@@ -12,8 +12,11 @@ const ANIMS = [];
 export function anim(owner, fn) { ANIMS.push({ owner, fn }); }
 const shown = (o) => { for (let x = o; x; x = x.parent) if (!x.visible) return false; return true; };
 let T = 0;
+// la gente del decorado festeja un rato cuando pasa algo (gol, alguien vuela, termina la ronda)
+export const hype = { t: 0 };
+export function cheer(sec = 2.5) { hype.t = Math.max(hype.t, sec); }
 export function updateProps(dt) {
-  T += dt;
+  T += dt; if (hype.t > 0) hype.t -= dt;
   for (const a of ANIMS) if (shown(a.owner)) a.fn(T, dt);
 }
 
@@ -317,7 +320,7 @@ export function stands(p, x, y, z, ry, w, rows = 4, stepD = 1.25, stepH = 0.9) {
     bodies.instanceMatrix.needsUpdate = true; heads.instanceMatrix.needsUpdate = true;
   };
   place(0, 0.1);
-  anim(g, (t) => place(t, 0.12 + 0.1 * Math.max(0, Math.sin(t * 0.37))));
+  anim(g, (t) => place(hype.t > 0 ? t * 1.6 : t, hype.t > 0 ? 0.55 : 0.12 + 0.1 * Math.max(0, Math.sin(t * 0.37))));
   return g;
 }
 // Torre de luces del estadio
@@ -945,9 +948,9 @@ export function fans(p, y, pts, o = {}) {
     return { g, arms, ph: rnd(0, 6), sp: rnd(0.6, 1.2) };
   });
   anim(p, (t) => ppl.forEach((q) => {
-    const c = Math.sin(t * q.sp + q.ph), hype = c > 0.55;
-    q.g.position.y = y + (hype ? Math.abs(Math.sin(t * 9 + q.ph)) * 0.25 : 0);
-    q.arms.forEach((a, k) => { a.rotation.z = hype ? (k ? -1 : 1) * (2.6 + Math.sin(t * 12 + k) * 0.3) : (k ? -1 : 1) * 0.12; });
+    const c = Math.sin(t * q.sp + q.ph), hyp = c > 0.55 || hype.t > 0;
+    q.g.position.y = y + (hyp ? Math.abs(Math.sin(t * 9 + q.ph)) * (hype.t > 0 ? 0.45 : 0.25) : 0);
+    q.arms.forEach((a, k) => { a.rotation.z = hyp ? (k ? -1 : 1) * (2.6 + Math.sin(t * 12 + k) * 0.3) : (k ? -1 : 1) * 0.12; });
   }));
   return ppl;
 }

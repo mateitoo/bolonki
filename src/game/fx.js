@@ -1,6 +1,7 @@
 // Efectos de la partida como eventos: se ejecutan acá (partículas, sonido, animaciones)
 // y, si esta máquina es la anfitriona de una sala, se guardan para mandarlos a los invitados.
 // Los invitados reciben la lista y la reproducen con playEvent(), así todos ven lo mismo.
+import { cheer } from '../world/props.js';
 import { game, world } from '../state.js';
 import { burst, P } from '../fx/particles.js';
 import { SFX } from '../audio.js';
@@ -19,7 +20,7 @@ const emit = (ev) => { if (recording) outbox.push(ev); };
 export function hitStop(t) { if (game.online !== 'guest') game.hitStopT = Math.max(game.hitStopT || 0, t); }
 export function flash(t, col = '255,255,255') { game.flash2T = Math.max(game.flash2T || 0, t); game.flash2Max = Math.max(game.flash2T, 0.01); game.flash2Col = col; }
 export const FX = {
-  goal(i, x, z) {
+  goal(i, x, z) { cheer();
     const p = game.players[i];
     p.flash = 0.6; world.goalLasers[i].t = 0.4;
     burst(x, 0.5, z, { mat: i, n: 12, sp: 6 }); game.shake = Math.max(game.shake, 0.3); if (i === game.me) flash(0.25, '255,60,60');
@@ -40,7 +41,7 @@ export const FX = {
   tick() { SFX.tick(); emit(['k']); },
   go() { SFX.go(); emit(['o']); },
   // eliminación: barrera láser, animación de derrota y foco de cámara si es el jugador de esta máquina
-  elim(i, animId) {
+  elim(i, animId) { cheer();
     const p = game.players[i];
     const anim = DEATH_ANIMS.find((a) => a.id === animId) || DEATH_ANIMS[0];
     world.barriers[i].y = 0.55; game.shake = Math.max(game.shake, 0.5); hitStop(0.09); if (i === game.me) flash(0.3, '255,80,80');
@@ -71,7 +72,7 @@ export const FX = {
     game.shake = Math.max(game.shake, 0.2);
     emit(['F', i, r2(vx), r2(vz)]);
   },
-  round(w) { SFX.roundWin(); emit(['R', w]); },
+  round(w) { SFX.roundWin(); cheer(3.5); emit(['R', w]); },
   shrinkWarn() { SFX.warnShrink(); emit(['W']); },
 
   /* ---------- Bombardeo ---------- */
@@ -86,7 +87,7 @@ export const FX = {
   },
   jump(i) { SFX.jump(); emit(['J', i]); },
   spring(i) { const p = game.players[i]; SFX.boing(); burst(p.x, (p.fy || 0) + 0.2, p.z, { mat: P.YELLOW, n: 5, sp: 2.5, up: [1, 3], life: [0.2, 0.4] }); emit(['Sp', i]); },
-  tnt(x, y, z) {
+  tnt(x, y, z) { cheer();
     SFX.bomb(); game.shake = Math.max(game.shake, 0.5); hitStop(0.07); flash(0.12, '255,170,60');
     burst(x, y + 0.5, z, { mat: P.ORANGE, n: 16, sp: 7, up: [2, 7], life: [0.3, 0.6], size: 1.3 });
     burst(x, y + 0.5, z, { mat: P.SMOKE, n: 8, sp: 3, up: [1, 3], life: [0.6, 1], g: -1, grow: 2.5 });
@@ -108,7 +109,7 @@ export const FX = {
   kick(x, z) { SFX.kick(); burst(x, 0.3, z, { mat: P.WHITE, n: 4, sp: 3, up: [0.5, 2], life: [0.15, 0.3] }); emit(['Kk', r2(x), r2(z)]); },
   curse(i) { const p = game.players[i]; SFX.curse(); burst(p.x, 1.4, p.z, { mat: P.SMOKE, n: 8, sp: 2, up: [1, 3], life: [0.4, 0.8], g: -1, grow: 1.5 }); emit(['Cu', i]); },
   wall(x, z) { SFX.wall(); game.shake = Math.max(game.shake, 0.15); burst(x, 0.3, z, { mat: P.SMOKE, n: 4, sp: 2.5, up: [0.5, 1.5], life: [0.3, 0.6], g: -1, grow: 1.5 }); emit(['Wl', r2(x), r2(z)]); },
-  blast(i) {
+  blast(i) { cheer();
     const p = game.players[i];
     if (p.death && p.death.anim === BLAST) return;
     p.death = { anim: BLAST, t: 0, st: {}, done: false };
@@ -125,7 +126,7 @@ export const FX = {
     emit(['B', i, r2(lavaY)]);
   },
   // aplastado por un bloque
-  crush(i) {
+  crush(i) { cheer();
     const p = game.players[i];
     if (p.death && p.death.anim === CRUSH) return;
     p.death = { anim: CRUSH, t: 0, st: {}, done: false };
@@ -136,7 +137,7 @@ export const FX = {
 
   /* ---------- Fiesta ---------- */
   // Futbolonki: gol (festejo con papelitos del color del equipo) y pelotazo
-  gol(team, x, z) {
+  gol(team, x, z) { cheer();
     SFX.cheer(); game.shake = Math.max(game.shake, 0.4); hitStop(0.12); flash(0.22, team === 0 ? '80,230,255' : '255,90,80');
     const c = team === 0 ? P.CYAN : P.RED;
     if (game.mode !== 'local') { game.camFocusTarget = 0.42; game.focus.x = x * 0.8; game.focus.z = z; game.camFocusT = 1.5; }

@@ -19,7 +19,8 @@ import { rnd } from '../config.js';
 import { charOf } from '../chars.js';
 import { game } from '../state.js';
 import { settings } from '../settings.js';
-import { scene, mat, add, scaleUV, camera } from '../render/psx.js';
+import { scene, mat, add, scaleUV, camera, waterMat } from '../render/psx.js';
+import { freezeStatic, waterSparkles, mist } from '../world/props.js';
 import { TX } from '../render/textures.js';
 import { decorFiesta } from '../world/decor.js';
 import { input, actKey } from '../input.js';
@@ -114,13 +115,17 @@ function buildWorld() {
   const grp = new THREE.Group(); grp.visible = false; scene.add(grp); W.grp = grp;
   // isla flotante
   add(scaleUV(new THREE.CylinderGeometry(16.5, 15, 1.6, 26, 1), 7, 1), mat({ map: TX.grass }), 0, -0.8, 0, grp);
+  const top = new THREE.CircleGeometry(16.5, 26); top.rotateX(-Math.PI / 2);   // la tapa con el pasto bien repetido (la del cilindro queda estirada)
+  const tuv = top.attributes.uv; for (let i = 0; i < tuv.count; i++) tuv.setXY(i, top.attributes.position.getX(i) / 2.2, top.attributes.position.getZ(i) / 2.2);
+  add(top, mat({ map: TX.grass }), 0, 0.004, 0, grp);
   const under = scaleUV(new THREE.ConeGeometry(15, 9, 16, 2, true), 6, 2); under.rotateX(Math.PI);
   add(under, mat({ map: TX.rock, color: 0x9a8f9e }), 0, -6.1, 0, grp);
   add(scaleUV(new THREE.CylinderGeometry(16.55, 16.55, 0.3, 26, 1, true), 40, 1), mat({ map: TX.lights, unlit: true }), 0, -0.1, 0, grp);
   // fondo: agua oscura muy abajo y rocas flotando
   const sea = scaleUV(new THREE.PlaneGeometry(240, 240, 12, 12), 40); sea.rotateX(-Math.PI / 2);
-  W.seaM = mat({ map: TX.pit, color: 0x2a4a8a, unlit: true });
+  W.seaM = waterMat({ map: TX.water, color: 0x4aa8e0, deep: 0x0a3a7a, sky: 0xd8ecff, glint: 1, wave: 0.3 });
   add(sea, W.seaM, 0, -30, 0, grp);
+  waterSparkles(grp, -29.6, 0, 0, 70, 70, 90, 0xffffff);
   const rockM = mat({ map: TX.rock, color: 0xb0a4b6 });
   for (let k = 0; k < 9; k++) {
     const a = (k / 9) * Math.PI * 2 + 0.3, r = rnd(22, 30);
@@ -180,7 +185,24 @@ function buildWorld() {
   W.ring = add(ring, mat({ color: 0xffd23a, unlit: true }), 0, 0.4, 0, grp);
   W.dice = add(new THREE.BoxGeometry(0.9, 0.9, 0.9), mat({ map: TX.dice, unlit: true }), 0, 3, 0, grp);
   W.dice2 = add(new THREE.BoxGeometry(0.9, 0.9, 0.9), mat({ map: TX.dice, unlit: true }), 0, 3, 0, grp);
-  decorFiesta(grp, { x: SPACES[0].x, z: SPACES[0].z, ang: dirAt(0) });
+  // camino de tierra que une los casilleros (abajo de los puntitos)
+  const roadM = mat({ map: TX.dirt, color: 0xd8c098 });
+  SPACES.forEach((s, i) => {
+    const nx = SPACES[(i + 1) % N], len = Math.hypot(nx.x - s.x, nx.z - s.z);
+    const rd = add(scaleUV(new THREE.BoxGeometry(1.15, 0.02, len), 1, Math.max(1, Math.round(len / 1.5))), roadM, (s.x + nx.x) / 2, 0.012, (s.z + nx.z) / 2, grp);
+    rd.rotation.y = Math.atan2(nx.x - s.x, nx.z - s.z);
+    const cap = new THREE.CircleGeometry(0.58, 10); cap.rotateX(-Math.PI / 2); add(cap, roadM, s.x, 0.013, s.z, grp);
+  });
+  // raíces y lianas colgando del borde de la isla
+  const rootM = mat({ map: TX.wood, color: 0x8a6a4a }), vineM = mat({ map: TX.leaf, color: 0x3f8a3a });
+  for (let k = 0; k < 26; k++) {
+    const a = (k / 26) * Math.PI * 2 + rnd(-0.08, 0.08), r = 15.6, h = rnd(1.5, 4.5);
+    add(new THREE.CylinderGeometry(0.06, 0.12, h, 4), k % 3 ? rootM : vineM, Math.sin(a) * r, -1.4 - h / 2, Math.cos(a) * r, grp).rotation.z = rnd(-0.2, 0.2);
+  }
+  const dg = new THREE.Group(); grp.add(dg);
+  decorFiesta(dg, { x: SPACES[0].x, z: SPACES[0].z, ang: dirAt(0) });
+  mist(dg, -6, 18, 28, 8, 0xffffff, 0.2, 16);
+  freezeStatic(dg);
   // trampas puestas en el camino: pinches rojos
   const spikeM = mat({ color: 0xff3a2a }), baseM = mat({ color: 0x5a1a14 });
   for (let k = 0; k < 8; k++) {
@@ -1036,7 +1058,7 @@ const fiesta = {
   desc: 'TIRÁ EL DADO Y JUNTÁ COPAS',
   points: { label: 'TURNOS', values: [5, 10, 15, 20], key: 'turns', demo: 10 },
   cam: { pos: new THREE.Vector3(0, 26, 22), look: new THREE.Vector3(0, 0, 0), rotate: false },
-  fog: { col: 0x0a1a3a, near: 45, far: 115 },
+  fog: { col: 0x8ac0ea, near: 50, far: 125, amb: 0x6a7490, lcol: 0xfff4e0 },
   humanOut: false,
   tagY: 2.3,
   showTags: () => ['turn', 'move'].includes(S.ph),

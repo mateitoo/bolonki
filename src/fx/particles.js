@@ -40,7 +40,7 @@ export function burst(x, y, z, o) {
     const a = Math.random() * Math.PI * 2, v = rnd(0.3, 1) * (o.sp || 5);
     p.vx = Math.cos(a) * v + (o.vx || 0); p.vz = Math.sin(a) * v + (o.vz || 0);
     p.vy = rnd(o.up ? o.up[0] : 3, o.up ? o.up[1] : 8);
-    p.g = o.g !== undefined ? o.g : 22; p.grow = o.grow || 0; p.s0 = o.size || 1;
+    p.g = o.g !== undefined ? o.g : 22; p.grow = o.grow || 0; p.s0 = o.size || 1; p.fl = o.floor !== undefined ? o.floor : Math.min(0.1, y - 0.05);
     n--;
   }
 }
@@ -62,7 +62,7 @@ export function updateParticles(dt) {
     if (p.life <= 0) continue;
     p.life -= dt;
     p.vy -= p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
-    if (p.y < 0.1 && p.g > 0) { p.y = 0.1; p.vy *= -0.35; p.vx *= 0.7; p.vz *= 0.7; }
+    if (p.y < p.fl && p.g > 0) { p.y = p.fl; p.vy *= -0.35; p.vx *= 0.7; p.vz *= 0.7; }
     const age = 1 - p.life / p.max;
     const sc = p.s0 * (1 + p.grow * age) * (p.grow ? Math.max(0.15, 1 - age * 0.6) : 1);
     p.me.scale.set(sc, sc, sc); p.me.position.set(p.x, p.y, p.z);

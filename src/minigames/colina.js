@@ -144,9 +144,10 @@ function leader() {
   return tie ? -1 : best;
 }
 
+const popV = [], popT = [];
 function win(i) {
   S.over = true; S.overT = END_PAUSE; game.round.over = true; game.round.winner = i;
-  FX.round(i);
+  FX.round(i); game.slowT = 1.0; game.slowK = 0.35;
 }
 
 /* ---------- IA ---------- */
@@ -260,7 +261,7 @@ function separate(a, b) {
 
 function doHit(p) {
   const stick = p.stick > 0;
-  p.cd = stick ? STICK_CD : HIT_CD; p.swingT = SWING_T; p.hitN = (p.hitN || 0) + 1;
+  p.cd = stick ? STICK_CD : HIT_CD; p.swingT = SWING_T; p.hitN = (p.hitN || 0) + 1; p.inv = 0;   // si empujás, se te termina la protección de recién vuelto
   FX.snd('swing');
   // Ayuda para apuntar (solo personas, no bots): si hay alguien cerca y no justo a tu espalda,
   // el personaje gira solo hacia él antes de empujar, y llega un poquito más lejos.
@@ -300,7 +301,7 @@ function doHit(p) {
     const k = (stick ? KB_STICK : KB) * (back ? KB_BACK : 1);
     q.kx = ux * k; q.kz = uz * k; q.vx *= 0.2; q.vz *= 0.2;
     q.vy = stick ? HOP_STICK : HOP; q.onGround = false; q.stunT = STUN;
-    FX.bump(q.x, q.z, stick || back);
+    FX.bump(q.x, q.z, stick || back, q.fy || 0); q.hitT = 0.22;
     FX.sparkle(q.x, (q.fy || 0) + 1.3, q.z, P.YELLOW, back || stick ? 6 : 3);
   }
   if (stick) { p.stick--; if (p.stick <= 0) FX.crate(p.x, p.z); }   // el palo se rompe al tercer golpe
@@ -332,7 +333,7 @@ function step(dt) {
       const opts = [0, 1, 2].filter((k) => k !== S.hill); S.next = opts[(Math.random() * 2) | 0];
       FX.alert();
     }
-    if (S.zoneT <= 0) { S.hill = S.next >= 0 ? S.next : S.hill; S.next = -1; S.zoneT = ZONE_T; FX.snd('powerup'); }
+    if (S.zoneT <= 0) { S.hill = S.next >= 0 ? S.next : S.hill; S.next = -1; S.zoneT = ZONE_T; FX.snd('powerup'); const hh = HILLS[S.hill]; FX.sparkle(hh.x, hh.h + 1.6, hh.z, P.YELLOW, 14); game.shake = Math.max(game.shake, 0.15); }   // la corona aterriza
   }
 
   // palo
@@ -507,6 +508,8 @@ const colina = {
         me.rider.rotation.x = 0.35 * Math.sin(u * Math.PI);
         if (me.armR) me.armR.rotation.set(-1.7 * Math.sin(u * Math.PI), 0, 0.1);
       }
+      // le pegaron: se aplasta un instante
+      if (p.hitT > 0) { p.hitT -= dt; const k = p.hitT * 1.3; me.root.scale.set(CHAR_SCALE * (1 + k), CHAR_SCALE * (1 - k), CHAR_SCALE * (1 + k)); }
       // mareado: se tambalea
       if (p.stunT > 0 && p.out <= 0) me.root.rotation.z = Math.sin(clock * 20) * 0.18;
       // recién vuelto a la orilla: titila
@@ -530,7 +533,12 @@ const colina = {
   drawScore(p, x, y) {
     if (p.empty) { txt('--', x, y, 16, '#555b6e', 'center', COL.goldShadow); return; }
     const v = Math.floor(S.pts[p.i]), tg = game.target || 30;
-    txt(String(v), x, y + 1, 8, S.holders.length === 1 && S.holders[0] === p.i ? COL.gold : COL.white, 'center');
+    // cada punto nuevo: "+1" que sube y el número late
+    if (popV[p.i] === undefined || v < popV[p.i]) popV[p.i] = v;
+    if (v > popV[p.i]) { popV[p.i] = v; popT[p.i] = game.clock; }
+    const pa = game.clock - (popT[p.i] || -9), big = pa < 0.25;
+    if (pa < 0.8) txt('+1', x + 14, y - 4 - Math.round(pa * 14), 8, charOf(p.i).col, 'center', '#000');
+    txt(String(v), x, y + 1, big ? 16 : 8, S.holders.length === 1 && S.holders[0] === p.i ? COL.gold : COL.white, 'center');
     rect(x - 12, y + 11, 24, 4, '#000');
     rect(x - 11, y + 12, Math.round(22 * clamp(S.pts[p.i] / tg, 0, 1)), 2, charOf(p.i).col);
   },

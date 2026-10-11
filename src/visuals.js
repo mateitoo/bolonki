@@ -56,6 +56,7 @@ export function updateVisuals(dt, rdt) {
   updateParticles(dt);
 
   // cámara: la de cada minijuego; se acerca suave al jugador cuando pierde
+  if (game.camFocusT > 0) { game.camFocusT -= rdt; if (game.camFocusT <= 0) game.camFocusTarget = 0; }   // foco de un rato (un gol)
   game.camFocus += (game.camFocusTarget - game.camFocus) * Math.min(1, rdt * 3);
   game.shake *= Math.pow(0.02, rdt);
   // en red (Bola Brava), cada uno ve su propio arco abajo: se rota la cámara según su lugar
@@ -96,6 +97,7 @@ export function updateVisuals(dt, rdt) {
   if (game.shake > lastShake + 0.12 && settings.vibrate !== false) rumble(Math.min(1, game.shake * 2.5));
   lastShake = game.shake;
   camera.lookAt(camLook);
+  if (sh > 0.02) camera.rotateZ(rnd(-1, 1) * sh * 0.035);          // el sacudón también inclina un poquito
 }
 
 let lastShake = 0, lastRumble = 0;

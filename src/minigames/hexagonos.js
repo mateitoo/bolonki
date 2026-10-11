@@ -192,7 +192,7 @@ function placeAll() {
 function startRound() {
   game.round = { n: game.round.n + 1, over: false, winner: -1, t: 0 };
   game.elimOrder = [];
-  game.elapsed = 0;
+  game.elapsed = 0; game.timeScale = 1;                    // (si te habían eliminado, se aceleraba: vuelve a lo normal)
   placeAll();
   if (!demo()) { game.state = 'count'; game.countT = 3.999; FX.tick(); }
 }
@@ -239,7 +239,7 @@ function aiInput(p, dt) {
         const dx = q.x - p.x, dz = q.z - p.z, d = Math.hypot(dx, dz);
         if (d < GRAB_R + 0.2 && (dx * Math.sin(p.ang) + dz * Math.cos(p.ang)) / (d || 1) > 0.3 && Math.random() < D.swing * 1.2) { p.aiHit = true; p.aiHold = rnd(0.5, 1.3); }
       }
-    } else if (p.grab >= 0 && p.grabT > (p.aiHold || 1)) p.aiHit = true;
+    } else if (p.grab >= 0 && (p.grabT > (p.aiHold || 1) || (p.grabT > 0.3 && !solid(p.floor, cellAt(p.x + Math.sin(p.ang) * 2.2, p.z + Math.cos(p.ang) * 2.2))))) p.aiHit = true;   // si adelante hay un pozo, lo tira ahí
   }
   if (p.aiTx === undefined) { p.aiTx = p.x; p.aiTz = p.z; }
   let dx = p.aiTx - p.x, dz = p.aiTz - p.z;
@@ -382,7 +382,7 @@ function step(dt) {
       p.alive = false; game.elimOrder.push(p.i);
       if (p.grab >= 0) release(p, false);
       if (p.grabbedBy >= 0) { const g = game.players[p.grabbedBy]; if (g) { g.grab = -1; g.cd = GRAB_CD; } p.grabbedBy = -1; }
-      FX.snd('splash'); FX.sparkle(p.x, SLIME_Y + 0.5, p.z, MAPS[S.map].fall, 10);
+      FX.snd('splash'); FX.sparkle(p.x, SLIME_Y + 0.5, p.z, MAPS[S.map].fall, 16); game.shake = Math.max(game.shake, 0.3); game.slowT = 0.25; game.slowK = 0.4;
       if (p.i === game.me && game.mode === 'solo') game.timeScale = 1.5;
     }
   }
@@ -396,7 +396,7 @@ function step(dt) {
   if (!R.over && left.length <= 1 && !(demo() && game.players.filter((p) => !p.empty).length < 2)) {
     R.over = true; R.winner = left.length ? left[0].i : -1; R.t = ROUND_PAUSE;
     if (R.winner >= 0) game.players[R.winner].score++;
-    FX.round(R.winner);
+    FX.round(R.winner); game.slowT = 0.9; game.slowK = 0.3; game.timeScale = 1;
     left.forEach((p) => { if (p.grab >= 0) release(p, false); });
   }
   if (R.over) {
@@ -510,11 +510,14 @@ const hexagonos = {
     }
     const blink = ((game.clock * 3) | 0) % 2;
     if (game.elapsed > CRUMBLE_AT && game.elapsed < CRUMBLE_AT + 2.5 && blink) txt('¡EL PISO SE CAE SOLO!', hw / 2, 64, 8, COL.red, 'center');
+    else if (game.elapsed > CRUMBLE_AT - 5 && game.elapsed <= CRUMBLE_AT) txt(`EL PISO SE CAE SOLO EN ${Math.ceil(CRUMBLE_AT - game.elapsed)}`, hw / 2, 64, 8, '#ffb31a', 'center');
+    const vivos = game.players.filter((p) => p.alive && !p.empty).length;
+    rect(hw / 2 - 34, 4, 68, 16, 'rgba(4,6,14,.72)'); txt(`QUEDAN ${vivos}`, hw / 2, 8, 8, vivos <= 2 ? COL.gold : COL.text, 'center');
     const me = game.players[game.me];
     if (game.mode === 'local' || !me || me.empty) return;
     if (!me.alive) txt(MAPS[S.map].bottom === 'VACÍO' ? '¡AL VACÍO!' : `¡AL ${MAPS[S.map].bottom}!`, hw / 2, 196, 16, '#b8ff5a', 'center', '#1a3a00');
     else if (me.grabbedBy >= 0) txt('¡TE AGARRARON!', hw / 2, 196, 16, COL.red, 'center');
-    else if (me.grab >= 0) txt(`¡LO TENÉS! ${actKey()} = TIRARLO`, hw / 2, 200, 8, COL.gold, 'center');
+    else if (me.grab >= 0) { txt(`¡LO TENÉS! ${actKey()} = TIRARLO`, hw / 2, 200, 8, COL.gold, 'center'); const k = Math.max(0, 1 - (me.grabT || 0) / GRAB_T); rect(hw / 2 - 40, 212, 80, 5, '#000'); rect(hw / 2 - 39, 213, Math.round(78 * k), 3, k < 0.35 ? COL.red : COL.gold); }   // cuánto te queda antes de que se suelte solo
   },
 
   /* ---------- online (el anfitrión manda todo; el invitado solo manda para dónde va y si agarró) ---------- */

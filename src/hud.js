@@ -198,8 +198,8 @@ export function drawHud() {
   else if (st === 'count' && game.intro && game.countT > 3 && game.mode !== 'demo') drawIntro(hw, Math.ceil(game.countT));
   else if (st === 'count') {
     game.intro = false;
-    const n = Math.ceil(game.countT);
-    txt(n > 0 ? String(n) : '¡YA!', hw / 2, 100, 32, COL.gold, 'center', COL.goldShadow);
+    const n = Math.ceil(game.countT), f = Math.max(0, game.countT - Math.floor(game.countT));   // cada número aparece grande y se achica
+    txt(n > 0 ? String(n) : '¡YA!', hw / 2, 100 - Math.round(f * f * 10), n > 0 ? 32 + Math.round(f * f * 24) : 40, n > 0 ? COL.gold : '#7dff9a', 'center', COL.goldShadow);
     const bots = game.players.some((p) => p.ctrl === 'ai' || p.isBot);
     if (bots) txt(`CPU: ${DIFFICULTIES[game.difficulty].label}`, hw / 2, 142, 8, COL.teal, 'center');
     if (game.online !== 'off') txt('PARTIDA ONLINE', hw / 2, 156, 8, COL.dim, 'center');
@@ -214,6 +214,9 @@ export function drawHud() {
       txt('LOS DE LOS COSTADOS: ARRIBA / ABAJO', hw / 2, 170, 8, '#ffb31a', 'center');
     }
   }
+  // festejo del ganador y destellos de pantalla
+  if (game.celebT > 0 && game.celebText) { const k = Math.min(1, (2.0 - game.celebT) / 0.25); txt(game.celebText, hw / 2, 70, Math.round(12 + k * 12), game.celebCol || COL.gold, 'center', COL.goldShadow); }
+  if (game.flash2T > 0) { hx.fillStyle = `rgba(${game.flash2Col || '255,255,255'},${(0.55 * game.flash2T / (game.flash2Max || 0.2)).toFixed(3)})`; hx.fillRect(0, 0, hw, 240); game.flash2T -= ui.dt || 1 / 60; }
   const fiestaMg = !!(game.setup && game.setup.fiesta);
   const meP = game.players[game.me];
   if (st === 'play' && game.humanOut) {

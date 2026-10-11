@@ -471,7 +471,7 @@ function step(dt) {
   // ¿terminó la ronda?
   const left = game.players.filter((p) => p.alive && !p.empty);
   if (!R.over && left.length <= 1) {
-    R.over = true; R.winner = left.length ? left[0].i : -1; R.t = ROUND_PAUSE;
+    R.over = true; R.winner = left.length ? left[0].i : -1; R.t = ROUND_PAUSE; game.slowT = 0.9; game.slowK = 0.3; game.timeScale = 1;
     if (R.winner >= 0) game.players[R.winner].score++;
     FX.round(R.winner);
   }
@@ -551,7 +551,13 @@ const bombardeo = {
       const k = o.k, y0 = top(k), f = clamp(o.t / o.warn, 0, 1), left = o.warn - o.t;
       const sh = W.shadows[k]; sh.visible = true; sh.position.y = y0 + 0.03;
       const s = 0.35 + f * 0.6; sh.scale.set(s, 1, s);
-      const g = 0.02 + 0.2 * (1 - f); sh.material.uniforms.uColor.value.setRGB(g, g, g * 1.1);
+      // la sombra avisa qué cae (verde: resorte, naranja: explosiva) y late en rojo si va a caer donde estás vos
+      const meP = game.players[game.me], mine = meP && meP.alive && !meP.empty && game.mode !== 'local' && tileOf(meP.x, meP.z) === k;
+      const g = 0.02 + 0.2 * (1 - f), pulse = mine ? (0.5 + 0.5 * Math.sin(clock * 22)) * f : 0;
+      if (o.kind === 's') sh.material.uniforms.uColor.value.setRGB(g * 0.4, g + 0.25 * f, g * 0.4);
+      else if (o.kind === 'x') sh.material.uniforms.uColor.value.setRGB(g + 0.35 * f, g + 0.12 * f, g * 0.3);
+      else sh.material.uniforms.uColor.value.setRGB(g + pulse * 0.7, g, g * 1.1);
+      if (mine && f > 0.25 && !o._beeped) { o._beeped = true; SFX.alert(); }
       if (m >= W.falling.length) continue;
       let y;
       if (left < FALL_T) { const u = 1 - left / FALL_T; y = y0 + CS / 2 + HOVER_LOW * (1 - u * u); }       // la caída
@@ -611,6 +617,7 @@ const bombardeo = {
       rect(0, 96, hw, 34, 'rgba(4,6,14,.7)');
       txt(t, hw / 2, 104, 16, w < 0 ? COL.white : charOf(w).col, 'center', COL.goldShadow);
     }
+    if (st === 'play' && !R.over && game.elapsed > LAVA_WARN && game.elapsed < LAVA_AT) txt(`EMPIEZA A SUBIR EN ${Math.ceil(LAVA_AT - game.elapsed)}`, hw / 2, 78, 8, '#ffb31a', 'center');
     if (st === 'play' && !R.over && game.elapsed > LAVA_WARN && game.elapsed < LAVA_AT + 2.5 && ((game.clock * 3) | 0) % 2) {
       txt(MAPS[MAP.i].warn, hw / 2, 64, 8, COL.red, 'center');
     }

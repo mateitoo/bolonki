@@ -12,7 +12,8 @@ import { scene, mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 import { decorFutbol } from '../world/decor.js';
 import { decorPotrero, decorHielo, decorPlayaFutbol } from '../world/decorFutbol.js';
-import { burst, P } from '../fx/particles.js';
+import { burst, P, dropDot } from '../fx/particles.js';
+import { SFX } from '../audio.js';
 import { input } from '../input.js';
 import { FX } from '../game/fx.js';
 import { resetPodVisual } from '../world/pods.js';
@@ -228,7 +229,7 @@ function kickoff(conceded) {
   for (const t of [0, 1]) {
     const ms = members(t), d = dirOf(t);
     ms.forEach((p, k) => {
-      let x = -d * 5.5, z = ms.length === 1 ? 0 : (k === 0 ? -3 : 3);
+      let x = -d * (t === conceded ? 4.2 : 5.5), z = ms.length === 1 ? 0 : (k === 0 ? -3 : 3);   // el que recibió el gol saca más cerca
       resetPodVisual(p);
       Object.assign(p, { x, z, vx: 0, vz: 0, dashT: 0, cd: 0, wantDash: false, aiDash: false, thinkT: 0, alive: true, death: null });
       p.ang = d > 0 ? Math.PI / 2 : -Math.PI / 2;
@@ -551,6 +552,7 @@ function step(dt) {
     if (S.scorer >= 0) S.pg[S.scorer]++;
     S.goalTeam = team; S.goalT = GOAL_PAUSE;
     if (!demo() && (S.goals[team] >= (game.target || 3) || S.golden)) S.ending = true;
+    game.slowT = 0.9; game.slowK = 0.3;                        // el gol en cámara lenta
     if (demo() && S.goals[team] >= 5) S.ending = true;
     syncScores();
     FX.gol(team, b.x, b.z);
@@ -598,6 +600,7 @@ const futbol = {
       const mx = b.x - W.lastB[0], mz = b.z - W.lastB[1], ml = Math.hypot(mx, mz);
       if (ml > 1e-4 && ml < 3) { W.q = W.q || new THREE.Quaternion(); W.ax = W.ax || new THREE.Vector3(); W.ax.set(mz / ml, 0, -mx / ml); W.q.setFromAxisAngle(W.ax, ml / BR); W.ball.quaternion.premultiply(W.q); }
     }
+    if (W.lastB && Math.hypot(b.x - W.lastB[0], b.z - W.lastB[1]) / Math.max(dt, 1e-3) > 10.5) dropDot(b.x, b.z);   // pelotazo: deja estela
     W.lastB = [b.x, b.z];
     W.ball.position.set(b.x, BR + b.h, b.z);
     const B = S.bs, k0 = BR / BR0;
@@ -623,11 +626,12 @@ const futbol = {
       m.root.position.set(p.x, Math.sin(clock * 6 + p.i) * 0.05, p.z);
       m.root.scale.setScalar(POD_SCALE);
       m.root.rotation.set(0, p.ang || 0, 0);
-      const e = p.dashT > 0 ? 0.9 : 0; m.hullM.uniforms.uEmissive.value.setRGB(e, e * 0.9, e * 0.6);
-      m.veh.rotation.x = p.dashT > 0 ? -0.18 : 0;
+      if (p.dashVis > 0) p.dashVis -= dt;
+      const dsh = p.dashT > 0 || p.dashVis > 0, e = dsh ? 0.9 : 0; m.hullM.uniforms.uEmissive.value.setRGB(e, e * 0.9, e * 0.6);
+      m.veh.rotation.x = dsh ? -0.18 : 0;
       m.sh.position.set(p.x, 0.03, p.z); m.sh.rotation.y = p.ang || 0; m.sh.scale.set(1.95 * POD_SCALE, 1, 1.6 * POD_SCALE); m.sh.visible = true;
       ring.visible = true; ring.position.set(p.x, 0.035, p.z);
-      W.ringM[p.i].uniforms.uColor.value.setHex(TEAM_HEX[t]);
+      W.ringM[p.i].uniforms.uColor.value.setHex(TEAM_HEX[t]); if (p.cd > 0) W.ringM[p.i].uniforms.uColor.value.multiplyScalar(0.4);   // apagado mientras no podés embestir
       // la nave del color del equipo (casco y paragolpes)
       m.hullM.uniforms.uColor.value.setHex(TEAM_HULL[t]); m.bumpM.uniforms.uColor.value.setHex(TEAM_BUMP[t]);
     }
@@ -668,6 +672,7 @@ const futbol = {
         txt(who, cx, 119, 8, fin ? TEAM_COL[t] : sc >= 0 ? charOf(sc).col : COL.dim, 'center');
       }
     }
+    if (S.freeze > 0 && S.goalT <= 0 && game.online !== 'guest' && !S.ending) txt('¡SAQUE!', cx, 64, 16, COL.white, 'center', '#000');
     if (S.golden && S.goldT < 3 && ((game.clock * 3) | 0) % 2) txt('¡EMPATE! GOL DE ORO', cx, 64, 16, COL.gold, 'center', COL.goldShadow);
     else if (S.golden && S.goldT > 8 && S.goldT < 11 && ((game.clock * 3) | 0) % 2) txt('¡LOS ARCOS SE AGRANDAN!', cx, 64, 8, COL.red, 'center');
   },
@@ -708,7 +713,7 @@ const futbol = {
     const c = input.ctl.all, [wx, wz] = camMove(c.x, c.y);
     sendInput({ x: Math.round(wx * 100) / 100, y: Math.round(-wz * 100) / 100, h: hits });
   },
-  guestHitFx() {},
+  guestHitFx() { const me = game.players[game.me]; if (me) { me.dashVis = 0.22; SFX.dash(); } },   // la embestida se ve al toque, sin esperar al anfitrión
   _S: S,                                        // para las pruebas
 };
 

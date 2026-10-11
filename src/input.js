@@ -118,12 +118,16 @@ export function initInput(stage, h) {
   window.addEventListener('gamepaddisconnected', () => hooks.onPadConnect(false));
 }
 
+// vibración corta del celular (si está activada en las opciones)
+export function buzz(ms) { try { if (hooks.canBuzz && hooks.canBuzz() && navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* sin vibración */ } }
+
 // Botones táctiles (celular): mover, golpe y pausa
 export function bindTouch(id, onDown, onUp) {
   const el = document.getElementById(id); if (!el) return;
   el.addEventListener('pointerdown', (e) => {
     e.preventDefault(); el.setPointerCapture(e.pointerId); el.classList.add('on');
     input.device = 'pointer'; onDown(); hooks.onGesture();
+    if (id === 'th') buzz(12);                                      // un toquecito al apretar el golpe
   });
   const up = () => { el.classList.remove('on'); if (onUp) onUp(); };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
@@ -139,7 +143,11 @@ export function bindDpad(id) {
     const r = el.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
     let dir = null;
     if (document.body.dataset.pad === 'flechash') dir = dx > 0 ? 'r' : 'l';        // solo izquierda / derecha: la mitad que tocás
-    else if (Math.hypot(dx, dy) > r.width * 0.12) dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'r' : 'l') : (dy > 0 ? 'd' : 'u');
+    else if (Math.hypot(dx, dy) > r.width * 0.12) {
+      // con un poco de "memoria": en las diagonales se queda con la dirección que venía (no titila entre dos)
+      const ax = Math.abs(dx), ay = Math.abs(dy), horiz = last === 'l' || last === 'r' ? ax > ay * 0.72 : last === 'u' || last === 'd' ? ax > ay * 1.38 : ax > ay;
+      dir = horiz ? (dx > 0 ? 'r' : 'l') : (dy > 0 ? 'd' : 'u');
+    }
     input.touch.x = dir === 'r' ? 1 : dir === 'l' ? -1 : 0;
     input.touch.y = dir === 'u' ? 1 : dir === 'd' ? -1 : 0;
     Object.entries(arms).forEach(([k, a]) => a && a.classList.toggle('on', k === dir));

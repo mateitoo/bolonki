@@ -47,7 +47,7 @@ export function resetMatch(mode, setup) {
   // personajes: los que vienen en la partida; la demo de los menús usa los de siempre
   if (cfg.chars) applyChars(cfg.chars); else if (demo || !game.chars) applyChars(demo && game.players[0].mesh ? randomChars() : null);
   Object.assign(game, {
-    state: mode, elapsed: 0, spawnT: 0.8, pending: null, winner: -1, timeScale: 1, slowT: 0, slowK: 1,
+    state: mode, elapsed: 0, spawnT: 0.8, pending: null, winner: -1, timeScale: 1, slowT: 0, slowK: 1, hitStopT: 0, flash2T: 0, celebT: 0, celebDone: false, camFocusT: 0,
     humanOut: false, pendingEnd: false, demoResetT: 0, camFocusTarget: 0, showcaseT: 0,
     me: cfg.me, setup: cfg, mode: cfg.mode || (demo ? 'demo' : 'solo'), target: cfg.points, elimOrder: [], camYaw: 0, camPitch: 0,
   });

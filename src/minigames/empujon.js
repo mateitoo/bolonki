@@ -352,7 +352,7 @@ function aiInput(p, dt) {
       }
     }
     // se viene una bola de fuego justo acá: los más vivos se corren (hacia el centro, no hacia el borde)
-    const hz = S.fb.filter((b) => b.st === 0 && b.u > 0.35).map((b) => [b.tx, b.tz, FB_HIT]).concat(S.ic.filter((c) => c.u > 0.2).map((c) => [c.x, c.z, IC_R]));
+    const hz = S.fb.filter((b) => b.st === 0 && b.u > 0.35).map((b) => [b.tx, b.tz, FB_HIT]).concat(S.fb.filter((b) => b.st === 1).map((b) => [b.x + (b.vx || 0) * 0.4, b.z + (b.vz || 0) * 0.4, 1.6])).concat(S.ic.filter((c) => c.u > 0.2).map((c) => [c.x, c.z, IC_R]));
     for (const [hx, hzz, hr] of hz) {
       if (Math.random() > D.lead) continue;
       const dx = p.x - hx, dz = p.z - hzz, dd = Math.hypot(dx, dz);
@@ -409,7 +409,7 @@ function collide(a, b) {
   const hard = a.dashT > 0 || b.dashT > 0;
   if (a.dashT > 0) { b.vx += nx * DASH_PUSH; b.vz += nz * DASH_PUSH; a.dashT = 0; }
   if (b.dashT > 0) { a.vx -= nx * DASH_PUSH; a.vz -= nz * DASH_PUSH; b.dashT = 0; }
-  if (-rv > 2) FX.bump((a.x + b.x) / 2, (a.z + b.z) / 2, hard);
+  if (-rv > 2) { FX.bump((a.x + b.x) / 2, (a.z + b.z) / 2, hard); a.hitT = b.hitT = hard ? 0.22 : 0.12; }
 }
 
 let crumbleT = 0;
@@ -479,7 +479,7 @@ function step(dt) {
   if (!R.over && left.length <= 1) {
     R.over = true; R.winner = left.length ? left[0].i : -1; R.t = ROUND_PAUSE;
     if (R.winner >= 0) game.players[R.winner].score++;
-    FX.round(R.winner);
+    FX.round(R.winner); game.slowT = 0.9; game.slowK = 0.3; game.timeScale = 1;
   }
   if (R.over) {
     R.t -= dt;
@@ -573,9 +573,14 @@ const empujon = {
       if (p.death || p.empty) { if (p.empty) { m.root.visible = false; m.sh.visible = false; } continue; }
       m.root.visible = true;
       m.root.position.set(p.x, Math.sin(clock * 6 + p.i) * 0.05, p.z);
-      m.root.scale.setScalar(POD_SCALE);
-      m.root.rotation.set(0, p.ang || 0, 0);
-      const e = p.dashT > 0 ? 0.9 : 0; m.hullM.uniforms.uEmissive.value.setRGB(e, e * 0.9, e * 0.6);
+      if (p.hitT > 0) p.hitT -= dt;
+      const hk = Math.max(0, p.hitT || 0) * 1.4, edge = Math.hypot(p.x, p.z) > game.radius - 1.3 && !(game.round && game.round.over) && ((clock * 10) | 0) % 2;
+      m.root.scale.set(POD_SCALE * (1 + hk), POD_SCALE * (1 - hk * 0.8), POD_SCALE * (1 + hk));
+      // se inclina hacia donde dobla
+      const turn = p._la === undefined ? 0 : Math.atan2(Math.sin((p.ang || 0) - p._la), Math.cos((p.ang || 0) - p._la)) / Math.max(dt, 1e-3); p._la = p.ang || 0; p._lean = (p._lean || 0) + (clamp(-turn * 0.04, -0.3, 0.3) - (p._lean || 0)) * Math.min(1, dt * 8);
+      m.root.rotation.set(0, p.ang || 0, p._lean);
+      const e = p.dashT > 0 ? 0.9 : hk > 0 ? 0.7 : 0; m.hullM.uniforms.uEmissive.value.setRGB(edge ? 0.8 : e, e * 0.9 * (edge ? 0.2 : 1), e * 0.6 * (edge ? 0.2 : 1));   // al borde: titila en rojo
+      if (p.dashT > 0 && Math.random() < 0.7) burst(p.x - Math.sin(p.ang || 0) * 0.8, 0.5, p.z - Math.cos(p.ang || 0) * 0.8, { mat: p.i, n: 1, sp: 0.6, up: [0.2, 0.8], life: [0.15, 0.3], size: 0.8 });   // estela de la embestida
       if (p.stunT > 0) {                               // mareado: se bambolea y le dan vueltas estrellitas
         m.root.rotation.z = Math.sin(clock * 16) * 0.2; m.root.rotation.x = Math.cos(clock * 13) * 0.12;
         if (Math.random() < 0.35) { const a = clock * 9 + Math.random(); burst(p.x + Math.cos(a) * 0.8, 2.6, p.z + Math.sin(a) * 0.8, { mat: P.YELLOW, n: 1, sp: 0.2, up: [0.1, 0.4], life: [0.2, 0.35], g: 0, size: 0.7 }); }

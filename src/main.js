@@ -3,11 +3,12 @@ import '@fontsource/press-start-2p/latin.css';          // la fuente pixel va in
 import { closeAllMenus, menuOpen, topMenu } from './ui/menu.js';
 import { game } from './state.js';
 import { CHARS, SIDES } from './config.js';
+import { charOf } from './chars.js';
 import { scene, camera, initRenderer } from './render/psx.js';
 import './render/textures.js';
 import { buildPod } from './world/pods.js';
-import { initParticles } from './fx/particles.js';
-import { ensureAudio } from './audio.js';
+import { initParticles, burst, P } from './fx/particles.js';
+import { ensureAudio, SFX } from './audio.js';
 import { updateMusic, checkSongs, renderSong, musicState } from './music.js';
 import { resetMatch, deathsRunning, eliminate, nextDemo, demoSetup } from './game/match.js';
 import { MINIGAMES, mg, mgById } from './minigames/registry.js';
@@ -22,6 +23,7 @@ import fiesta, { S as fiestaState, startFiesta } from './fiesta/board.js';
 import salaStage from './sala/stage.js';
 import { updateVisuals } from './visuals.js';
 import { initHud, drawHud, showToast } from './hud.js';
+import { ui } from './ui/draw.js';
 import { initDisplay, toHud, toggleFullscreen, fullscreenGesture, isFullscreen, canFullscreen, perf } from './display.js';
 import { input, initInput, pollInput, bindTouch, bindStick, bindDpad, resetZoom, pushEvent } from './input.js';
 import { syncNativeText } from './ui/textEntry.js';
@@ -55,6 +57,7 @@ initDisplay(stage, screen, glc, hud);
 
 // --- entrada ---
 initInput(stage, {
+  canBuzz: () => settings.vibrate !== false,
   toHud,
   onGesture: () => { ensureAudio(); fullscreenGesture(); },
   onFullscreenKey: () => { toggleFullscreen(); },
@@ -94,6 +97,20 @@ if (capsule) {
   resetMatch('count', s); game.countT = 0.05; game.intro = false;
 }
 
+// festejo al terminar la partida: cámara lenta, la cámara va al ganador, papelitos y su nombre en grande
+function celebrate() {
+  const w = game.players[game.winner];
+  game.celebT = 2.0; game.slowT = 1.4; game.slowK = 0.35;
+  if (w) {
+    const y = (w.fy || 0) + 1;
+    if (w.alive !== false) { game.camFocusTarget = 0.5; game.focus.x = w.x; game.focus.z = w.z; }
+    [0, 1, 2].forEach((k) => setTimeout(() => { burst(w.x, y + k * 0.4, w.z, { mat: w.i, n: 14, sp: 6, up: [4, 9], life: [0.6, 1.2] }); burst(w.x, y, w.z, { mat: P.YELLOW, n: 8, sp: 5, up: [4, 8], life: [0.6, 1.1] }); }, k * 260));
+    const mine = w.i === game.me && game.mode !== 'local';
+    game.celebText = mine ? '¡GANASTE!' : `¡GANA ${w.name || charOf(w.i).name}!`; game.celebCol = mine ? '#ffd23f' : charOf(w.i).col;
+  } else { game.celebText = '¡FIN!'; game.celebCol = '#ffffff'; }
+  SFX.fanfare ? SFX.fanfare() : SFX.win();
+}
+
 // --- loop: física a 120 Hz fijos, render a la tasa de la pantalla ---
 const STEP = 1 / 120;
 let last = performance.now(), acc = 0;
@@ -115,6 +132,7 @@ function frame(now) {
   updateFlow();
 
   let ts = game.timeScale;
+  if (game.hitStopT > 0) { game.hitStopT -= rdt; ts *= 0.04; }
   if (game.slowT > 0) { game.slowT -= rdt; ts *= game.slowK; if (game.slowT <= 0) game.slowK = 1; }
   const dt = rdt * ts;
   const frozen = game.state === 'paused';
@@ -134,8 +152,10 @@ function frame(now) {
     if (game.pendingEnd && !deathsRunning()) {
       game.pendingEnd = false;
       if (inDemo()) game.demoResetT = 2.2;
-      else if (game.state === 'play') { game.state = 'end'; game.timeScale = 1; onMatchEnd(); }
+      else if (game.state === 'play' && game.minigame !== 'fiesta' && !(game.celebT > 0) && !game.celebDone) celebrate();
+      else if (game.state === 'play' && (game.minigame === 'fiesta' || game.celebDone)) { game.state = 'end'; game.timeScale = 1; game.celebDone = false; onMatchEnd(); }
     }
+    if (game.celebT > 0) { game.celebT -= rdt; if (game.celebT <= 0) { game.celebDone = true; game.pendingEnd = true; } }
     if (inDemo() && game.demoResetT > 0) {
       game.demoResetT -= rdt;
       if (game.demoResetT <= 0) { const st = game.state; nextDemo(); resetMatch(st); }
@@ -151,7 +171,7 @@ function frame(now) {
   updateVisuals(frozen ? 0 : dt, frozen ? 0 : rdt);
   updateMusic();
   renderer.render(scene, camera);
-  drawHud();
+  ui.dt = rdt; drawHud();
 
   syncNativeText();                              // celular: el campo de texto real para el apodo / código
   // el botón táctil dice qué hace en este minijuego

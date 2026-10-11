@@ -103,7 +103,7 @@ export function step(dt) {
         if (q.spin) { b.vx += -mz * q.spin; b.vz += mx * q.spin; }        // la calesita gira: la tira de costado
         const sp = Math.hypot(b.vx, b.vz), ns = Math.min(Math.max(sp * 1.08, 12), BALL.maxNormal);
         b.vx *= ns / sp; b.vz *= ns / sp;
-        FX.snd(q.snd || 'boing');
+        FX.snd(q.snd || 'pad');
         if (q.onHit) q.onHit(b);
       }
     }

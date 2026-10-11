@@ -15,11 +15,14 @@ let recording = false;
 export function setRecording(on) { recording = on; outbox.length = 0; }
 const emit = (ev) => { if (recording) outbox.push(ev); };
 
+// congelado cortito (le da peso a los golpes) y destello de toda la pantalla
+export function hitStop(t) { if (game.online !== 'guest') game.hitStopT = Math.max(game.hitStopT || 0, t); }
+export function flash(t, col = '255,255,255') { game.flash2T = Math.max(game.flash2T || 0, t); game.flash2Max = Math.max(game.flash2T, 0.01); game.flash2Col = col; }
 export const FX = {
   goal(i, x, z) {
     const p = game.players[i];
     p.flash = 0.6; world.goalLasers[i].t = 0.4;
-    burst(x, 0.5, z, { mat: i, n: 12, sp: 6 }); game.shake = Math.max(game.shake, 0.3);
+    burst(x, 0.5, z, { mat: i, n: 12, sp: 6 }); game.shake = Math.max(game.shake, 0.3); if (i === game.me) flash(0.25, '255,60,60');
     SFX.goal(); emit(['g', i, r2(x), r2(z)]);
   },
   warn(ci) { world.chevSets[ci].warn = 0.7; SFX.warn(); emit(['w', ci]); },
@@ -29,7 +32,7 @@ export const FX = {
     emit(['f', ci, r2(x), r2(z)]);
   },
   power(x, z) {
-    SFX.power(); burst(x, 0.6, z, { mat: P.WHITE, n: 6, sp: 5, life: [0.2, 0.4] });
+    SFX.power(); burst(x, 0.6, z, { mat: P.WHITE, n: 6, sp: 5, life: [0.2, 0.4] }); hitStop(0.045);
     game.shake = Math.max(game.shake, 0.15); emit(['p', r2(x), r2(z)]);
   },
   bounce() { SFX.bounce(); emit(['b']); },
@@ -40,7 +43,7 @@ export const FX = {
   elim(i, animId) {
     const p = game.players[i];
     const anim = DEATH_ANIMS.find((a) => a.id === animId) || DEATH_ANIMS[0];
-    world.barriers[i].y = 0.55; game.shake = Math.max(game.shake, 0.5);
+    world.barriers[i].y = 0.55; game.shake = Math.max(game.shake, 0.5); hitStop(0.09); if (i === game.me) flash(0.3, '255,80,80');
     p.death = { anim, t: 0, st: {}, done: false };
     anim.start(p, p.death.st);
     // la cámara se acerca a tu nave (no en el local: los demás siguen jugando en la misma pantalla)
@@ -53,10 +56,10 @@ export const FX = {
     SFX.dash(); burst(x, 0.4, z, { mat: P.WHITE, n: 5, sp: 3, up: [0.5, 2], life: [0.15, 0.3] });
     emit(['D', i, r2(x), r2(z)]);
   },
-  bump(x, z, hard) {
-    SFX.bump(); burst(x, 0.9, z, { mat: P.YELLOW, n: hard ? 9 : 5, sp: hard ? 6 : 4, up: [1, 4], life: [0.1, 0.25] });
+  bump(x, z, hard, y = 0) {
+    SFX.bump(); burst(x, 0.9 + y, z, { mat: P.YELLOW, n: hard ? 9 : 5, sp: hard ? 6 : 4, up: [1, 4], life: [0.1, 0.25], floor: y + 0.1 }); if (hard) hitStop(0.06);
     game.shake = Math.max(game.shake, hard ? 0.28 : 0.12);
-    emit(['u', r2(x), r2(z), hard ? 1 : 0]);
+    emit(['u', r2(x), r2(z), hard ? 1 : 0, r2(y)]);
   },
   // se cayó de la plataforma: animación de caída (vx, vz: con qué velocidad salió)
   fall(i, vx, vz) {
@@ -75,7 +78,8 @@ export const FX = {
   alert() { SFX.alert(); emit(['A']); },
   // un bloque tocó el piso en (x, z)
   slam(x, z, y = 0) {
-    SFX.slam(); game.shake = Math.max(game.shake, 0.22);
+    const me = game.players[game.me], dd = me && game.mode !== 'local' ? Math.hypot(me.x - x, me.z - z) : 4;
+    SFX.slam(); game.shake = Math.max(game.shake, 0.22 * Math.max(0.3, Math.min(1.2, 1.3 - dd / 9)));
     for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) burst(x + dx * 0.9, y + 0.2, z + dz * 0.9, { mat: P.SMOKE, n: 2, sp: 2.5, up: [0.5, 1.5], life: [0.3, 0.6], g: -1, grow: 1.5 });
     burst(x, y + 0.3, z, { mat: P.DEBRIS, n: 4, sp: 4, up: [2, 5], life: [0.3, 0.6] });
     emit(['L', r2(x), r2(z), r2(y)]);
@@ -83,7 +87,7 @@ export const FX = {
   jump(i) { SFX.jump(); emit(['J', i]); },
   spring(i) { const p = game.players[i]; SFX.boing(); burst(p.x, (p.fy || 0) + 0.2, p.z, { mat: P.YELLOW, n: 5, sp: 2.5, up: [1, 3], life: [0.2, 0.4] }); emit(['Sp', i]); },
   tnt(x, y, z) {
-    SFX.bomb(); game.shake = Math.max(game.shake, 0.5);
+    SFX.bomb(); game.shake = Math.max(game.shake, 0.5); hitStop(0.07); flash(0.12, '255,170,60');
     burst(x, y + 0.5, z, { mat: P.ORANGE, n: 16, sp: 7, up: [2, 7], life: [0.3, 0.6], size: 1.3 });
     burst(x, y + 0.5, z, { mat: P.SMOKE, n: 8, sp: 3, up: [1, 3], life: [0.6, 1], g: -1, grow: 2.5 });
     burst(x, y + 0.5, z, { mat: P.DEBRIS, n: 8, sp: 6, up: [3, 8], life: [0.4, 0.8] });
@@ -97,7 +101,7 @@ export const FX = {
   },
   /* ---------- Petardos ---------- */
   place() { SFX.place(); emit(['Pl']); },
-  boom(x, z) { SFX.bomb(); game.shake = Math.max(game.shake, 0.35); burst(x, 0.8, z, { mat: P.ORANGE, n: 10, sp: 5, up: [2, 6], life: [0.25, 0.5] }); burst(x, 0.8, z, { mat: P.SMOKE, n: 5, sp: 2, up: [1, 3], life: [0.5, 0.9], g: -1, grow: 2 }); emit(['Bm', r2(x), r2(z)]); },
+  boom(x, z) { SFX.bomb(); game.shake = Math.max(game.shake, 0.35); hitStop(0.04); burst(x, 0.8, z, { mat: P.ORANGE, n: 10, sp: 5, up: [2, 6], life: [0.25, 0.5] }); burst(x, 0.8, z, { mat: P.SMOKE, n: 5, sp: 2, up: [1, 3], life: [0.5, 0.9], g: -1, grow: 2 }); emit(['Bm', r2(x), r2(z)]); },
   crate(x, z) { burst(x, 0.6, z, { mat: P.DEBRIS, n: 6, sp: 4, up: [2, 6], life: [0.3, 0.6] }); emit(['Cr', r2(x), r2(z)]); },
   powerup(x, z) { SFX.powerup(); burst(x, 0.8, z, { mat: P.YELLOW, n: 8, sp: 3, up: [2, 5], life: [0.2, 0.5] }); emit(['Pu', r2(x), r2(z)]); },
   machine(x, z) { SFX.clunk(); burst(x, 1.2, z, { mat: P.SMOKE, n: 3, sp: 1, up: [0.5, 1.5], life: [0.4, 0.7], g: -1, grow: 1.5 }); emit(['Mc', r2(x), r2(z)]); },
@@ -126,15 +130,16 @@ export const FX = {
     if (p.death && p.death.anim === CRUSH) return;
     p.death = { anim: CRUSH, t: 0, st: {}, done: false };
     CRUSH.start(p, p.death.st);
-    game.shake = Math.max(game.shake, 0.4);
+    game.shake = Math.max(game.shake, 0.4); hitStop(0.08);
     emit(['C', i]);
   },
 
   /* ---------- Fiesta ---------- */
   // Futbolonki: gol (festejo con papelitos del color del equipo) y pelotazo
   gol(team, x, z) {
-    SFX.cheer(); game.shake = Math.max(game.shake, 0.4);
+    SFX.cheer(); game.shake = Math.max(game.shake, 0.4); hitStop(0.12); flash(0.22, team === 0 ? '80,230,255' : '255,90,80');
     const c = team === 0 ? P.CYAN : P.RED;
+    if (game.mode !== 'local') { game.camFocusTarget = 0.42; game.focus.x = x * 0.8; game.focus.z = z; game.camFocusT = 1.5; }
     burst(x, 1, z, { mat: c, n: 16, sp: 7, up: [3, 9], life: [0.5, 1.0] });
     burst(x, 1, z, { mat: P.YELLOW, n: 10, sp: 6, up: [3, 8], life: [0.5, 1.0] });
     burst(x, 1, z, { mat: P.WHITE, n: 8, sp: 5, up: [2, 7], life: [0.4, 0.9] });
@@ -180,7 +185,7 @@ export function playEvent(ev) {
     case 'o': FX.go(); break;
     case 'e': FX.elim(ev[1], ev[2]); break;
     case 'D': FX.dash(ev[1], ev[2], ev[3]); break;
-    case 'u': FX.bump(ev[1], ev[2], !!ev[3]); break;
+    case 'u': FX.bump(ev[1], ev[2], !!ev[3], ev[4] || 0); break;
     case 'F': FX.fall(ev[1], ev[2], ev[3]); break;
     case 'R': FX.round(ev[1]); break;
     case 'W': FX.shrinkWarn(); break;

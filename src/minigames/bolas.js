@@ -4,7 +4,7 @@ import { register, fixedMap } from './registry.js';
 import { BR, HUMAN_SPEED } from '../config.js';
 import { game, world } from '../state.js';
 import { buildArena, arenaGroup, arenaMats } from '../world/arena.js';
-import { R, CORN } from '../config.js';
+import { R, CORN, H, SIDES } from '../config.js';
 import { P as PART } from '../fx/particles.js';
 import { decorEspacio, decorCirco, decorPlaya, decorTerraza, carousel, column, rubble, crab } from '../world/decorBolas.js';
 import { TX } from '../render/textures.js';
@@ -209,18 +209,27 @@ const bolas = {
       if (p.empty) { m.root.visible = false; m.sh.visible = false; continue; }
       if (p.spin > 0) p.spin = Math.max(0, p.spin - dt * 4.5);
       m.root.position.set(p.x, Math.sin(clock * 6 + p.i) * 0.05, p.z);
-      m.root.scale.set(1, 1, 0.86);          // un poco menos profunda: queda justa con la línea del arco
+      // te hicieron un gol: la nave se aplasta y titila en rojo
+      const hit = p.flash > 0 ? p.flash / 0.6 : 0, sq = hit * 0.25 * Math.abs(Math.sin(hit * 9));
+      m.root.scale.set(1 + sq, 1 - sq, 0.86 * (1 + sq));          // un poco menos profunda: queda justa con la línea del arco
       m.root.rotation.y = m.baseRot + (p.spin > 0 ? (1 - p.spin) * Math.PI * 2 : 0);
-      m.veh.rotation.z = -p.v * 0.012;
-      m.rider.rotation.z = -p.v * 0.02;
-      const e = p.swing > 0 ? 0.8 : 0; m.hullM.uniforms.uEmissive.value.setRGB(e, e, e);
+      m.veh.rotation.z = -p.v * 0.02;                                 // se inclina al moverse
+      m.rider.rotation.z = -p.v * 0.03;
+      const e = p.swing > 0 ? 0.8 : 0, red = hit > 0 && ((clock * 16) | 0) % 2 ? hit : 0;
+      m.hullM.uniforms.uEmissive.value.setRGB(Math.max(e, red), e, e);
       m.sh.position.set(p.x, 0.03, p.z); m.sh.rotation.y = m.baseRot; m.sh.scale.set(1.95, 1, 1.4); m.sh.visible = true;
     }
+    // tus arcos (los de esta pantalla): si una pelota viene derecho y cerca, se pone roja y late
+    const mine = game.players.filter((p) => !p.empty && p.alive && (p.i === game.me || p.ctrl === 'local'));
     for (const b of game.balls) {
       if (!b.on) continue;
       b.mesh.position.set(b.x, BR, b.z); b.sh.position.set(b.x + 0.12, 0.035, b.z + 0.12);
-      const e = b.power > 0 ? 0.55 + 0.45 * Math.sin(clock * 40) : 0;
-      b.m.uniforms.uEmissive.value.setRGB(e, e * 0.6, e * 0.15);
+      const vx = b._lx === undefined ? 0 : (b.x - b._lx) / Math.max(dt, 1e-3), vz = b._lz === undefined ? 0 : (b.z - b._lz) / Math.max(dt, 1e-3); b._lx = b.x; b._lz = b.z;
+      let danger = 0;
+      for (const p of mine) { const sd = SIDES[p.i % 4], along = b.x * sd.nx + b.z * sd.nz, va = vx * sd.nx + vz * sd.nz; if (va > 2 && along > H - 7) danger = Math.max(danger, Math.min(1, (along - (H - 7)) / 5)); }
+      const e = b.power > 0 ? 0.55 + 0.45 * Math.sin(clock * 40) : 0, d = danger * (0.55 + 0.45 * Math.sin(clock * 22));
+      b.m.uniforms.uEmissive.value.setRGB(Math.max(e, d), e * 0.6, e * 0.15);
+      b.mesh.scale.setScalar(1 + danger * 0.18);
     }
     for (const t of world.towers) {
       t.flash = Math.max(0, t.flash - dt); const k = t.flash / 0.3;
@@ -243,7 +252,8 @@ const bolas = {
   onLocalHit(p) { if (p.cd <= 0) startSwing(p); },
 
   drawScore(p, x, y) {
-    txt(p.empty ? '--' : String(p.score).padStart(2, '0'), x, y, 16, p.alive ? COL.gold : '#555b6e', 'center', COL.goldShadow);
+    const last = !p.empty && p.alive && p.score === 1 && ((game.clock * 3) | 0) % 2 === 0;   // última vida: titila en rojo
+    txt(p.empty ? '--' : String(p.score).padStart(2, '0'), x, y, 16, last ? COL.red : p.alive ? COL.gold : '#555b6e', 'center', COL.goldShadow);
   },
   hud() {},
 

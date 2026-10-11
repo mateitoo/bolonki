@@ -74,6 +74,15 @@ function buildMap(mi) {
   if (mi === 0) {
     // GLACIAR: hielo liso con la marca del centro
     add(scaleUV(new THREE.CylinderGeometry(R0, R0, 0.8, 28, 1), 4, 1), mat({ map: TX.ice }), 0, -0.4, 0, plat);
+    // grietas en el hielo y montoncitos de nieve que el viento juntó en el borde
+    const crackM = mat({ color: 0xe8f8ff, unlit: true });
+    for (let k = 0; k < 7; k++) {
+      let a = (k / 7) * Math.PI * 2 + rnd(-0.3, 0.3), r = R0 - 0.2;
+      for (let j = 0; j < 3; j++) { const len = rnd(0.8, 1.4), a2 = a + rnd(-0.6, 0.6), r2 = r - len * 0.8, x1 = Math.sin(a) * r, z1 = Math.cos(a) * r, x2 = Math.sin(a2) * r2, z2 = Math.cos(a2) * r2;
+        const c = add(new THREE.BoxGeometry(0.06, 0.01, Math.hypot(x2 - x1, z2 - z1)), crackM, (x1 + x2) / 2, 0.006, (z1 + z2) / 2, plat); c.rotation.y = Math.atan2(x2 - x1, z2 - z1); a = a2; r = r2; }
+    }
+    const snowM = mat({ map: TX.snow });
+    for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2 + 0.3, r = R0 - 0.5; const m = add(new THREE.SphereGeometry(0.7, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), snowM, Math.sin(a) * r, 0, Math.cos(a) * r, plat); m.scale.set(1.3, 0.22, 0.7); m.rotation.y = -a; }
     const ring = new THREE.RingGeometry(1.4, 1.75, 20); ring.rotateX(-Math.PI / 2);
     add(ring, mat({ color: 0x5aa8c0, unlit: true }), 0, 0.02, 0, plat);
     const dot = new THREE.CircleGeometry(0.35, 12); dot.rotateX(-Math.PI / 2);
@@ -113,6 +122,15 @@ function buildMap(mi) {
     add(scaleUV(new THREE.CylinderGeometry(R0, R0, 0.8, 28, 1), 6, 1), mat({ map: TX.dock, color: 0x9a8a78 }), 0, -0.4, 0, plat);
     const topG = scaleUV(new THREE.CircleGeometry(R0, 28), 5, 5); topG.rotateX(-Math.PI / 2);
     add(topG, mat({ map: TX.dock, color: 0xb0a090 }), 0, 0.005, 0, plat);
+    // charcos de lluvia sobre los tablones (reflejan el cielo de tormenta) y clavos
+    M.puddleM = waterMat({ map: TX.water, color: 0x4a6a8a, deep: 0x1a2a3a, sky: 0x8a9ab8, glint: 0.6, foam: 0, wave: 0 });
+    [[3.5, -2.5, 1.3], [-4.2, 3, 1.0], [0.5, 5.5, 0.8], [-2, -5.2, 0.9], [5.6, 3.6, 0.6]].forEach(([x, z, r], k) => {
+      const g = new THREE.CircleGeometry(r, 10); g.rotateX(-Math.PI / 2);
+      const pos = g.attributes.position; for (let i = 1; i < pos.count; i++) { const f = 1 + Math.sin(i * 1.9 + k) * 0.18; pos.setX(i, pos.getX(i) * f * 1.3); pos.setZ(i, pos.getZ(i) * f * 0.8); }
+      add(g, M.puddleM, x, 0.012, z, plat).rotation.y = k * 1.1;
+    });
+    const nailM = mat({ color: 0x3a3a40 });
+    for (let k = 0; k < 40; k++) { const a = rnd(0, Math.PI * 2), r = Math.sqrt(rnd(0.02, 1)) * (R0 - 0.4); add(new THREE.BoxGeometry(0.06, 0.02, 0.06), nailM, Math.sin(a) * r, 0.012, Math.cos(a) * r, plat); }
     M.rimM = mat({ map: TX.rope, unlit: false }); M.rimBase = 0xffffff;
     add(scaleUV(new THREE.CylinderGeometry(R0 + 0.05, R0 + 0.05, 0.3, 28, 1, true), 12, 1), M.rimM, 0, -0.1, 0, plat);
     // troncos debajo
@@ -135,6 +153,21 @@ function buildMap(mi) {
       for (let i = 1; i < pos.count; i++) { const f = 1 + Math.sin(i * 2.3 + k) * 0.08; pos.setX(i, pos.getX(i) * f); pos.setZ(i, pos.getZ(i) * f); }
       add(g, mudM, x, 0.02, z, plat);
     });
+    // grietas con lava que brilla (zigzags que salen del borde) y manchas quemadas
+    M.crackM = mat({ color: 0xff7a1a, unlit: true });
+    const scorchM = mat({ color: 0x2a1a14 });
+    for (let k = 0; k < 9; k++) {
+      let a = (k / 9) * Math.PI * 2 + rnd(-0.2, 0.2), r = R0 - 0.1;
+      const segs = 3 + ((k * 7) % 3);
+      for (let j = 0; j < segs; j++) {
+        const len = rnd(0.8, 1.6), a2 = a + rnd(-0.5, 0.5), r2 = r - len * 0.8;
+        const x1 = Math.sin(a) * r, z1 = Math.cos(a) * r, x2 = Math.sin(a2) * r2, z2 = Math.cos(a2) * r2;
+        const c = add(new THREE.BoxGeometry(0.12 - j * 0.02, 0.02, Math.hypot(x2 - x1, z2 - z1)), M.crackM, (x1 + x2) / 2, 0.025, (z1 + z2) / 2, plat);
+        c.rotation.y = Math.atan2(x2 - x1, z2 - z1);
+        a = a2; r = r2;
+      }
+    }
+    [[2.5, -4, 1.1], [-5, 1.5, 0.9], [4.5, 4, 0.8], [-1.5, 5.6, 0.7]].forEach(([x, z, r]) => { const g = new THREE.CircleGeometry(r, 9); g.rotateX(-Math.PI / 2); add(g, scorchM, x, 0.015, z, plat); });
     M.rimM = mat({ color: 0xff8a2a, unlit: true }); M.rimBase = 0xff8a2a;
     add(new THREE.CylinderGeometry(R0 + 0.03, R0 + 0.03, 0.12, 28, 1, true), M.rimM, 0, -0.06, 0, plat);
     const cone = scaleUV(new THREE.ConeGeometry(R0 * 0.98, 6.5, 14, 2, true), 5, 2); cone.rotateX(Math.PI);
@@ -532,6 +565,7 @@ const empujon = {
     const danger = game.elapsed > WARN_AT && !(game.round && game.round.over);
     M.rimM.uniforms.uColor.value.set(danger && ((clock * (game.elapsed > SHRINK_AT ? 4 : 10)) | 0) % 2 ? 0xff3a2a : M.rimBase);
     if (M.lavaM) M.lavaM.uniforms.uOff.value.set((clock * 0.01) % 1, (clock * 0.006) % 1);
+    if (M.crackM) { const k = 0.75 + 0.25 * Math.sin(clock * 2.2); M.crackM.uniforms.uColor.value.setRGB(1, 0.35 + k * 0.25, 0.08 * k); }
     if (M.seaM) { M.seaM.uniforms.uOff.value.set((clock * 0.02) % 1, (clock * 0.05) % 1); M.plat.position.y = Math.sin(clock * 0.9) * 0.08; M.plat.rotation.z = Math.sin(clock * 0.7) * 0.012; }
     if (game.flashT > 0) game.flashT -= dt;
     const ba = game.boltAt;

@@ -498,11 +498,19 @@ function skyline(p) {
   });
 }
 export function decorTerraza(g) {
+  const puddleM = waterMat({ map: TX.water, color: 0x3a4a6a, deep: 0x0a0e1a, sky: 0x6a7ab8, glint: 1, foam: 0, wave: 0 });
   P.sky(g, [[0, '#04061a'], [0.38, '#0c1438'], [0.5, '#2a2450'], [0.56, '#140f24'], [1, '#05040a']], { stars: 50, starBand: 0.4 });
   const moon = add(new THREE.CircleGeometry(5, 16), new THREE.MeshBasicMaterial({ color: 0xf0f0d8, fog: false }), 40, 34, -92, g);
   moon.lookAt(0, 0, 0); moon.renderOrder = -9;
   skyline(g);
   P.twinkleStars(g, 80, 95, 14);
+  // cartel luminoso en el edificio de enfrente (asoma detrás del pretil) y charcos en la azotea que reflejan el cielo
+  P.jumbotron(g, 0, 5.5, -40, 0, 16, 4.5, 'BOLONKI  FIESTA  ');
+  [[-16.4, -3, 1.4], [16.3, 7.5, 1.1], [-15.9, 12, 0.9], [8, -19.5, 1.2]].forEach(([x, z, r]) => {
+    const pd = new THREE.CircleGeometry(r, 9); pd.rotateX(-Math.PI / 2);
+    const pp = pd.attributes.position; for (let i = 1; i < pp.count; i++) { const k = rnd(0.75, 1.15); pp.setX(i, pp.getX(i) * k); pp.setZ(i, pp.getZ(i) * k * 0.7); }
+    add(pd, puddleM, x, Y + 0.02, z, g).rotation.y = rnd(0, 3);
+  });
   // pretil alrededor de la azotea (±27.5, el piso de afuera se achica a esa medida)
   const E = 27.5, pm = P.M(0xffffff, { map: TX.parapet });
   [[0, -E, 2 * E + 1, 0.6], [0, E, 2 * E + 1, 0.6], [-E, 0, 0.6, 2 * E], [E, 0, 0.6, 2 * E]].forEach(([x, z, w, d]) => add(scaleUV(box(w, 1.2, d), Math.max(w, d) / 4, 1), pm, x, Y + 0.6, z, g));

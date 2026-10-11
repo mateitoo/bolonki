@@ -960,3 +960,27 @@ export function bike(p, x, y, z, ry = 0, col = 0xd83a3a) {
   t1.rotation.x = 0.05;
   return g;
 }
+// Toallón tendido en el piso (rayado), con ojotas
+export function towel(p, x, y, z, ry = 0, col = 0xff5a4a) {
+  const g = G(p, x, y, z, ry);
+  add(box(1.1, 0.03, 2.0), M(col, { map: TX.stripes }), 0, 0.02, 0, g);
+  [-0.14, 0.14].forEach((s) => add(box(0.16, 0.04, 0.34), M(0x3a8ad8), 0.75 + s, 0.03, 0.7, g));
+  return g;
+}
+// Pelota de playa que rueda de acá para allá
+export function beachBall(p, x, y, z, r = 0.45, range = 1.5) {
+  const b = add(new THREE.SphereGeometry(r, 10, 8), M(0xffffff, { map: TX.stripes }), x, y + r, z, p);
+  const ph = rnd(0, 6);
+  anim(b, (t) => { const u = Math.sin(t * 0.5 + ph); b.position.x = x + u * range; b.rotation.z = -u * range / r; });
+  return b;
+}
+// Satélite que orbita (panel solar, cuerpo y antena)
+export function satellite(p, cx, cy, cz, r, sp = 0.15, ph = 0) {
+  const g = G(p), mm = M(0xc8ccd8, { map: TX.metal }), pm = M(0x2a4aa8, { map: TX.panel || TX.metal });
+  add(box(0.9, 0.9, 1.2), M(0xe8c040, { map: TX.metal }), 0, 0, 0, g);
+  [-1, 1].forEach((s) => { add(box(2.2, 0.05, 0.9), pm, s * 1.65, 0, 0, g); add(box(0.4, 0.06, 0.06), mm, s * 0.6, 0, 0, g); });
+  add(new THREE.ConeGeometry(0.4, 0.3, 8, 1, true), mm, 0, 0.6, 0, g).rotation.x = Math.PI;
+  const led = add(box(0.12, 0.12, 0.12), M(0xff3a3a, { unlit: true }), 0, 0, 0.65, g);
+  anim(g, (t) => { const a = t * sp + ph; g.position.set(cx + Math.sin(a) * r, cy + Math.sin(t * 0.3 + ph) * 0.6, cz + Math.cos(a) * r); g.rotation.set(t * 0.2, a, 0.3); led.visible = (t % 1) < 0.3; });
+  return g;
+}

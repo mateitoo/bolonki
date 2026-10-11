@@ -109,6 +109,29 @@ export function decorDulces(g, slimeY) {
   [[-14, -20, -18, 1.3], [15, -22, -16, 1.1], [-10, -24, 20, 1.2], [14, -18, 22, 1.4]].forEach(([x, y, z, s]) => cupcake(g, x, y, z, s));
   for (let k = 0; k < 10; k++) { const a = rnd(0, 6.28), d = rnd(18, 30); gumdrop(g, Math.sin(a) * d, rnd(-24, 2), Math.cos(a) * d, [0xff3a5a, 0x3ad86a, 0xffd23a, 0x3a9aff, 0xff8a1a][k % 5]); }
   P.drift(g, 60, -30, 30, 12, -30, -30, 30, 0xffffff, 0.14, 1.1, true);               // granitos que caen
+  // más cerca de los pisos: donas que giran, cucuruchos de helado y ositos de goma saltando en nubes de algodón
+  [[-17, -2, 5, 0xffb0d8], [16.5, -7, -5, 0x8a4a2a], [-5, -13, -19, 0xfff0a0], [10, -16, 16, 0xb0e0ff]].forEach(([x, y, z, c], k) => {
+    const d = grp(g, x, y, z);
+    add(new THREE.TorusGeometry(1.3, 0.6, 8, 16), P.M(0xd8a060, { map: TX.wafer }), 0, 0, 0, d);
+    const fr = add(new THREE.TorusGeometry(1.3, 0.62, 8, 16, Math.PI * 2), P.M(c, { map: TX.frosting }), 0, 0.12, 0, d); fr.scale.set(1, 1, 0.6);
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; add(new THREE.BoxGeometry(0.25, 0.08, 0.08), P.M([0xff3a5a, 0x3ad86a, 0xffd23a, 0x3a9aff][i % 4], { unlit: true }), Math.sin(a) * 1.3, Math.cos(a) * 1.3, 0.45, d).rotation.z = a * 2; }
+    const ph = k * 1.4; P.anim(d, (t) => { d.rotation.set(Math.sin(t * 0.5 + ph) * 0.5 + 1.1, t * 0.3 + ph, 0); d.position.y = y + Math.sin(t * 0.7 + ph) * 0.6; });
+  });
+  [[17, -3, 8, 0xffb0d8], [-16.5, -10, -7, 0xb0ffd0], [3, -6, -19, 0xfff0a0]].forEach(([x, y, z, c], k) => {
+    const ic = grp(g, x, y, z);
+    add(new THREE.ConeGeometry(0.8, 2.6, 8), P.M(0xd8a060, { map: TX.wafer }), 0, -1.3, 0, ic).rotation.x = Math.PI;
+    add(new THREE.SphereGeometry(0.95, 10, 8), P.M(c, { map: TX.frosting }), 0, 0.3, 0, ic);
+    add(new THREE.SphereGeometry(0.2, 6, 5), P.M(0xe8203a), 0, 1.3, 0, ic);
+    const ph = k * 2; P.anim(ic, (t) => { ic.position.y = y + Math.sin(t * 0.6 + ph) * 0.7; ic.rotation.z = Math.sin(t * 0.4 + ph) * 0.3; });
+  });
+  [[-15, -6, 13, 0xff3a5a], [15, -11, -14, 0x3ad86a], [0, -9, 19, 0xffd23a]].forEach(([x, y, z, c], k) => {
+    const cl = cottonCloud(g, x, y, z, 0.8, 0xffffff), bm = P.M(c);
+    const bear = grp(cl, 0, 2.2, 0);
+    add(new THREE.SphereGeometry(0.55, 8, 6), bm, 0, 0, 0, bear).scale.set(1, 1.2, 0.8);
+    add(new THREE.SphereGeometry(0.42, 8, 6), bm, 0, 0.85, 0, bear);
+    [-0.3, 0.3].forEach((sx) => { add(new THREE.SphereGeometry(0.16, 6, 4), bm, sx, 1.2, 0, bear); add(new THREE.SphereGeometry(0.2, 6, 4), bm, sx * 1.6, 0.1, 0, bear); add(new THREE.SphereGeometry(0.22, 6, 4), bm, sx, -0.6, 0, bear); });
+    const ph = k * 1.1; P.anim(bear, (t) => { const u = Math.abs(Math.sin(t * 2.4 + ph)); bear.position.y = 2.2 + u * 1.4; bear.scale.set(1 + (1 - u) * 0.15, 1 - (1 - u) * 0.15, 1); bear.rotation.y = t + ph; });
+  });
   return choco;
 }
 

@@ -191,4 +191,12 @@ export function decorPlayaFutbol(g, HX, HZ) {
   P.bunting(g, -HX - 2, 3, HZ + 3, HX + 2, 3, HZ + 3, 18);
   P.scatter(g, 0, -0.29, 0, 40, 26, 90, 0xfff4e6, 0.14, [HX + 1, HZ + 1]);     // caracoles
   P.balloons(g, HX + 3, 0, HZ + 3, 2, 4);
+  // gente en malla mirando desde los costados, toallones, pelotas, heladerita y una sombrillita más cerca
+  const Y = -0.3;
+  P.fans(g, Y, [[-HX - 3, -5, Math.PI / 2], [-HX - 3.4, -2.6, Math.PI / 2], [-HX - 3.1, 3.5, Math.PI / 2], [HX + 3.2, -4, -Math.PI / 2], [HX + 3, 1.2, -Math.PI / 2], [HX + 3.4, 4.8, -Math.PI / 2], [-3, -HZ - 3, 0], [3.5, -HZ - 3.2, 0]],
+    { shirts: [0xff5a8a, 0x3ad8c8, 0xffe14a, 0xff7a3a, 0x8a5aff, 0x39d98a] });
+  [[-HX - 4.5, 6, 0.2, 0xff5a4a], [HX + 4.6, -6.5, -0.3, 0x3a7aff], [-8, -HZ - 3.3, 1.5, 0xffe14a], [9, -HZ - 3.1, 1.6, 0x39d98a]].forEach(([x, z, ry, c]) => P.towel(g, x, Y, z, ry, c));
+  P.beachBall(g, -HX - 2.2, Y, 0, 0.4, 1); P.beachBall(g, 0, Y, -HZ - 2.2, 0.35, 2.5);
+  add(box(0.9, 0.55, 0.6), P.M(0xff5a3a, { map: TX.metal }), HX + 4.4, Y + 0.28, 2.8, g); add(box(0.92, 0.12, 0.62), P.M(0xffffff), HX + 4.4, Y + 0.6, 2.8, g);
+  P.footprints(g, Y, [[-HX - 2, -HZ - 1.5], [-6, -HZ - 2.4], [4, -HZ - 1.8], [HX + 2, -HZ - 2.6]], 0xd8b878, 0.6);
 }

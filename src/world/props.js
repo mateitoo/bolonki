@@ -1375,3 +1375,17 @@ export function critters(p, n, cx, cz, rx, rz, y, kind = 'butterfly', cols = [0x
     q.wl.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * Math.sin(t * flap + q.ph) * (kind === 'dragonfly' ? 0.3 : 0.9); });
   }));
 }
+// Sombras de nubes que cruzan el piso despacio (días de sol)
+export function cloudShadows(p, y, n = 3, area = 26, dir = [1, 0.35], sp = 1.2) {
+  blob(p, 0, -999, 0, 0.01);                                   // asegura el material de sombra
+  const m = shadowMat.clone(); m.opacity = 0.22;
+  const L = Math.hypot(dir[0], dir[1]), ux = dir[0] / L, uz = dir[1] / L, ss = [];
+  for (let i = 0; i < n; i++) {
+    const me = new THREE.Mesh(shadowGeo, m); me.renderOrder = 1; p.add(me);
+    ss.push({ me, off: (i / n) * area * 2, side: rnd(-area * 0.6, area * 0.6), s: rnd(5, 8), sz: rnd(0.5, 0.8) });
+  }
+  anim(p, (t) => ss.forEach((q) => {
+    const d = ((t * sp + q.off) % (area * 2)) - area;
+    q.me.position.set(ux * d - uz * q.side, y + 0.06, uz * d + ux * q.side); q.me.scale.set(q.s, 1, q.s * q.sz); q.me.rotation.y = Math.atan2(ux, uz);
+  }));
+}

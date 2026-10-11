@@ -184,6 +184,7 @@ export function decorPlayaFutbol(g, HX, HZ) {
   P.sky(g, [[0, '#1a6ad8'], [0.35, '#4aa8ff'], [0.47, '#bfe8ff'], [0.5, '#fff4d8'], [0.55, '#e8c890'], [1, '#8a6a40']], { r: 120 });
   const sun = add(new THREE.CircleGeometry(7, 16), new THREE.MeshBasicMaterial({ color: 0xfff2a0, fog: false }), 30, 40, -96, g); sun.renderOrder = -9;
   P.skyClouds(g, 9, 45, 70, 14, 24, 0xffffff, 0.005);
+  P.cloudShadows(g, 0, 3, 26);
   // los adornos de la playa se arman como en Bola Brava (su arena está 1.9 más abajo): se suben en un grupo
   const b = new THREE.Group(); b.position.y = 1.9; g.add(b);
   // arena alrededor de la cancha y el mar atrás (del lado de arriba de la pantalla)

@@ -89,6 +89,7 @@ export function decorColina(g, rim) {
   P.sky(g, [[0, '#2a6ad8'], [0.42, '#7ab8f0'], [0.5, '#f4e0b0'], [0.53, '#9ad0f0'], [1, '#2a6aa8']]);
   P.flyers(g, 0, 14, 0, 24, 6, 0xf4f4f0, 0.6);
   P.skyClouds(g, 10, 45, 75, 12, 22, 0xffffff, 0.005);
+  P.cloudShadows(g, 0, 3, 24);
   const islets = [[-26, -30, 1.3], [30, -24, 1.0], [-34, 8, 0.9], [36, 14, 1.2], [8, -40, 1.5]];
   islets.forEach(([x, z, s], k) => {
     const r = add(new THREE.CylinderGeometry(3.2 * s, 4.2 * s, 2.2, 10), P.M(0xd8b878, { map: TX.sand }), x, -0.4, z, g);
@@ -415,6 +416,7 @@ export function decorPetardos(g, deco, L) {
     P.stones(g, [-8, -6.6, -5.1, -3.7, -2.2, -0.7, 0.8, 2.3, 3.7, 5.2, 6.6, 8].map((x, k) => [x, -11.9 + (k % 2) * 0.25, Y]));
     P.sky(g, [[0, '#3a7ad8'], [0.45, '#9ac8f4'], [0.5, '#e8f0f8'], [1, '#6a9a5a']]);
     P.skyClouds(g, 8, 40, 60, 14, 22, 0xffffff, 0.006);
+    P.cloudShadows(g, 0, 3, 24);
     [[-13.6, -12], [13.6, -12], [-13.6, 12], [13.6, 12]].forEach(([x, z]) => P.lamp(g, x, Y, z, 3.2));
     P.flyers(g, 0, 3.5, -2, 15, 5, 0xffe14a, 0.35);
     P.windblown(g, 24, -20, 20, Y + 0.2, Y + 3, -16, 14, 1, 0.4, 1.4, 0x6ab04a, 0.1);   // hojitas que lleva el viento
@@ -506,6 +508,7 @@ export function decorPetardos(g, deco, L) {
     P.scatter(g, 0, Y, 0, 22, 16, 90, 0xb88a5a, 0.18, [13.2, 11.2]);
     P.sky(g, [[0, '#4a8ad8'], [0.45, '#bcd8f0'], [0.5, '#ffe8b0'], [1, '#c8a060']]);
     P.skyClouds(g, 5, 42, 62, 16, 24, 0xfff8ec, 0.004);
+    P.cloudShadows(g, 0, 2, 24);
     [[-15.2, -9], [16, -2.5], [-16, 3], [15.5, 10.5], [-8, -13.5], [11, -13]].forEach(([x, z]) => P.cactus(g, x, Y, z, rnd(0.75, 1.05)));
     [[-14.5, 0], [15.2, -6.5], [-15, 10.5], [3, -13.8]].forEach(([x, z]) => P.rock(g, x, Y, z, rnd(0.8, 1.3), 0xc8905a));
     P.bones(g, -14.4, Y, -3.2); P.bones(g, 14.6, Y, 7.4);

@@ -200,6 +200,7 @@ function mushroom(p, x, z, s, col) {
 export function decorSelva(g, HALF) {
   P.sky(g, [[0, '#0a2a1a'], [0.35, '#2a6a4a'], [0.46, '#9ad8a0'], [0.5, '#e8f8c8'], [0.55, '#3a6a2a'], [1, '#0a1a0a']], { r: 120 });
   P.skyClouds(g, 7, 45, 65, 16, 24, 0xe8f8e0, 0.004);
+  P.cloudShadows(g, 0, 3, 22);
   // piso de la selva: pasto y tierra, con el pantano alrededor más abajo
   const fl = scaleUV(new THREE.PlaneGeometry(160, 160, 16, 16), 30); fl.rotateX(-Math.PI / 2);
   add(fl, P.M(0x5a8a3a, { map: TX.grass }), 0, Y - 0.02, 0, g);

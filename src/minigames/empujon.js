@@ -561,6 +561,15 @@ const empujon = {
     W.maps.forEach((m, i) => { m.g.visible = i === S.map; });
     game.fallStyle = MAPS[S.map].fall;                // la caída: al vacío helado o a la lava
     M.plat.scale.set(k, 1, k);
+    // salpicaduras según el piso: barro en el volcán, agua en la balsa mojada, escarcha en el hielo
+    for (const p of game.players) {
+      if (!p.alive || p.empty || p.death) continue;
+      const sp = Math.hypot(p.vx || 0, p.vz || 0);
+      if (sp < 3 || Math.random() > 0.3) continue;
+      if (S.map === 1 && onMud(p.x, p.z)) burst(p.x, 0.15, p.z, { mat: P.DIRT, n: 1, sp: 1.6, up: [1.5, 3], life: [0.3, 0.5], size: 0.6 });
+      else if (S.map === 2) burst(p.x, 0.1, p.z, { mat: P.CYAN, n: 1, sp: 1.4, up: [1, 2.4], life: [0.2, 0.4], size: 0.4 });
+      else if (S.map === 0 && sp > 5) burst(p.x, 0.1, p.z, { mat: P.WHITE, n: 1, sp: 1.2, up: [0.5, 1.5], life: [0.2, 0.4], size: 0.4 });
+    }
     // luces del borde: rojas titilando cuando la plataforma se está por achicar o se achica
     const danger = game.elapsed > WARN_AT && !(game.round && game.round.over);
     M.rimM.uniforms.uColor.value.set(danger && ((clock * (game.elapsed > SHRINK_AT ? 4 : 10)) | 0) % 2 ? 0xff3a2a : M.rimBase);

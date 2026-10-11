@@ -453,6 +453,8 @@ const hexagonos = {
 
   visuals(dt) {
     game.stepPuff = null; game.stepPrint = 0;
+    // en Neón los pisos laten al ritmo (cada piso un poco corrido, como una onda que baja)
+    if (MAPS[S.map].glow) FLOORS.forEach((fy, f) => { const k = 0.78 + 0.22 * Math.max(0, Math.sin(game.clock * 4.2 - f * 0.9)) ** 3; W.cap[f].material.uniforms.uColor.value.set(MAPS[S.map].cols[f]).multiplyScalar(k); });
     const clock = game.clock;
     for (let f = 0; f < FLOORS.length; f++) updateFloor(f, clock);
     if (W.slimeM) W.slimeM.uniforms.uOff.value.set(MAPS[S.map].glow ? 0 : (clock * 0.03) % 1, MAPS[S.map].glow ? (clock * 0.25) % 1 : (clock * 0.02) % 1);

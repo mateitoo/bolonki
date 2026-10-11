@@ -23,7 +23,9 @@ export function updateProps(dt) {
 /* ---------- materiales compartidos ---------- */
 const cache = {};
 export function M(color, o = {}) {
-  const key = `${color}|${o.map ? o.map.uuid : ''}|${o.unlit ? 1 : 0}|${o.side || 0}`;
+  // el follaje (textura de hojas) se mece solo con el viento
+  if (o.map === TX.leaf && o.sway === undefined) o = Object.assign({}, o, { sway: 0.07 });
+  const key = `${color}|${o.map ? o.map.uuid : ''}|${o.unlit ? 1 : 0}|${o.side || 0}|${o.sway || 0}`;
   return cache[key] || (cache[key] = mat(Object.assign({ color }, o)));
 }
 const G = (parent, x = 0, y = 0, z = 0, ry = 0) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; parent.add(g); return g; };
@@ -124,7 +126,7 @@ export function flowers(p, cx, y, cz, rx, rz, n, colors = [0xff5a7a, 0xffe14a, 0
 }
 // Matas de pasto
 export function grass(p, cx, y, cz, rx, rz, n, col = 0x4a9a3a) {
-  const im = new THREE.InstancedMesh(new THREE.ConeGeometry(0.12, 0.5, 3), M(col), n);
+  const im = new THREE.InstancedMesh(new THREE.ConeGeometry(0.12, 0.5, 3), M(col, { sway: 0.05 }), n);
   const m4 = new THREE.Matrix4();
   for (let i = 0; i < n; i++) { m4.makeRotationY(rnd(0, 3)).setPosition(cx + rnd(-rx, rx), y + 0.22, cz + rnd(-rz, rz)); im.setMatrixAt(i, m4); }
   p.add(im);
@@ -839,7 +841,7 @@ export function patch(p, x, y, z, r = 1, col = 0x3a5a7a, o = {}) {
   const geo = new THREE.CircleGeometry(r, 9); geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   for (let i = 1; i < pos.count; i++) { const k = rnd(0.7, 1.15); pos.setX(i, pos.getX(i) * k); pos.setZ(i, pos.getZ(i) * k); }
-  const m = add(geo, M(col, o), x, y + (o.lift || 0.02), z, p);
+  const m = add(geo, M(col, Object.assign({ sway: 0 }, o)), x, y + (o.lift || 0.02), z, p);   // los manchones del piso no se mecen
   m.rotation.y = rnd(0, 6); m.scale.z = rnd(0.6, 1);
   return m;
 }
@@ -870,7 +872,7 @@ export function log(p, x, y, z, ry = 0, len = 3, r = 0.38) {
   const g = G(p, x, y, z, ry), wm = M(0x6b4a2a, { map: TX.wood });
   add(new THREE.CylinderGeometry(r, r * 1.1, len, 7), wm, 0, r, 0, g).rotation.z = Math.PI / 2;
   [-1, 1].forEach((s) => add(new THREE.CircleGeometry(r * 0.9, 7), M(0xc8a070), s * len / 2 + s * 0.01, r, 0, g).rotation.y = s * Math.PI / 2);
-  add(new THREE.DodecahedronGeometry(r * 0.7, 0), M(0x4a8a3a, { map: TX.leaf }), len * 0.2, r * 1.7, 0, g).scale.set(1.4, 0.5, 1);
+  add(new THREE.DodecahedronGeometry(r * 0.7, 0), M(0x4a8a3a, { map: TX.leaf, sway: 0 }), len * 0.2, r * 1.7, 0, g).scale.set(1.4, 0.5, 1);
   return g;
 }
 // Helecho: hojas largas abiertas en abanico

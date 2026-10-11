@@ -17,7 +17,7 @@ export const U = {
 
 const VS = `
 uniform vec2 uRes; uniform float uSnap; uniform vec3 uLightDir; uniform vec3 uAmb; uniform vec3 uLCol;
-uniform float uFogNear; uniform float uFogFar; uniform float uUnlit;
+uniform float uFogNear; uniform float uFogFar; uniform float uUnlit; uniform float uSway; uniform float uTime;
 varying vec3 vUvw; varying vec3 vLight; varying float vFog; varying vec3 vIC;
 #ifdef XRAY
 varying vec2 vWxz;
@@ -34,6 +34,8 @@ void main(){
 #else
   vIC=vec3(1.0);
 #endif
+  // hojas y pasto que se mecen con el viento (se corre todo el follaje un poquito, distinto en cada lugar)
+  if(uSway>0.0){ vec4 sw=modelMatrix*lp; float k=uSway*(0.6+0.4*sin(uTime*0.37+sw.x*0.05)); lp.x+=sin(uTime*1.7+sw.x*0.35+sw.z*0.25)*k; lp.z+=cos(uTime*1.3+sw.x*0.3+sw.z*0.2)*k*0.6; }
 #ifdef XRAY
   vWxz=(modelMatrix*lp).xz;
 #endif
@@ -84,7 +86,7 @@ export function mat(o = {}) {
       uColor: { value: new THREE.Color(o.color !== undefined ? o.color : 0xffffff) },
       uEmissive: { value: new THREE.Color(o.emissive !== undefined ? o.emissive : 0x000000) },
       uUnlit: { value: o.unlit ? 1 : 0 },
-      uOff: { value: new THREE.Vector2(0, 0) },
+      uOff: { value: new THREE.Vector2(0, 0) }, uSway: { value: o.sway || 0 },
     }, o.xray ? { uHoles: { value: [0, 1, 2, 3].map(() => new THREE.Vector3()) }, uGhost: { value: 0 } } : {}),
     defines: o.xray ? { XRAY: 1 } : {},
     vertexShader: VS, fragmentShader: FS, side: o.side || THREE.FrontSide,

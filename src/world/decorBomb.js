@@ -176,7 +176,7 @@ function pyramid(p, x, z, s = 1, ry = 0) {                   // templo escalonad
   for (let k = 0; k < 8; k++) add(box(0.12, rnd(1.5, 4), 0.12), P.M(0x2a6a2a, { map: TX.leaf }), rnd(-5, 5), rnd(2, 6), rnd(-5, 5), g);
 }
 function idol(p, x, z, ry) {                                  // cabeza de piedra gigante, medio tapada de musgo
-  const g = grp(p, x, Y, z, ry), sm = P.M(0x8a9078, { map: TX.stone }), moss = P.M(0x4a8a3a, { map: TX.leaf });
+  const g = grp(p, x, Y, z, ry), sm = P.M(0x8a9078, { map: TX.stone }), moss = P.M(0x4a8a3a, { map: TX.leaf, sway: 0 });
   add(box(2.6, 3.4, 2.2), sm, 0, 1.7, 0, g);
   add(box(2.7, 0.25, 2.3), moss, 0, 3.5, 0, g);
   [-0.6, 0.6].forEach((a) => add(box(0.5, 0.35, 0.1), P.M(0x1a1e14), a, 2.4, 1.12, g));

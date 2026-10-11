@@ -133,7 +133,7 @@ export function decorColina(g, rim) {
   P.anim(don, (t) => { const a = t * 0.06 + 1; don.position.set(Math.sin(a) * 19, WY + 0.08 + Math.sin(t * 1.5) * 0.06, Math.cos(a) * 17); don.rotation.z = t * 0.2; });
   for (let k = 0; k < 7; k++) { const a = -0.6 + k * 0.2, b = add(new THREE.SphereGeometry(0.28, 6, 4), P.M(k % 2 ? 0xffffff : 0xff4a3a), Math.sin(a) * 21, WY + 0.1, -Math.cos(a) * 19, g); P.anim(b, (t) => { b.position.y = WY + 0.1 + Math.sin(t * 1.4 + k) * 0.08; }); }
   const tt = new THREE.Group(); g.add(tt);
-  add(new THREE.SphereGeometry(0.55, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), P.M(0x4a7a3a, { map: TX.leaf }), 0, 0, 0, tt).scale.y = 0.5;
+  add(new THREE.SphereGeometry(0.55, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), P.M(0x4a7a3a, { map: TX.leaf, sway: 0 }), 0, 0, 0, tt).scale.y = 0.5;
   add(new THREE.SphereGeometry(0.18, 6, 4), P.M(0x8aa86a), 0, 0.05, 0.62, tt);
   const flip = [[-0.4, 0.3], [0.4, 0.3], [-0.35, -0.35], [0.35, -0.35]].map(([a2, b2]) => add(new THREE.BoxGeometry(0.35, 0.05, 0.18), P.M(0x8aa86a), a2, 0, b2, tt));
   P.anim(tt, (t) => { const a = -t * 0.05 + 3; tt.position.set(Math.sin(a) * 16.5, WY + 0.02, Math.cos(a) * 15); tt.rotation.y = a - Math.PI / 2; flip.forEach((f, i) => { f.rotation.y = Math.sin(t * 3 + i) * 0.5; }); });

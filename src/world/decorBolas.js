@@ -342,7 +342,7 @@ export function seagulls(p, cx, cy, cz, r, n = 4) {
 }
 export function parador(p, x, z) {                                    // bar de playa con techo de paja
   const g = grp(p, x, Y, z, ry0(x, z));
-  const wm = P.M(0xb8905a, { map: TX.wood }), straw = P.M(0xd8b060, { map: TX.leaf });
+  const wm = P.M(0xb8905a, { map: TX.wood }), straw = P.M(0xd8b060, { map: TX.leaf, sway: 0 });
   [[-2.2, -1.4], [2.2, -1.4], [-2.2, 1.4], [2.2, 1.4]].forEach(([a, b]) => add(box(0.22, 3, 0.22), wm, a, 1.5, b, g));
   const rf = new THREE.ConeGeometry(3.6, 1.6, 4); rf.rotateY(Math.PI / 4);
   add(rf, straw, 0, 3.7, 0, g).scale.set(1, 1, 0.75);

@@ -816,3 +816,147 @@ export function arch(p, x, y, z, ry = 0, w = 3.2, h = 3.2) {
   balloons(g, 0, h - 0.5, 0, w * 0.55, 4);
   return g;
 }
+
+/* ---------- detalles de piso (para que lo cercano a la cancha no quede pelado) ---------- */
+// Manchón chato e irregular sobre el piso: charco, musgo, aceite, barro… (y: altura del piso)
+export function patch(p, x, y, z, r = 1, col = 0x3a5a7a, o = {}) {
+  const geo = new THREE.CircleGeometry(r, 9); geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position;
+  for (let i = 1; i < pos.count; i++) { const k = rnd(0.7, 1.15); pos.setX(i, pos.getX(i) * k); pos.setZ(i, pos.getZ(i) * k); }
+  const m = add(geo, M(col, o), x, y + (o.lift || 0.02), z, p);
+  m.rotation.y = rnd(0, 6); m.scale.z = rnd(0.6, 1);
+  return m;
+}
+// Neumático (de defensa en el muelle o tirado)
+export function tire(p, x, y, z, ry = 0, upright = true, s = 1) {
+  const t = add(new THREE.TorusGeometry(0.42 * s, 0.17 * s, 5, 10), M(0x1a1a1e), x, y, z, p);
+  if (upright) t.rotation.set(0, ry, 0); else t.rotation.set(Math.PI / 2, 0, ry);
+  return t;
+}
+// Rollo de soga
+export function ropeCoil(p, x, y, z, s = 1) {
+  const g = G(p, x, y, z, rnd(0, 6)), rm = M(0xd8b878, { map: TX.wood });
+  for (let i = 0; i < 3; i++) add(new THREE.TorusGeometry((0.5 - i * 0.04) * s, 0.09 * s, 4, 12), rm, 0, (0.09 + i * 0.15) * s, 0, g).rotation.x = Math.PI / 2;
+  return g;
+}
+// Columna (entera o rota, con el pedazo tirado al lado)
+export function column(p, x, y, z, h = 3, broken = false, col = 0xcfc6ae, map = TX.stone) {
+  const g = G(p, x, y, z, rnd(0, 6)), sm = M(col, { map });
+  add(box(1.1, 0.3, 1.1), sm, 0, 0.15, 0, g);
+  const hh = broken ? h * rnd(0.35, 0.6) : h;
+  add(new THREE.CylinderGeometry(0.36, 0.4, hh, 8), sm, 0, 0.3 + hh / 2, 0, g);
+  if (!broken) add(box(1.0, 0.28, 1.0), sm, 0, 0.3 + hh + 0.14, 0, g);
+  else { const c = add(new THREE.CylinderGeometry(0.36, 0.36, h - hh, 8), sm, 1.3, 0.36, 0.4, g); c.rotation.set(0, 0.5, Math.PI / 2); }
+  return g;
+}
+// Tronco caído
+export function log(p, x, y, z, ry = 0, len = 3, r = 0.38) {
+  const g = G(p, x, y, z, ry), wm = M(0x6b4a2a, { map: TX.wood });
+  add(new THREE.CylinderGeometry(r, r * 1.1, len, 7), wm, 0, r, 0, g).rotation.z = Math.PI / 2;
+  [-1, 1].forEach((s) => add(new THREE.CircleGeometry(r * 0.9, 7), M(0xc8a070), s * len / 2 + s * 0.01, r, 0, g).rotation.y = s * Math.PI / 2);
+  add(new THREE.DodecahedronGeometry(r * 0.7, 0), M(0x4a8a3a, { map: TX.leaf }), len * 0.2, r * 1.7, 0, g).scale.set(1.4, 0.5, 1);
+  return g;
+}
+// Helecho: hojas largas abiertas en abanico
+export function fern(p, x, y, z, s = 1, col = 0x4aa03a) {
+  const g = G(p, x, y, z, rnd(0, 6)); g.scale.setScalar(s);
+  const lm = M(col, { map: TX.leaf });
+  for (let k = 0; k < 7; k++) { const a = (k / 7) * Math.PI * 2, l = add(box(0.22, 0.04, 1.2), lm, Math.sin(a) * 0.45, 0.3, Math.cos(a) * 0.45, g); l.rotation.order = 'YXZ'; l.rotation.set(0.45, a, 0); }
+  return g;
+}
+// Huellas en la nieve o el barro, por un camino de puntos [[x,z],...]
+export function footprints(p, y, path, col = 0xb8c8dc, step = 0.7) {
+  const pts = [];
+  for (let i = 0; i < path.length - 1; i++) {
+    const [x1, z1] = path[i], [x2, z2] = path[i + 1], len = Math.hypot(x2 - x1, z2 - z1), n = Math.floor(len / step), a = Math.atan2(x2 - x1, z2 - z1);
+    for (let j = 0; j < n; j++) { const f = j / n, s = j % 2 ? 0.16 : -0.16; pts.push([x1 + (x2 - x1) * f + Math.cos(a) * s, z1 + (z2 - z1) * f - Math.sin(a) * s, a]); }
+  }
+  const geo = new THREE.CircleGeometry(0.13, 6); geo.rotateX(-Math.PI / 2); geo.scale(1, 1, 1.6);
+  const im = new THREE.InstancedMesh(geo, M(col), pts.length), m4 = new THREE.Matrix4();
+  pts.forEach(([x, z, a], i) => { m4.makeRotationY(a).setPosition(x, y + 0.02, z); im.setMatrixAt(i, m4); });
+  p.add(im);
+  return im;
+}
+// Banderita de slalom / marca (flamea)
+export function pennant(p, x, y, z, col = 0xff3a3a, h = 1.6) {
+  const g = G(p, x, y, z);
+  add(new THREE.CylinderGeometry(0.04, 0.04, h, 4), M(0x2a2d36), 0, h / 2, 0, g);
+  const f = add(box(0.04, 0.4, 0.6), M(col), 0, h - 0.22, 0.3, g);
+  const ph = rnd(0, 6);
+  anim(g, (t) => { f.rotation.y = Math.sin(t * 3 + ph) * 0.35; });
+  return g;
+}
+// Bote chiquito que se mece en el agua
+export function rowboat(p, x, y, z, ry = 0, col = 0xd8463a) {
+  const g = G(p, x, y, z, ry), hm = M(col, { map: TX.wood }), wm = M(0xb88a52, { map: TX.wood });
+  add(box(1.6, 0.5, 3.6), hm, 0, 0.25, 0, g);
+  add(new THREE.CylinderGeometry(0.8, 0.8, 0.5, 3), hm, 0, 0.25, 1.95, g).rotation.y = Math.PI / 6;
+  add(box(1.3, 0.12, 3.2), wm, 0, 0.42, 0, g);
+  add(box(1.5, 0.1, 0.3), wm, 0, 0.55, -0.4, g);
+  const oar = add(box(0.08, 0.06, 2.6), wm, 0.9, 0.6, 0.2, g); oar.rotation.y = 0.4;
+  const ph = rnd(0, 6);
+  anim(g, (t) => { g.position.y = y + Math.sin(t * 1.1 + ph) * 0.08; g.rotation.z = Math.sin(t * 0.8 + ph) * 0.05; });
+  return g;
+}
+// Nenúfares sobre el agua
+export function lilies(p, cx, y, cz, r, n = 6) {
+  for (let i = 0; i < n; i++) {
+    const a = rnd(0, 6), d = rnd(0, r), lg = new THREE.CircleGeometry(rnd(0.25, 0.45), 7, 0.4, Math.PI * 1.8); lg.rotateX(-Math.PI / 2);
+    add(lg, M(0x3a9a3a), cx + Math.sin(a) * d, y + 0.02, cz + Math.cos(a) * d, p).rotation.y = rnd(0, 6);
+    if (i % 3 === 0) add(new THREE.ConeGeometry(0.12, 0.18, 5), M(0xff9ad0), cx + Math.sin(a) * d, y + 0.1, cz + Math.cos(a) * d, p);
+  }
+}
+// Fila de focos colgando entre dos puntos (lucecitas de fiesta / guirnalda de luz)
+export function stringLights(p, x1, y1, z1, x2, y2, z2, n = 10, cols = [0xffe08a, 0xff9a4a, 0x8ad0ff]) {
+  const g = G(p), len = Math.hypot(x2 - x1, z2 - z1), ang = Math.atan2(x2 - x1, z2 - z1);
+  const c = add(box(0.03, 0.03, len), M(0x1a1a1e), (x1 + x2) / 2, (y1 + y2) / 2 - 0.35, (z1 + z2) / 2, g); c.rotation.y = ang;
+  const bulbs = [];
+  for (let i = 1; i < n; i++) {
+    const f = i / n, sag = Math.sin(f * Math.PI) * 0.7;
+    bulbs.push(add(new THREE.SphereGeometry(0.11, 5, 4), M(cols[i % cols.length], { unlit: true }), x1 + (x2 - x1) * f, y1 + (y2 - y1) * f - sag - 0.1, z1 + (z2 - z1) * f, g));
+  }
+  anim(g, (t) => bulbs.forEach((b, i) => { b.visible = ((t * 2 + i * 0.5) | 0) % 4 !== 0; }));
+  return g;
+}
+// Gente parada mirando, que salta y levanta los brazos de vez en cuando. pts: [[x, z, ry], ...]
+const SKIN = [0xf0c8a0, 0xd8a070, 0xa8704a, 0x7a4a2a], SHIRT = [0x3a7ad8, 0xffffff, 0xd83a3a, 0xffd23a, 0x39a86a, 0x8a4ad8, 0x1a1a24, 0x6ac8ff];
+export function fans(p, y, pts, o = {}) {
+  const ppl = pts.map(([x, z, ry = 0], i) => {
+    const g = G(p, x, y, z, ry), sh = M(o.shirts ? o.shirts[i % o.shirts.length] : SHIRT[(i * 3) % SHIRT.length]), sk = M(SKIN[(i * 5) % SKIN.length]);
+    add(box(0.42, 0.55, 0.26), M(0x2a3050), 0, 0.28, 0, g);                       // piernas
+    add(box(0.5, 0.6, 0.3), sh, 0, 0.85, 0, g);                                   // remera
+    add(box(0.32, 0.32, 0.3), sk, 0, 1.33, 0, g);                                 // cabeza
+    add(box(0.36, 0.1, 0.34), M([0x2a1a10, 0x6a4a2a, 0xe8d070, 0x1a1a1a][i % 4]), 0, 1.52, 0, g);   // pelo
+    if (o.hats) add(new THREE.ConeGeometry(0.22, 0.3, 6), M(o.hats[i % o.hats.length]), 0, 1.68, 0, g);
+    const arms = [-1, 1].map((s) => { const a = G(g, s * 0.31, 1.1, 0); add(box(0.13, 0.5, 0.13), sh, 0, -0.22, 0, a); return a; });
+    return { g, arms, ph: rnd(0, 6), sp: rnd(0.6, 1.2) };
+  });
+  anim(p, (t) => ppl.forEach((q) => {
+    const c = Math.sin(t * q.sp + q.ph), hype = c > 0.55;
+    q.g.position.y = y + (hype ? Math.abs(Math.sin(t * 9 + q.ph)) * 0.25 : 0);
+    q.arms.forEach((a, k) => { a.rotation.z = hype ? (k ? -1 : 1) * (2.6 + Math.sin(t * 12 + k) * 0.3) : (k ? -1 : 1) * 0.12; });
+  }));
+  return ppl;
+}
+// Termo y mate arriba de algo (y: altura de la superficie)
+export function mate(p, x, y, z) {
+  const g = G(p, x, y, z, rnd(0, 6));
+  add(new THREE.CylinderGeometry(0.13, 0.13, 0.62, 8), M(0x2a6a3a, { map: TX.metal }), 0, 0.31, 0, g);
+  add(new THREE.CylinderGeometry(0.09, 0.12, 0.12, 8), M(0x1a1a1e), 0, 0.68, 0, g);
+  add(new THREE.SphereGeometry(0.13, 7, 5), M(0x8a5a2a), 0.32, 0.12, 0.05, g).scale.y = 1.15;
+  add(new THREE.CylinderGeometry(0.11, 0.11, 0.03, 8), M(0x4a8a2a), 0.32, 0.26, 0.05, g);
+  add(new THREE.CylinderGeometry(0.015, 0.015, 0.36, 4), M(0xd8d8e0), 0.36, 0.38, 0.05, g).rotation.z = -0.3;
+  return g;
+}
+// Bicicleta tirada o apoyada
+export function bike(p, x, y, z, ry = 0, col = 0xd83a3a) {
+  const g = G(p, x, y, z, ry), fm = M(col, { map: TX.metal }), tm = M(0x1a1a1e);
+  [-0.55, 0.55].forEach((s) => add(new THREE.TorusGeometry(0.34, 0.05, 4, 12), tm, 0, 0.36, s, g).rotation.y = Math.PI / 2);
+  const t1 = add(box(0.06, 0.06, 1.0), fm, 0, 0.55, 0, g);
+  add(box(0.06, 0.5, 0.06), fm, 0, 0.6, -0.2, g).rotation.x = 0.3;
+  add(box(0.06, 0.55, 0.06), fm, 0, 0.62, 0.45, g).rotation.x = -0.2;
+  add(box(0.5, 0.05, 0.05), fm, 0, 0.9, 0.5, g);
+  add(box(0.14, 0.05, 0.26), tm, 0, 0.88, -0.28, g);
+  t1.rotation.x = 0.05;
+  return g;
+}

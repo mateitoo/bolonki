@@ -75,6 +75,25 @@ export function decorPotrero(g, HX, HZ) {
   P.bench(g, -4, -0.3, -HZ - 2, 0); P.bench(g, 4, -0.3, -HZ - 2, 0);
   [[-6, -HZ - 1.8, 0x2a5aff], [6, -HZ - 1.8, 0xff5a4a], [-2, -HZ - 1.9, 0x39d98a]].forEach(([x, z, c]) => add(box(0.8, 0.4, 0.4), P.M(c, { map: TX.cloth }), x, -0.1, z, g));
   P.bunting(g, -FX, 3.3, -FZ, FX, 3.3, -FZ, 16);                   // banderines de cumpleaños del club
+  // la franja entre la cancha y el alambrado: yuyos, charcos, gomas, la bici, el mate en el banco y la gente del barrio mirando
+  const Y = -0.3;
+  [[-HX - 2.5, -4, 1.6, 3], [HX + 2.5, 3, 1.6, 3.5], [-7, HZ + 2.5, 4, 1.4], [8, HZ + 2.6, 3.5, 1.3], [0, -HZ - 3.5, 3, 1], [-HX - 3, HZ + 2, 1.5, 1.5], [HX + 3, -HZ - 2.5, 1.5, 1.5]]
+    .forEach(([x, z, rx, rz]) => P.grass(g, x, Y, z, rx, rz, 26, 0x6a8a3a));
+  [[-HX - 2, 5, 1.1], [HX + 2.2, -5.5, 0.9], [4, HZ + 2.2, 0.8], [-11, -HZ - 2.6, 0.7]].forEach(([x, z, r]) => P.patch(g, x, Y, z, r, 0x4a3a2a));
+  [[-HX - 3.6, -HZ - 1.8], [HX + 3.8, HZ + 2]].forEach(([x, z]) => { P.tire(g, x, Y + 0.17, z, 0, false); P.tire(g, x + 0.15, Y + 0.51, z + 0.1, 0.5, false); });
+  P.tire(g, HX + 3.4, Y + 0.3, -HZ + 1, 0.6);
+  P.bike(g, -FX + 0.6, Y, 4, 0.1, 0x3a8ad8); P.bike(g, FX - 0.6, Y, -6, Math.PI - 0.2, 0xffc02a);
+  P.mate(g, -4.6, Y + 0.55, -HZ - 2); P.ropeCoil(g, 5.2, Y, -HZ - 1.2, 0.6);
+  // tacho de basura y cajón de gaseosas
+  add(new THREE.CylinderGeometry(0.35, 0.3, 0.9, 8), P.M(0x3a7a4a, { map: TX.metal }), -HX - 3.4, Y + 0.45, 2, g);
+  add(box(0.9, 0.45, 0.6), P.M(0xd83a3a, { map: TX.crate }), HX + 3.6, Y + 0.22, 0.6, g);
+  for (let i = 0; i < 6; i++) add(new THREE.CylinderGeometry(0.06, 0.08, 0.4, 5), P.M(i % 2 ? 0x3a1a0a : 0x2a8a3a), HX + 3.3 + (i % 3) * 0.28, Y + 0.6, 0.45 + ((i / 3) | 0) * 0.3, g);
+  // gente mirando del otro lado del alambrado y en el banco de atrás
+  const fp = [];
+  for (let k = 0; k < 9; k++) fp.push([-14 + k * 3.4 + rnd(-0.5, 0.5), -FZ - 1.2 - rnd(0, 0.8), rnd(-0.3, 0.3)]);
+  for (let k = 0; k < 4; k++) { fp.push([-FX - 1.3, -8 + k * 4.5 + rnd(-0.4, 0.4), Math.PI / 2]); fp.push([FX + 1.3, -7 + k * 4.4 + rnd(-0.4, 0.4), -Math.PI / 2]); }
+  P.fans(g, Y, fp);
+  P.fans(g, Y, [[-2.5, -HZ - 2.3, 0], [2.6, -HZ - 2.4, 0]], { shirts: [0x3a7ad8, 0xd83a3a] });
 }
 
 /* ===================== LAGO HELADO ===================== */
@@ -104,6 +123,37 @@ export function decorHielo(g, HX, HZ) {
   [[-HX - 1, -HZ - 1.8], [HX + 1, -HZ - 1.8], [-HX - 1, HZ + 1.8], [HX + 1, HZ + 1.8]].forEach(([x, z]) => P.lantern(g, x, -0.3, z, 3.6, 0xffd27a));
   // nieve que cae
   P.drift(g, 90, -26, 26, 16, -0.3, -20, 20, 0xffffff, 0.12, 1.3);
+  // borde de nieve amontonada alrededor del lago (de cuando lo palearon), con gente abrigada mirando
+  const Y = -0.3;
+  for (let k = 0; k < 44; k++) {
+    const a = (k / 44) * Math.PI * 2, ex = (HX + 5.4) * Math.sin(a), ez = (HZ + 4.4) * Math.cos(a);
+    if (Math.abs(ez) > HZ + 3.6 && Math.abs(ex) < 3) continue;                    // la entrada de adelante y de atrás
+    P.snowPile(g, ex, Y, ez, rnd(0.8, 1.25));
+  }
+  const fp = [];
+  for (let k = 0; k < 8; k++) { const a = -0.9 + k * 0.26; fp.push([Math.sin(a) * (HX + 7.2), -Math.cos(a) * (HZ + 6.2), -a]); }
+  for (let k = 0; k < 4; k++) { const a = Math.PI / 2 + 0.4 - k * 0.25; fp.push([Math.sin(a) * (HX + 7.2) * -1, Math.cos(a) * (HZ + 6.2), Math.PI / 2]); }
+  P.fans(g, Y, fp, { hats: [0xff3a3a, 0x3a7aff, 0xffd23a, 0x39d98a, 0xffffff], shirts: [0xd83a3a, 0x3a5ad8, 0x2a8a5a, 0xe8a03a, 0x8a4ad8] });
+  // puesto de chocolate caliente, un pescador en un agujero del hielo, palas y patines
+  const st = grp(g, -HX - 5, Y, -HZ - 2.4, 0.5);
+  add(box(2.6, 1.1, 1.2), P.M(0xa8784a, { map: TX.wood }), 0, 0.55, 0, st);
+  [-1.2, 1.2].forEach((sx) => add(box(0.12, 2.4, 0.12), P.M(0x6b4a2a, { map: TX.wood }), sx, 1.2, 0.5, st));
+  add(box(3, 0.12, 1.6), P.M(0xd83a3a, { map: TX.stripes }), 0, 2.45, 0.2, st).rotation.x = 0.15;
+  [-0.6, 0, 0.6].forEach((sx) => { add(new THREE.CylinderGeometry(0.1, 0.08, 0.22, 7), P.M(0xffffff), sx, 1.21, 0.2, st); P.smoke(st, sx, 1.4, 0.2, 2, 0.25, 0xf0f0f0); });
+  const ih = grp(g, HX + 3.2, Y, -HZ - 1.2);
+  add(new THREE.CircleGeometry(0.55, 10), P.M(0x0a2a4a), 0, 0.06, 0, ih).rotation.x = -Math.PI / 2;
+  add(box(0.5, 0.4, 0.5), P.M(0x6b4a2a, { map: TX.crate }), 0.9, 0.2, 0.2, ih);
+  P.fans(ih, 0.4, [[0.9, 0.2, -Math.PI / 2 - 0.4]], { hats: [0xff5a2a], shirts: [0x2a6a3a] });
+  const rod = grp(ih, 0.55, 1.1, 0.2); add(box(0.04, 0.04, 1.4), P.M(0x2a2a30), 0, 0, -0.6, rod); rod.rotation.y = -Math.PI / 2 + 0.3; rod.rotation.x = 0.4;
+  P.anim(rod, (t) => { rod.rotation.x = 0.4 + Math.max(0, Math.sin(t * 0.7)) ** 8 * 0.5; });
+  const sv = grp(g, HX + 4.6, Y, HZ + 0.5, 0.4);
+  add(box(0.08, 1.5, 0.08), P.M(0x8a5a2a, { map: TX.wood }), 0, 0.9, 0, sv).rotation.z = 0.2;
+  add(box(0.45, 0.5, 0.06), P.M(0xd83a3a, { map: TX.metal }), -0.08, 0.22, 0, sv).rotation.z = 0.2;
+  const rk = grp(g, -HX - 3.6, Y, HZ + 1.4, 1.2);
+  add(box(1.8, 0.08, 0.1), P.M(0x6b4a2a, { map: TX.wood }), 0, 0.9, 0, rk);
+  [-0.8, 0.8].forEach((sx) => add(box(0.1, 1, 0.1), P.M(0x6b4a2a, { map: TX.wood }), sx, 0.5, 0, rk));
+  [-0.45, 0, 0.45].forEach((sx, i) => { add(box(0.18, 0.35, 0.4), P.M([0xffffff, 0x1a1a1e, 0xd83a3a][i]), sx, 0.6, 0.08, rk); add(box(0.04, 0.04, 0.45), P.M(0xd8d8e0), sx, 0.4, 0.08, rk); });
+  [[-6, -HZ - 4.6], [6.5, -HZ - 4.7], [-HX - 7, -2], [HX + 7.5, 3]].forEach(([x, z]) => P.pine(g, x, Y, z, 1.1, true));
 }
 
 /* ===================== PLAYA: fútbol playa al mediodía, con el mar de un lado y la rambla del otro ===================== */

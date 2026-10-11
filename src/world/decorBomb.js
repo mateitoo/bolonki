@@ -64,6 +64,23 @@ export function decorPuerto(g, HALF) {
   [[13.5, 9], [14.2, 9.8], [-13.8, -9.4]].forEach(([x, z], k) => P.barrel(g, x, Y, z, k % 2 ? 0x3a6ac8 : 0xd83a3a));
   P.forklift(g, -12, Y, 4, 0.8);
   P.lamp(g, -E + 1, Y, E - 1, 5, 0xffe8b0); P.lamp(g, E - 1, Y, E - 1, 5, 0xffe8b0); P.lamp(g, E - 1, Y, -E + 1, 5, 0xffe8b0); P.lamp(g, -E + 1, Y, -E + 1, 5, 0xffe8b0);
+  // lo de cerca de la cancha: rayas pintadas, charcos, manchas de aceite, sogas, cajones de pescado
+  const wm = P.M(0xf0f0e8, { unlit: true });
+  for (let k = -6; k <= 6; k++) { add(box(0.18, 0.04, 1.1), wm, -10.6, Y + 0.03, k * 2, g); add(box(0.18, 0.04, 1.1), wm, 10.6, Y + 0.03, k * 2, g); }
+  add(box(3.4, 0.04, 0.18), ym, 0, Y + 0.03, 10.4, g); add(box(3.4, 0.04, 0.18), ym, 0, Y + 0.03, -10.4, g);
+  [[-11.5, -3, 1.3], [10.4, -7.5, 0.9], [3.5, 11.6, 1.1], [-5, -11.8, 0.8], [12.5, 2.5, 0.7]].forEach(([x, z, r]) => P.patch(g, x, Y, z, r, 0x4a6a8a));
+  [[-9.8, 9.6, 0.8], [11.2, 7, 0.6], [-4, 11, 0.5]].forEach(([x, z, r]) => P.patch(g, x, Y, z, r, 0x2a2a30));
+  [[-10.2, -10.5], [10.6, 12.8], [-3, -12.5]].forEach(([x, z]) => P.ropeCoil(g, x, Y, z, 1));
+  const fb = P.M(0x3a8ac8, { map: TX.crate });
+  [[9.8, -12.4, 0], [10.9, -12.6, 0], [10.3, -12.5, 1]].forEach(([x, z, l]) => { add(box(1, 0.5, 0.7), fb, x, Y + 0.25 + l * 0.5, z, g).rotation.y = l * 0.3; });
+  add(box(0.9, 0.08, 0.6), P.M(0xb8c8d8), 10.3, Y + 1.04, -12.5, g);           // hielo y pescado arriba del cajón
+  [[10.1, 0x8a9aaa], [10.5, 0xc8a87a]].forEach(([x, c]) => add(box(0.55, 0.14, 0.18), P.M(c), x, Y + 1.14, -12.5, g).rotation.y = 0.4);
+  // defensas de neumáticos en el borde del muelle y botes amarrados
+  for (let k = -5; k <= 5; k += 2) { P.tire(g, -E - 0.15, Y - 0.6, k * 2.4, Math.PI / 2); P.tire(g, E + 0.15, Y - 0.6, k * 2.4 + 1.2, Math.PI / 2); }
+  for (let k = -5; k <= 5; k += 2) P.tire(g, k * 2.4, Y - 0.6, E + 0.15, 0);
+  P.rowboat(g, -E - 2.2, -2.75, -9, 0.1, 0xd8463a); P.rowboat(g, E + 2.2, -2.75, 10, -0.15, 0x3a8ad8); P.rowboat(g, -6, -2.75, E + 2.4, Math.PI / 2 + 0.2, 0xffc02a);
+  P.stringLights(g, -E + 1, Y + 5, E - 1, E - 1, Y + 5, E - 1, 14);
+  P.warnSign(g, -11.6, Y, 7.2, 0.5); P.tire(g, 11.6, Y + 0.17, 0.6, 0, false); P.tire(g, 11.7, Y + 0.51, 0.7, 0.4, false);
 }
 
 /* ===================== NEVADA ===================== */
@@ -111,6 +128,16 @@ export function decorNevada(g, HALF) {
   [[-0.2, 0xe83a3a], [0.2, 0x3a7aff]].forEach(([a, c]) => { const s = add(box(0.1, 3, 0.05), P.M(c), a, 1.4, 0, sk); s.rotation.z = a * 0.3; });
   // nieve que cae
   P.drift(g, 120, -26, 26, 18, Y, -24, 24, 0xffffff, 0.12, 1.4);
+  // cerca de la cancha: lomitas de nieve, rocas nevadas, pinos, banderitas de slalom, laguna helada y huellas
+  [[-10.5, -2, 2.2, 1.4], [10.8, 1, 1.8, 2.6], [-4, 11.5, 2.8, 1.2], [5.5, -11, 2.4, 1.3], [-10.5, 12.5, 1.6, 1.6], [13, -6, 1.6, 2]].forEach(([x, z, a2, b2]) => { P.dune(g, x, Y, z, a2, b2).material = P.M(0xf4f8ff, { map: TX.snow }); });
+  [[-11, 6.5, 0.7], [11, -9.5, 0.9], [7.5, 11.8, 0.6], [-7.5, -11.6, 0.8]].forEach(([x, z, r]) => P.rock(g, x, Y, z, r, 0x7a8698, true));
+  [[13.6, -14, 1.3], [-15.5, 13.6, 1.5], [15, 9.5, 1.1], [-15.5, -4.5, 1.2], [4, -14.5, 1], [-1.5, 14.8, 1.1]].forEach(([x, z, sc]) => P.pine(g, x, Y, z, sc, true));
+  for (let k = 0; k < 6; k++) P.pennant(g, -9.5 + k * 3.8, Y, -10.6 + (k % 2) * 0.6, k % 2 ? 0x3a7aff : 0xff3a3a, 1.4);
+  P.frozenPond(g, -12, Y, -6.5, 1.7);
+  P.footprints(g, Y, [[-13, -11], [-10, -7], [-10.2, 0], [-12.6, 4], [-12.2, 9]]);
+  P.footprints(g, Y, [[12.2, 9], [10.4, 4], [10.6, -3], [12.5, -8]], 0xb0c0d8);
+  [[-11, 10.5], [11, -11], [10.3, 8.5]].forEach(([x, z]) => P.lantern(g, x, Y, z, 2.2, 0xffd27a));
+  P.stringLights(g, -14, Y + 4.6, -13, -9, Y + 3, -10.6, 7, [0xff5a5a, 0x5aff8a, 0xffe14a, 0x5ab0ff]);
 }
 
 /* ===================== SELVA: ruinas de un templo en la selva; sube el pantano ===================== */
@@ -153,7 +180,7 @@ export function decorSelva(g, HALF) {
   const fl = scaleUV(new THREE.PlaneGeometry(160, 160, 16, 16), 30); fl.rotateX(-Math.PI / 2);
   add(fl, P.M(0x5a8a3a, { map: TX.grass }), 0, Y - 0.02, 0, g);
   const E = HALF + 6;
-  add(box(2 * E, 1, 2 * E), P.M(0x8a9070, { map: TX.stone }), 0, Y - 0.5, 0, g);          // la base del templo donde está la grilla
+  add(scaleUV(box(2 * E, 1, 2 * E), 7), P.M(0xb0ac88, { map: TX.sandstone }), 0, Y - 0.5, 0, g);          // la base del templo donde está la grilla
   // árboles grandes, palmeras y arbustos alrededor (lejos de la grilla)
   const pts = [];
   for (let k = 0; k < 70; k++) { const a = rnd(0, Math.PI * 2), d = rnd(HALF + 10, 38); pts.push([Math.sin(a) * d, Math.cos(a) * d, rnd(1.4, 2.4)]); }
@@ -171,4 +198,22 @@ export function decorSelva(g, HALF) {
   P.flyers(g, 4, 12, 4, 18, 3, 0x2a9aff, 0.5);
   P.drift(g, 60, -26, 26, Y, 8, -26, 26, 0xd8ff6a, 0.1, 0.5);
   P.drift(g, 40, -26, 26, 16, Y, -26, 26, 0x6ab03a, 0.16, 0.7, false);
+  // la explanada del templo: musgo, losas sueltas, pasto en las juntas, columnas rotas, raíces y helechos
+  [[-11, -3, 1.6], [10.8, 4, 1.3], [-6, 11, 1.5], [7, -11, 1.4], [11.5, -9.5, 1], [-11.8, 9.8, 1.1], [2, 12.2, 1], [-2.5, -11.6, 1.2]].forEach(([x, z, r]) => P.patch(g, x, Y, z, r, 0x4a7a32, { map: TX.leaf }));
+  [[-9.6, 5, 0.6], [9.8, -3, 0.8], [3, -10.4, 0.6]].forEach(([x, z, r]) => P.patch(g, x, Y, z, r, 0x2a3a2a));
+  const lp = [];
+  for (let k = 0; k < 40; k++) { const a2 = rnd(0, Math.PI * 2), d = rnd(9.4, 13.5); lp.push([Math.sin(a2) * d, Math.cos(a2) * d, Y]); }
+  P.stones(g, lp, 0xa8a88a);
+  for (let k = 0; k < 4; k++) { const sx = k % 2 ? 1 : -1, sz = k < 2 ? 1 : -1; P.grass(g, sx * 11, Y, sz * 6, 2.2, 5.5, 22, 0x5aa03a); P.grass(g, sx * 6, Y, sz * 11, 5.5, 2, 22, 0x4a9a3a); }
+  P.column(g, -11.5, Y, -7.5, 4, false, 0xb8b89a, TX.sandstone); P.column(g, 11.6, Y, 9, 4, true, 0xb8b89a, TX.sandstone);
+  P.column(g, -12, Y, 4.5, 4, true, 0xb8b89a, TX.sandstone); P.column(g, 7.5, Y, -12, 4, false, 0xb8b89a, TX.sandstone);
+  P.log(g, -6.5, Y, 12.6, 0.15, 3.4); P.log(g, 12.4, Y, -2.5, Math.PI / 2 - 0.2, 2.6);
+  [[-12.6, 0.5, 1], [12.8, 4.5, 0.9], [-9.5, -12, 1.1], [4, 12.8, 1], [-12.8, 12.8, 1.3], [12.6, -12.8, 1.2], [0.5, -13, 0.8]].forEach(([x, z, sc], k) => P.fern(g, x, Y, z, sc, k % 2 ? 0x4aa03a : 0x3a8a3a));
+  P.flowers(g, -10.5, Y, 10.5, 1.4, 1.2, 14, [0xff5a7a, 0xffe14a, 0xff9a2a]); P.flowers(g, 10.4, Y, -10.6, 1.2, 1.4, 12, [0xb07aff, 0xffffff, 0xff5a7a]);
+  // un estanque con nenúfares y una rana que salta
+  P.pond(g, 12.2, Y, 1.4, 1.4); P.lilies(g, 12.2, Y + 0.33, 1.4, 1.1, 5);
+  const frog = grp(g, 11.4, Y + 0.34, 2.1);
+  add(new THREE.SphereGeometry(0.2, 6, 4), P.M(0x3aaa3a), 0, 0.12, 0, frog).scale.set(1, 0.7, 1.2);
+  [-0.09, 0.09].forEach((a2) => add(new THREE.SphereGeometry(0.06, 4, 3), P.M(0xffffff), a2, 0.25, 0.12, frog));
+  P.anim(frog, (t) => { const u = (t * 0.35) % 1, j = u < 0.15 ? Math.sin((u / 0.15) * Math.PI) : 0; frog.position.y = Y + 0.34 + j * 0.6; frog.rotation.y = Math.floor(t * 0.35) * 1.7; });
 }

@@ -44,6 +44,17 @@ export function decorHexagonos(g, slimeY) {
   const cols = [0xff4a4a, 0xff9a1f, 0xffe14a, 0x39d98a, 0x4a8cff, 0xb07aff];
   cols.forEach((c, k) => { const t = new THREE.TorusGeometry(38 - k * 1.3, 0.65, 4, 28, Math.PI); add(t, P.M(c, { unlit: true }), 0, -12, -70, g); });
   P.balloons(g, -16, 2, -18, 5, 6); P.balloons(g, 18, 0, 14, 5, 5);
+  // globos aerostáticos que suben y bajan despacio, y bandadas de pájaros
+  [[-20, -2, 4, 0xff5a4a, 0xffe14a], [22, -8, -6, 0x4a8cff, 0xffffff], [6, -14, -24, 0x39d98a, 0xffd23a]].forEach(([x, y, z, c1, c2], k) => {
+    const hb = grp(g, x, y, z);
+    const env = add(new THREE.SphereGeometry(2.4, 10, 8), P.M(0xffffff, { map: TX.stripes }), 0, 3, 0, hb); env.scale.y = 1.2;
+    env.material = P.M(c1, { map: TX.stripes });
+    add(new THREE.ConeGeometry(1.4, 1.6, 10), P.M(c2), 0, 0.2, 0, hb).rotation.x = Math.PI;
+    add(new THREE.BoxGeometry(1, 0.8, 1), P.M(0x9a6a3a, { map: TX.wood }), 0, -1.4, 0, hb);
+    [[-0.45, -0.45], [0.45, -0.45], [-0.45, 0.45], [0.45, 0.45]].forEach(([a2, b2]) => add(new THREE.CylinderGeometry(0.02, 0.02, 1.2, 3), P.M(0x3a2a1a), a2, -0.6, b2, hb));
+    P.anim(hb, (t) => { hb.position.y = y + Math.sin(t * 0.25 + k * 2) * 2.5; hb.rotation.y = t * 0.08 + k; });
+  });
+  P.flyers(g, 0, 6, 0, 24, 6, 0x2a2a34, 0.45); P.flyers(g, -6, -4, 8, 19, 4, 0xffffff, 0.4);
   return slimeM;
 }
 
@@ -129,6 +140,34 @@ export function decorNeon(g, slimeY) {
     const ph = rnd(0, 6); P.anim(r, (t) => { r.rotation.x = t * 0.5 + ph; r.rotation.y = t * 0.3; });
   }
   P.drift(g, 40, -30, 30, slimeY, 10, -30, 30, 0xff3aa8, 0.12, 1.4);               // chispitas que suben
+  // islitas flotantes con palmeras de neón (contornos que brillan) alrededor de los pisos
+  const neonLine = (geo, col) => new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: col, fog: false }));
+  const palm = (x, y, z, col, s) => {
+    const pg = grp(g, x, y, z); pg.scale.setScalar(s);
+    const base = new THREE.CylinderGeometry(2.2, 0.6, 1.4, 6);
+    add(base, P.M(0x14082a), 0, -0.7, 0, pg); const bl = neonLine(base, 0x3af0ff); bl.position.y = -0.7; pg.add(bl);
+    for (let k = 0; k < 5; k++) { const tg = new THREE.CylinderGeometry(0.22, 0.26, 0.9, 5), seg = neonLine(tg, col); seg.position.set(k * 0.14, 0.45 + k * 0.85, 0); seg.rotation.z = -0.14; pg.add(seg); }
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI * 2, lg = new THREE.BoxGeometry(0.5, 0.05, 2.2), lf = neonLine(lg, 0x39ff9a);
+      lf.position.set(0.7 + Math.sin(a) * 1, 4.4, Math.cos(a) * 1); lf.rotation.set(0.5, a, 0, 'YXZ'); pg.add(lf);
+    }
+    const ph = rnd(0, 6); P.anim(pg, (t) => { pg.position.y = y + Math.sin(t * 0.6 + ph) * 0.6; });
+  };
+  [[-17, -3, 6, 0xff3aa8, 1], [17, -5, -4, 0xffe03a, 1.1], [-14, -9, -16, 0x9a5aff, 0.9], [15, -11, 14, 0x3af0ff, 1.2], [4, -15, 19, 0xff3aa8, 1], [-6, -13, -21, 0xffe03a, 1]].forEach(([x, y, z, c2, sc]) => palm(x, y, z, c2, sc));
+  // reflectores: rayos de luz de colores que barren desde abajo
+  const beams = [0xff3aa8, 0x3af0ff, 0x9a5aff, 0xffe03a].map((c2, k) => {
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 2.4, 60, 8, 1, true), new THREE.MeshBasicMaterial({ color: c2, transparent: true, opacity: 0.1, depthWrite: false, fog: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+    b.geometry.translate(0, 30, 0);
+    const a = (k / 4) * Math.PI * 2 + 0.4, bg = grp(g, Math.sin(a) * 30, slimeY + 2, Math.cos(a) * 30); bg.add(b);
+    return { bg, ph: k * 1.6 };
+  });
+  P.anim(g, (t) => beams.forEach((q) => { q.bg.rotation.x = Math.sin(t * 0.4 + q.ph) * 0.45; q.bg.rotation.z = Math.cos(t * 0.33 + q.ph) * 0.45; }));
+  // cubos de neón chiquitos dando vueltas cerca
+  for (let k = 0; k < 10; k++) {
+    const cg = new THREE.BoxGeometry(0.9, 0.9, 0.9), cu = neonLine(cg, [0x3af0ff, 0xff3aa8, 0xffe03a][k % 3]);
+    const a0 = (k / 10) * Math.PI * 2, d = rnd(16, 22), y0 = rnd(-14, 3), sp = rnd(0.05, 0.1); g.add(cu);
+    P.anim(cu, (t) => { const a = a0 + t * sp; cu.position.set(Math.sin(a) * d, y0 + Math.sin(t + k) * 0.8, Math.cos(a) * d); cu.rotation.set(t * 0.8 + k, t * 0.6, 0); });
+  }
   return grid;
 }
 
@@ -165,5 +204,28 @@ export function decorVolcan(g, slimeY) {
   P.drift(g, 50, -34, 34, 16, slimeY, -34, 34, 0x5a5058, 0.12, 0.6, false);
   // humo en el horizonte
   P.smoke(g, 20, slimeY + 6, -60, 6, 5, 0x3a2a2a); P.smoke(g, -40, slimeY + 6, -50, 5, 4, 0x3a2a2a);
+  // rocas flotantes más cerca, con un hilo de lava que cae de cada una
+  [[-16, -5, 5, 0.7], [16, -9, -3, 0.8], [-12, -15, -15, 0.6], [13, -13, 15, 0.7]].forEach(([x, y, z, sc]) => {
+    const r = floatRock(g, x, y, z, sc, true);
+    const fall = add(new THREE.BoxGeometry(0.35, 18, 0.35), P.M(0xff8a2a, { unlit: true }), 0, -11, 0, r);
+    P.anim(fall, (t) => { fall.scale.x = 1 + Math.sin(t * 6 + x) * 0.25; });
+  });
+  // meteoritos de fuego que cruzan el cielo cada tanto
+  const mets = [0, 1, 2].map((k) => {
+    const m = grp(g); m.visible = false;
+    add(new THREE.DodecahedronGeometry(0.9, 0), P.M(0xffc04a, { unlit: true }), 0, 0, 0, m);
+    for (let i = 1; i < 6; i++) add(new THREE.BoxGeometry(0.6 - i * 0.08, 0.6 - i * 0.08, 0.6 - i * 0.08), P.M(i < 3 ? 0xff7a1a : 0x8a2a1a, { unlit: true }), -i * 0.9, i * 0.5, 0, m);
+    return { m, t: 2 + k * 3.1 };
+  });
+  P.anim(g, (t, dt) => mets.forEach((q) => {
+    q.t -= dt;
+    if (q.t <= 0 && !q.m.visible) { q.m.visible = true; q.u = 0; q.a = rnd(0, Math.PI * 2); q.from = [Math.sin(q.a) * 50, 26, Math.cos(q.a) * 50 - 20]; q.to = [Math.sin(q.a + 2.2) * 40, -6, Math.cos(q.a + 2.2) * 40 - 30]; }
+    if (q.m.visible) {
+      q.u += dt * 0.35; const u = q.u, f = q.from, e = q.to;
+      q.m.position.set(f[0] + (e[0] - f[0]) * u, f[1] + (e[1] - f[1]) * u, f[2] + (e[2] - f[2]) * u);
+      q.m.rotation.y = Math.atan2(-(e[2] - f[2]), e[0] - f[0]);
+      if (u >= 1) { q.m.visible = false; q.t = rnd(4, 9); }
+    }
+  }));
   return magma;
 }

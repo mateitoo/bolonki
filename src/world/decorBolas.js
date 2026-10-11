@@ -478,6 +478,50 @@ export function decorTerraza(g) {
   // guirnaldas de lamparitas cruzadas de tanque a tanque
   P.chaseLights(g, -21, 6.2, -21, 21, 6.2, -20, 20, 0xffe0a0, 1.5);
   P.chaseLights(g, 21, 6.2, -20, 22, 6.2, 21, 20, 0xffe0a0, 1.5);
+  // lo de cerca de la arena: la pelopincho, reposeras, macetas, la manguera, la bici, un perro durmiendo y baldosas sueltas
+  pelopincho(g, -7.5, -20);
+  [[6.5, -19.6, 0.2, 0x3a8ad8], [8.8, -19.8, -0.1, 0xffc02a]].forEach(([x, z, ry, c]) => reposera(g, x, z, ry, c));
+  [[-15.3, -6], [-15.3, 2], [-15.3, 10], [15.3, -6], [15.3, 2], [15.3, 10], [-12, -19], [12, -19.4], [-2, -20], [2.6, -20.2]].forEach(([x, z], k) => {
+    add(new THREE.CylinderGeometry(0.42, 0.32, 0.6, 6), P.M([0xc8703a, 0x3a8a5a, 0xd8d0c0][k % 3], { map: TX.clay }), x, Y + 0.3, z, g);
+    if (k % 3 === 2) P.fern(g, x, Y + 0.45, z, 0.6); else P.bush(g, x, Y + 0.45, z, 0.55, k % 2 ? 0x3f8a3a : 0x5aa03a);
+    if (k % 4 === 1) P.flowers(g, x, Y + 0.5, z, 0.25, 0.25, 4);
+  });
+  const hose = new THREE.TorusGeometry(0.45, 0.06, 4, 14);
+  for (let i = 0; i < 3; i++) add(hose, P.M(0x39a86a), -16.8, Y + 0.08 + i * 0.1, 13.5, g).rotation.x = Math.PI / 2;
+  add(new THREE.CylinderGeometry(0.3, 0.24, 0.5, 8), P.M(0xff5a3a), -15.6, Y + 0.25, 14.5, g);
+  P.bike(g, 17.2, Y, 13.5, 0.2, 0x8a4ad8);
+  sleepyDog(g, 4.2, -19.4);
+  P.lamp(g, -10.4, Y, -20.2, 3.2, 0xffd27a); P.lamp(g, 10.6, Y, -20.4, 3.2, 0xffd27a);
+  P.patch(g, -15.5, Y, 4, 0.9, 0x5a4a50); P.patch(g, 15.4, Y, -2, 0.7, 0x4a5a6a);
+}
+function pelopincho(p, x, z) {                                // pileta de lona con agua, una pelota y el patito
+  const g = grp(p, x, Y, z, 0.3);
+  add(new THREE.BoxGeometry(3.4, 0.8, 2.4), P.M(0x3a8ad8, { map: TX.metal }), 0, 0.4, 0, g);
+  const wm = mat({ map: TX.water, color: 0x8ad8ff, unlit: true });
+  add(new THREE.BoxGeometry(3.1, 0.06, 2.1), wm, 0, 0.72, 0, g);
+  P.anim(g, (t) => wm.uniforms.uOff.value.set((t * 0.04) % 1, (t * 0.03) % 1));
+  [[-1.75, -1.25], [1.75, -1.25], [-1.75, 1.25], [1.75, 1.25]].forEach(([a, b]) => add(new THREE.BoxGeometry(0.1, 0.9, 0.1), P.M(0xe8e8ee), a, 0.45, b, g));
+  const duck = grp(g, 0.6, 0.78, 0.3);
+  add(new THREE.SphereGeometry(0.2, 6, 5), P.M(0xffd23a), 0, 0.1, 0, duck).scale.set(1, 0.8, 1.3);
+  add(new THREE.SphereGeometry(0.12, 6, 5), P.M(0xffd23a), 0, 0.3, 0.15, duck);
+  add(new THREE.ConeGeometry(0.05, 0.12, 4), P.M(0xff7a1a), 0, 0.28, 0.3, duck).rotation.x = Math.PI / 2;
+  P.anim(duck, (t) => { duck.position.x = 0.6 + Math.sin(t * 0.3) * 0.8; duck.position.z = Math.cos(t * 0.25) * 0.5; duck.rotation.y = t * 0.3; duck.position.y = 0.78 + Math.sin(t * 2) * 0.02; });
+  add(new THREE.SphereGeometry(0.3, 8, 6), P.M(0xffffff, { map: TX.stripes }), -0.8, 0.85, -0.3, g);
+}
+function reposera(p, x, z, ry, col) {                         // reposera de lona
+  const g = grp(p, x, Y, z, ry), fm = P.M(0xd8d8e0, { map: TX.metal }), cm = P.M(col, { map: TX.stripes });
+  add(new THREE.BoxGeometry(0.7, 0.06, 1.3), cm, 0, 0.35, 0.2, g);
+  add(new THREE.BoxGeometry(0.7, 0.06, 0.9), cm, 0, 0.7, -0.6, g).rotation.x = -0.9;
+  [[-0.35, 0.8], [0.35, 0.8], [-0.35, -0.8], [0.35, -0.8]].forEach(([a, b]) => add(new THREE.BoxGeometry(0.05, 0.4, 0.05), fm, a, 0.2, b, g));
+}
+function sleepyDog(p, x, z) {                                 // perro durmiendo que respira (y mueve la cola)
+  const g = grp(p, x, Y, z, -0.8), m = P.M(0xc89a5a), dk = P.M(0x6a4a2a);
+  const body = add(new THREE.SphereGeometry(0.5, 8, 6), m, 0, 0.3, 0, g); body.scale.set(0.9, 0.55, 1.4);
+  add(new THREE.SphereGeometry(0.28, 7, 5), m, 0.05, 0.25, 0.75, g);
+  [-0.18, 0.18].forEach((sx) => add(new THREE.BoxGeometry(0.12, 0.05, 0.25), dk, sx + 0.05, 0.42, 0.7, g).rotation.z = sx * 2);
+  const tail = add(new THREE.BoxGeometry(0.08, 0.08, 0.4), m, 0, 0.25, -0.8, g);
+  const z0 = add(new THREE.BoxGeometry(0.16, 0.16, 0.02), P.M(0xffffff, { unlit: true }), 0.1, 0.9, 0.8, g);
+  P.anim(g, (t) => { body.scale.y = 0.55 + Math.sin(t * 1.6) * 0.04; tail.rotation.y = Math.sin(t * 6) * Math.max(0, Math.sin(t * 0.4)) * 0.6; const u = (t * 0.5) % 1; z0.position.set(0.1 + u * 0.4, 0.8 + u * 0.8, 0.8); z0.scale.setScalar(0.6 + u); z0.visible = u < 0.85; });
 }
 function parrilla(p, x, z, ry) {                                // parrilla de ladrillo con brasas y humo
   const g = grp(p, x, Y, z, ry), bm = P.M(0xc07a5a, { map: TX.brick }), mm = P.M(0x2a2a2e, { map: TX.metal });

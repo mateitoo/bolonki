@@ -1,4 +1,5 @@
 // Naves y pilotos (personajes originales).
+import { roundBox } from '../render/shapes.js';
 import * as THREE from 'three';
 import { CHARS, SIDES } from '../config.js';
 import { scene, mat, add, faceIn } from '../render/psx.js';
@@ -27,11 +28,11 @@ export function buildPod(i) {
   const lightM = M({ color: 0xffd23a, unlit: true });
   for (let k = 0; k < 7; k++) {
     const a = (-0.5 + k / 6) * Math.PI * 0.8;
-    add(new THREE.BoxGeometry(0.2, 0.16, 0.1), lightM, Math.sin(a) * 1.66, 0.62, Math.cos(a) * 1.44, veh).rotation.y = a;
+    add(roundBox(0.2, 0.16, 0.1), lightM, Math.sin(a) * 1.66, 0.62, Math.cos(a) * 1.44, veh).rotation.y = a;
   }
   const prongG = new THREE.ConeGeometry(0.12, 0.6, 4); prongG.rotateX(Math.PI / 2);
   [-0.9, 0.9].forEach((px) => add(prongG, M({ color: 0xf2f2e8 }), px, 0.64, 1.5, veh));
-  add(new THREE.BoxGeometry(0.14, 0.62, 0.42), M({ color: 0x2a6e62 }), 0, 1.75, -1.02, veh).rotation.x = -0.35;
+  add(roundBox(0.14, 0.62, 0.42), M({ color: 0x2a6e62 }), 0, 1.75, -1.02, veh).rotation.x = -0.35;
   add(new THREE.SphereGeometry(0.13, 6, 4), M({ color: 0xff3a2a, unlit: true }), 0, 2.1, -1.18, veh);
   const glow = new THREE.TorusGeometry(0.75, 0.08, 4, 14); glow.rotateX(Math.PI / 2);
   add(glow, M({ color: 0x35f0ff, unlit: true }), 0, 0.1, 0, veh);
@@ -79,10 +80,10 @@ function buildBlob(rider, M, ch, col) {
   add(new THREE.SphereGeometry(0.78, 8, 6), M({ color: col }), 0, 0, 0, rider).scale.set(1, 0.95, 0.9);
   const white = M({ color: 0xffffff }), black = M({ color: 0x101010, unlit: true }), dark = M({ color: new THREE.Color(ch.dark) });
   [-0.27, 0.27].forEach((ex) => {
-    add(new THREE.BoxGeometry(0.25, 0.32, 0.1), white, ex, 0.15, 0.66, rider);
-    add(new THREE.BoxGeometry(0.12, 0.15, 0.06), black, ex, 0.13, 0.72, rider);
+    add(roundBox(0.25, 0.32, 0.1), white, ex, 0.15, 0.66, rider);
+    add(roundBox(0.12, 0.15, 0.06), black, ex, 0.13, 0.72, rider);
   });
-  [-0.8, 0.8].forEach((ax) => { add(new THREE.BoxGeometry(0.22, 0.5, 0.22), M({ color: col }), ax, -0.35, 0.35, rider).rotation.z = ax * 0.4; });
+  [-0.8, 0.8].forEach((ax) => { add(roundBox(0.22, 0.5, 0.22), M({ color: col }), ax, -0.35, 0.35, rider).rotation.z = ax * 0.4; });
   if (ch.acc === 'beak') {
     const b = new THREE.ConeGeometry(0.2, 0.55, 4); b.rotateX(Math.PI / 2);
     add(b, M({ color: 0xff7a00 }), 0, -0.12, 0.85, rider);
@@ -94,12 +95,12 @@ function buildBlob(rider, M, ch, col) {
     });
   } else if (ch.acc === 'ears') {
     [-0.28, 0.28].forEach((ax) => {
-      add(new THREE.BoxGeometry(0.2, 0.85, 0.1), M({ color: col }), ax, 1.0, -0.05, rider).rotation.z = -ax * 0.5;
-      add(new THREE.BoxGeometry(0.1, 0.6, 0.04), dark, ax * 1.03, 1.0, 0.01, rider).rotation.z = -ax * 0.5;
+      add(roundBox(0.2, 0.85, 0.1), M({ color: col }), ax, 1.0, -0.05, rider).rotation.z = -ax * 0.5;
+      add(roundBox(0.1, 0.6, 0.04), dark, ax * 1.03, 1.0, 0.01, rider).rotation.z = -ax * 0.5;
     });
   } else {
     [-0.44, 0.44].forEach((ax) => { add(new THREE.ConeGeometry(0.14, 0.5, 4), M({ color: 0xf0e6c8 }), ax, 0.75, 0, rider).rotation.z = -ax * 1.1; });
-    add(new THREE.BoxGeometry(0.7, 0.08, 0.08), black, 0, 0.4, 0.66, rider).rotation.z = 0.12;
+    add(roundBox(0.7, 0.08, 0.08), black, 0, 0.4, 0.66, rider).rotation.z = 0.12;
   }
 
   // piernas (solo se ven en los minijuegos a pie, sin nave)
@@ -108,8 +109,8 @@ function buildBlob(rider, M, ch, col) {
   const legL = new THREE.Group(), legR = new THREE.Group();
   [[legL, -0.3], [legR, 0.3]].forEach(([g, lx]) => {
     g.position.set(lx, -0.6, 0); legs.add(g);
-    add(new THREE.BoxGeometry(0.2, 0.42, 0.2), legM, 0, -0.2, 0, g);
-    add(new THREE.BoxGeometry(0.3, 0.14, 0.42), shoeM, 0, -0.44, 0.08, g);
+    add(roundBox(0.2, 0.42, 0.2), legM, 0, -0.2, 0, g);
+    add(roundBox(0.3, 0.14, 0.42), shoeM, 0, -0.44, 0.08, g);
   });
   return { legs, legL, legR };
 }

@@ -3,6 +3,7 @@
 // de golpe hacen una EMBESTIDA: si pegás la pelota embistiendo sale como un cañonazo.
 // Gana el primer equipo que llega a N goles, o el que va ganando cuando se termina el tiempo.
 // Si empatan al final: gol de oro (y los arcos se van agrandando de a poco hasta que alguien meta).
+import { roundBox } from '../render/shapes.js';
 import { freezeStatic } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
@@ -89,25 +90,25 @@ function buildGoal(grp, side) {
   const netM = W.M.net, thin = 0.035;
   const D = side * GD;
   // fondo
-  for (let k = 0; k <= 10; k++) { const z = -GW0 + (k / 10) * GW0 * 2; add(new THREE.BoxGeometry(thin, H * 0.8, thin), netM, D, H * 0.4, z, g); }
-  for (let k = 0; k <= 4; k++) add(new THREE.BoxGeometry(thin, thin, GW0 * 2), netM, D, (k / 4) * H * 0.8, 0, g);
+  for (let k = 0; k <= 10; k++) { const z = -GW0 + (k / 10) * GW0 * 2; add(roundBox(thin, H * 0.8, thin), netM, D, H * 0.4, z, g); }
+  for (let k = 0; k <= 4; k++) add(roundBox(thin, thin, GW0 * 2), netM, D, (k / 4) * H * 0.8, 0, g);
   // techo inclinado (del travesaño al fondo)
   const topLen = Math.hypot(GD, H * 0.2);
   for (let k = 0; k <= 10; k++) {
     const z = -GW0 + (k / 10) * GW0 * 2;
-    const m = add(new THREE.BoxGeometry(topLen, thin, thin), netM, D / 2, H * 0.9, z, g); m.rotation.z = -Math.atan2(H * 0.2, GD) * side;
+    const m = add(roundBox(topLen, thin, thin), netM, D / 2, H * 0.9, z, g); m.rotation.z = -Math.atan2(H * 0.2, GD) * side;
   }
-  for (let k = 0; k <= 3; k++) add(new THREE.BoxGeometry(thin, thin, GW0 * 2), netM, (k / 3) * D, H - (k / 3) * H * 0.2, 0, g);
+  for (let k = 0; k <= 3; k++) add(roundBox(thin, thin, GW0 * 2), netM, (k / 3) * D, H - (k / 3) * H * 0.2, 0, g);
   // costados
   [-1, 1].forEach((sz) => {
-    for (let k = 0; k <= 4; k++) { const x = (k / 4) * D; add(new THREE.BoxGeometry(thin, H - (k / 4) * H * 0.2, thin), netM, x, (H - (k / 4) * H * 0.2) / 2, sz * GW0, g); }
-    for (let k = 0; k <= 4; k++) add(new THREE.BoxGeometry(GD, thin, thin), netM, D / 2, (k / 4) * H * 0.8, sz * GW0, g);
+    for (let k = 0; k <= 4; k++) { const x = (k / 4) * D; add(roundBox(thin, H - (k / 4) * H * 0.2, thin), netM, x, (H - (k / 4) * H * 0.2) / 2, sz * GW0, g); }
+    for (let k = 0; k <= 4; k++) add(roundBox(GD, thin, thin), netM, D / 2, (k / 4) * H * 0.8, sz * GW0, g);
   });
   // piso del arco (un poco más oscuro) y marco de atrás
   const fl = new THREE.PlaneGeometry(GD, GW0 * 2); fl.rotateX(-Math.PI / 2);
   W.M.goalFloor = W.M.goalFloor || mat({ map: TX.pitch, color: 0x9ab0a0 });
   add(fl, W.M.goalFloor, D / 2, 0.01, 0, g);
-  [-1, 1].forEach((sz) => add(new THREE.BoxGeometry(0.12, 0.12, 0.12), white, D, 0.06, sz * GW0, g));
+  [-1, 1].forEach((sz) => add(roundBox(0.12, 0.12, 0.12), white, D, 0.06, sz * GW0, g));
   return g;
 }
 
@@ -141,8 +142,8 @@ function buildWorld() {
   const adM = mat({ map: TX.ads, unlit: true }), capM = mat({ color: 0x2a2f3c }), WH = 0.8, T = 0.3; W.M.ad = [adM]; W.M.cap = capM;
   const wall = (x, z, w, d, uvw) => {
     const g = new THREE.Group(); g.position.set(x, 0, z); grp.add(g);
-    add(scaleUV(new THREE.BoxGeometry(w, WH, d), uvw, 1), adM, 0, WH / 2, 0, g);
-    add(new THREE.BoxGeometry(w + 0.02, 0.08, d + 0.02), capM, 0, WH + 0.04, 0, g);
+    add(scaleUV(roundBox(w, WH, d), uvw, 1), adM, 0, WH / 2, 0, g);
+    add(roundBox(w + 0.02, 0.08, d + 0.02), capM, 0, WH + 0.04, 0, g);
     return g;
   };
   const sx0 = HX - CR;

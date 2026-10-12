@@ -13,6 +13,7 @@
 //
 // La lógica corre en una sola máquina (la del jugador, o la del anfitrión en el online) y el estado
 // del tablero (S) es un objeto simple que se manda entero a los invitados.
+import { roundBox } from '../render/shapes.js';
 import * as THREE from 'three';
 import { register, MINIGAMES, mgById } from '../minigames/registry.js';
 import { rnd } from '../config.js';
@@ -158,15 +159,15 @@ function buildWorld() {
       // puestito de la tienda al costado del casillero: mostrador, parantes y toldo a rayas
       const [ox, oz] = outward(i), booth = new THREE.Group();
       booth.position.set(s.x + ox * 1.7, 0, s.z + oz * 1.7); booth.rotation.y = Math.atan2(-ox, -oz); grp.add(booth);
-      add(new THREE.BoxGeometry(1.5, 0.6, 0.6), woodM, 0, 0.3, 0, booth);
-      [-0.68, 0.68].forEach((px) => add(new THREE.BoxGeometry(0.08, 1.4, 0.08), woodM, px, 0.7, -0.25, booth));
-      for (let k = 0; k < 5; k++) add(new THREE.BoxGeometry(0.34, 0.06, 0.8), k % 2 ? awnB : awnA, -0.68 + k * 0.34, 1.42, -0.05, booth).rotation.x = 0.25;
-      add(new THREE.BoxGeometry(0.5, 0.26, 0.04), signM, 0, 0.36, 0.31, booth);
+      add(roundBox(1.5, 0.6, 0.6), woodM, 0, 0.3, 0, booth);
+      [-0.68, 0.68].forEach((px) => add(roundBox(0.08, 1.4, 0.08), woodM, px, 0.7, -0.25, booth));
+      for (let k = 0; k < 5; k++) add(roundBox(0.34, 0.06, 0.8), k % 2 ? awnB : awnA, -0.68 + k * 0.34, 1.42, -0.05, booth).rotation.x = 0.25;
+      add(roundBox(0.5, 0.26, 0.04), signM, 0, 0.36, 0.31, booth);
       const o = add(new THREE.OctahedronGeometry(0.2, 0), mat({ color: 0xffe070, unlit: true }), 0, 0.85, 0, booth); W.spin.push(o);
     }
     if (s.type === 'S') {
       add(new THREE.CylinderGeometry(0.05, 0.05, 1.6, 4), mat({ color: 0xdddddd }), s.x + 0.7, 0.9, s.z, grp);
-      add(new THREE.BoxGeometry(0.05, 0.4, 0.6), mat({ color: 0xff9a1f, unlit: true }), s.x + 0.7, 1.5, s.z + 0.3, grp);
+      add(roundBox(0.05, 0.4, 0.6), mat({ color: 0xff9a1f, unlit: true }), s.x + 0.7, 1.5, s.z + 0.3, grp);
     }
     W.tiles.push(m);
     // puntitos del camino hasta el siguiente
@@ -183,13 +184,13 @@ function buildWorld() {
   // anillo que marca a quién le toca, y el bloque del dado
   const ring = new THREE.TorusGeometry(0.75, 0.08, 4, 16); ring.rotateX(Math.PI / 2);
   W.ring = add(ring, mat({ color: 0xffd23a, unlit: true }), 0, 0.4, 0, grp);
-  W.dice = add(new THREE.BoxGeometry(0.9, 0.9, 0.9), mat({ map: TX.dice, unlit: true }), 0, 3, 0, grp);
-  W.dice2 = add(new THREE.BoxGeometry(0.9, 0.9, 0.9), mat({ map: TX.dice, unlit: true }), 0, 3, 0, grp);
+  W.dice = add(roundBox(0.9, 0.9, 0.9), mat({ map: TX.dice, unlit: true }), 0, 3, 0, grp);
+  W.dice2 = add(roundBox(0.9, 0.9, 0.9), mat({ map: TX.dice, unlit: true }), 0, 3, 0, grp);
   // camino de tierra que une los casilleros (abajo de los puntitos)
   const roadM = mat({ map: TX.dirt, color: 0xd8c098 });
   SPACES.forEach((s, i) => {
     const nx = SPACES[(i + 1) % N], len = Math.hypot(nx.x - s.x, nx.z - s.z);
-    const rd = add(scaleUV(new THREE.BoxGeometry(1.15, 0.02, len), 1, Math.max(1, Math.round(len / 1.5))), roadM, (s.x + nx.x) / 2, 0.012, (s.z + nx.z) / 2, grp);
+    const rd = add(scaleUV(roundBox(1.15, 0.02, len), 1, Math.max(1, Math.round(len / 1.5))), roadM, (s.x + nx.x) / 2, 0.012, (s.z + nx.z) / 2, grp);
     rd.rotation.y = Math.atan2(nx.x - s.x, nx.z - s.z);
     const cap = new THREE.CircleGeometry(0.58, 10); cap.rotateX(-Math.PI / 2); add(cap, roadM, s.x, 0.013, s.z, grp);
   });

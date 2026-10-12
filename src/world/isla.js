@@ -1,6 +1,7 @@
 // La isla del Rey de la colina: costa irregular, tres colinas distintas (el Morro, la Mesa y el Peñón),
 // un puente colgante entre el Morro y la Mesa, un muelle que sale al mar y cosas en la playa que estorban
 // (palmeras, rocas, un bote, barriles). Acá está la forma (para la física) y el armado (para verla).
+import { roundBox, organic } from '../render/shapes.js';
 import * as THREE from 'three';
 import { mat, add, scaleUV } from '../render/psx.js';
 import { TX } from '../render/textures.js';
@@ -134,7 +135,9 @@ export function buildIsla(grp) {
   HILLS.forEach((c, hk) => {
     c.tiers.forEach((t, k) => {
       const y0 = k === 0 ? 0 : c.tiers[k - 1].h, hh = t.h - y0, top = k === c.tiers.length - 1;
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(t.r, t.r * (k === 0 ? 1.04 : 1), hh, 28, 1), [sideM, top ? plazaM[hk] : topM, sideM]);
+      const cg = new THREE.CylinderGeometry(t.r, t.r * (k === 0 ? 1.06 : 1.02), hh, 28, 2);   // escalón con el canto un poco irregular (no un tubo perfecto)
+      { const p = cg.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), a = Math.atan2(x, z), k2 = 1 + Math.sin(a * 5 + hk * 2 + k) * 0.012 + Math.sin(a * 11 + hk) * 0.008; if (Math.hypot(x, z) > 0.01) { p.setX(i, x * k2); p.setZ(i, z * k2); } } cg.computeVertexNormals(); }
+      const m = new THREE.Mesh(cg, [sideM, top ? plazaM[hk] : topM, sideM]);
       m.position.set(t.x, y0 + hh / 2, t.z); grp.add(m);
       const eg = new THREE.RingGeometry(t.r - 0.14, t.r, 28, 1); eg.rotateX(-Math.PI / 2);
       add(eg, edgeM, t.x, t.h + 0.02, t.z, grp);
@@ -148,10 +151,10 @@ export function buildIsla(grp) {
   COLS.forEach(([x, z, h]) => {
     const y = HILLS[0].h;
     add(new THREE.CylinderGeometry(0.26, 0.3, h, 8), colM, x, y + h / 2, z, grp);
-    add(new THREE.BoxGeometry(0.7, 0.18, 0.7), colM, x, y + 0.09, z, grp);
-    if (h > 1) add(new THREE.BoxGeometry(0.72, 0.2, 0.72), colM, x, y + h + 0.1, z, grp);
+    add(roundBox(0.7, 0.18, 0.7), colM, x, y + 0.09, z, grp);
+    if (h > 1) add(roundBox(0.72, 0.2, 0.72), colM, x, y + h + 0.1, z, grp);
   });
-  add(new THREE.BoxGeometry(1.0, 0.4, 0.5), colM, HILLS[0].tiers[1].x - 2.6, HILLS[0].tiers[1].h + 0.2, HILLS[0].tiers[1].z + 1.2, grp).rotation.y = 0.5;
+  add(roundBox(1.0, 0.4, 0.5), colM, HILLS[0].tiers[1].x - 2.6, HILLS[0].tiers[1].h + 0.2, HILLS[0].tiers[1].z + 1.2, grp).rotation.y = 0.5;
   // la Mesa: un mástil con bandera; el Peñón: musgo y un cartel
   P.flag(grp, HILLS[1].x + 1.7, HILLS[1].h, HILLS[1].z - 1.3, 3.2, 0xff5a4a);
   P.grass(grp, HILLS[2].tiers[0].x, HILLS[2].tiers[0].h + 0.01, HILLS[2].tiers[0].z, 1.6, 1.6, 10, 0x4a8a3a);
@@ -163,7 +166,7 @@ export function buildIsla(grp) {
   const hAt = (t) => B.ah + (B.bh - B.ah) * t - Math.sin(t * Math.PI) * B.sag;
   for (let k = 0; k < NP; k++) {
     const t = (k + 0.5) / NP;
-    const m = add(new THREE.BoxGeometry(B.w, 0.1, (L / NP) * 0.82), wood, B.ax + dx * t, hAt(t) - 0.05, B.az + dz * t, grp);
+    const m = add(roundBox(B.w, 0.1, (L / NP) * 0.82), wood, B.ax + dx * t, hAt(t) - 0.05, B.az + dz * t, grp);
     m.rotation.y = ang; m.rotation.x = Math.atan2(hAt(t + 0.05) - hAt(t - 0.05), L * 0.1) * -1;
     planks.push({ m, y: m.position.y, x: m.position.x, z: m.position.z, t });
   }
@@ -181,7 +184,7 @@ export function buildIsla(grp) {
     for (let k = 0; k < 8; k++) {
       const t0 = k / 8, t1 = (k + 1) / 8, tm = (t0 + t1) / 2;
       const y = (tt) => hAt(tt) + 0.95 - Math.sin(tt * Math.PI) * 0.1;
-      const seg = add(new THREE.BoxGeometry(0.05, 0.05, L / 8 + 0.02), rope, B.ax + dx * tm + ox, y(tm), B.az + dz * tm + oz, grp);
+      const seg = add(roundBox(0.05, 0.05, L / 8 + 0.02), rope, B.ax + dx * tm + ox, y(tm), B.az + dz * tm + oz, grp);
       seg.rotation.y = ang; seg.rotation.x = -Math.atan2(y(t1) - y(t0), L / 8);
     }
   });
@@ -189,7 +192,7 @@ export function buildIsla(grp) {
   // muelle: tablones sobre pilotes, y un bote amarrado
   const ux = Math.sin(PIER.a), uz = Math.cos(PIER.a);
   const deck = new THREE.Group(); deck.position.set(ux * (PIER.r0 + PIER.len / 2), 0, uz * (PIER.r0 + PIER.len / 2)); deck.rotation.y = PIER.a; grp.add(deck);
-  for (let k = 0; k < 12; k++) add(new THREE.BoxGeometry(PIER.w, 0.12, PIER.len / 12 * 0.85), wood, 0, PIER.h - 0.06, -PIER.len / 2 + (k + 0.5) * PIER.len / 12, deck);
+  for (let k = 0; k < 12; k++) add(roundBox(PIER.w, 0.12, PIER.len / 12 * 0.85), wood, 0, PIER.h - 0.06, -PIER.len / 2 + (k + 0.5) * PIER.len / 12, deck);
   [-1, 1].forEach((sx) => [0.3, 2.2, 4.1, 5.9].forEach((s) => add(new THREE.CylinderGeometry(0.13, 0.13, 2.2, 5), wood, sx * (PIER.w / 2 - 0.1), PIER.h - 1.1, -PIER.len / 2 + s, deck)));
   [-1, 1].forEach((sx) => add(new THREE.CylinderGeometry(0.1, 0.12, 0.7, 5), wood, sx * (PIER.w / 2 - 0.1), PIER.h + 0.3, PIER.len / 2 - 0.2, deck));
   P.lantern(deck, PIER.w / 2 - 0.1, PIER.h, PIER.len / 2 - 0.3, 2.0);
@@ -222,10 +225,10 @@ export function buildIsla(grp) {
 function boat(p, x, y, z, a, col) {
   const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = a; p.add(g);
   const hull = mat({ map: TX.wood, color: col }), inner = mat({ map: TX.wood, color: 0xb88a52 });
-  add(new THREE.BoxGeometry(1.2, 0.45, 2.6), hull, 0, 0.22, 0, g);
+  add(roundBox(1.2, 0.45, 2.6), hull, 0, 0.22, 0, g);
   const bow = add(new THREE.ConeGeometry(0.62, 0.9, 4), hull, 0, 0.22, 1.72, g); bow.rotation.x = Math.PI / 2; bow.rotation.y = Math.PI / 4; bow.scale.set(1, 1, 0.5);
-  add(new THREE.BoxGeometry(1.0, 0.06, 2.3), inner, 0, 0.36, 0, g);
-  [-0.5, 0.5].forEach((s) => add(new THREE.BoxGeometry(1.1, 0.08, 0.3), inner, 0, 0.46, s, g));
-  const oar = add(new THREE.BoxGeometry(0.08, 0.06, 1.8), inner, 0.5, 0.5, -0.1, g); oar.rotation.y = 0.3;
+  add(roundBox(1.0, 0.06, 2.3), inner, 0, 0.36, 0, g);
+  [-0.5, 0.5].forEach((s) => add(roundBox(1.1, 0.08, 0.3), inner, 0, 0.46, s, g));
+  const oar = add(roundBox(0.08, 0.06, 1.8), inner, 0.5, 0.5, -0.1, g); oar.rotation.y = 0.3;
   return g;
 }

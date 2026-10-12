@@ -2,6 +2,7 @@
 // humo, burbujas de lava, nieve que cae… Todo low poly con los materiales PS1.
 // Nada de esto choca con nada: es solo decorado. Lo animado se registra con anim() y se mueve
 // solo mientras su escenario está a la vista (updateProps, desde visuals.js).
+import { roundBox, organic, canopy, bellyCylinder } from '../render/shapes.js';
 import * as THREE from 'three';
 import { mat, add, scaleUV, waterMat, U } from '../render/psx.js';
 import { TX } from '../render/textures.js';
@@ -33,7 +34,7 @@ export function M(color, o = {}) {
   return cache[key] || (cache[key] = mat(Object.assign({ color }, o)));
 }
 const G = (parent, x = 0, y = 0, z = 0, ry = 0) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; parent.add(g); return g; };
-const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const box = (w, h, d) => roundBox(w, h, d);   // cantos redondeados (las muy finitas quedan comunes)
 // Sombra redonda y suave en el piso (para que árboles, rocas y casas no parezcan flotando)
 let shadowMat = null, shadowGeo = null;
 export function blob(p, x, y, z, r = 1, sz = 1) {
@@ -116,8 +117,8 @@ export function bush(p, x, y, z, s = 1, col = 0x3f8a3a) {
 }
 // Cantero de flores (instancias: una sola malla para muchas)
 export function flowers(p, cx, y, cz, rx, rz, n, colors = [0xff5a7a, 0xffe14a, 0xffffff, 0xb07aff]) {
-  const stems = new THREE.InstancedMesh(box(0.05, 0.36, 0.05), M(0x3f8a3a), n);
-  const heads = new THREE.InstancedMesh(box(0.18, 0.14, 0.18), M(0xffffff), n);
+  const stems = new THREE.InstancedMesh(new THREE.BoxGeometry(0.05, 0.36, 0.05), M(0x3f8a3a), n);
+  const heads = new THREE.InstancedMesh(new THREE.BoxGeometry(0.18, 0.14, 0.18), M(0xffffff), n);
   const m4 = new THREE.Matrix4(), c = new THREE.Color();
   for (let i = 0; i < n; i++) {
     const x = cx + rnd(-rx, rx), z = cz + rnd(-rz, rz);
@@ -304,8 +305,8 @@ export function stands(p, x, y, z, ry, w, rows = 4, stepD = 1.25, stepH = 0.9) {
   }
   // público: cuerpo y cabeza por instancia, cada uno salta a su ritmo
   const per = Math.floor(w / 0.9), n = per * rows;
-  const bodies = new THREE.InstancedMesh(box(0.55, 0.7, 0.4), M(0xffffff, { map: TX.cloth }), n);
-  const heads = new THREE.InstancedMesh(box(0.36, 0.36, 0.36), M(0xffffff), n);
+  const bodies = new THREE.InstancedMesh(new THREE.BoxGeometry(0.55, 0.7, 0.4), M(0xffffff, { map: TX.cloth }), n);   // el público es mucho: cajas simples
+  const heads = new THREE.InstancedMesh(new THREE.BoxGeometry(0.36, 0.36, 0.36), M(0xffffff), n);
   const SK = [0xf2c9a0, 0xd9a47a, 0xa8704a, 0x7a4a2e, 0xe8b890], SH = [0xff5a4a, 0x3a7bff, 0xffd23a, 0x39d98a, 0xb06aff, 0xffffff, 0xff9a1f, 0x2a2a34];
   const c = new THREE.Color(), seats = [];
   for (let r = 0; r < rows; r++) for (let i = 0; i < per; i++) {
@@ -370,7 +371,7 @@ export function lavaBubbles(p, y, rMin, rMax, n = 16) {
 }
 // Partículas que suben (brasas) o caen (nieve) sobre una zona; instanciadas
 export function drift(p, n, x0, x1, y0, y1, z0, z1, col, size, speed, unlit = true) {
-  const im = new THREE.InstancedMesh(box(size, size, size), M(col, { unlit }), n);
+  const im = new THREE.InstancedMesh(new THREE.BoxGeometry(size, size, size), M(col, { unlit }), n);
   const ps = [];
   for (let i = 0; i < n; i++) ps.push({ x: rnd(x0, x1), z: rnd(z0, z1), k: rnd(0, 1), sp: rnd(0.7, 1.3), ph: rnd(0, 6) });
   p.add(im);
@@ -1138,7 +1139,7 @@ export function skyClouds(p, n = 8, rMin = 45, rMax = 70, yMin = 14, yMax = 24, 
 }
 // Estrellas que titilan en el cielo de noche (sin niebla, para que se vean lejos)
 export function twinkleStars(p, n = 70, r = 95, yMin = 18) {
-  const im = new THREE.InstancedMesh(box(0.5, 0.5, 0.5), new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false }), n), ps = [];
+  const im = new THREE.InstancedMesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false }), n), ps = [];
   for (let i = 0; i < n; i++) { const a = rnd(0, Math.PI * 2), y = rnd(yMin, r * 0.8), rr = Math.sqrt(Math.max(1, r * r - y * y)); ps.push({ x: Math.sin(a) * rr, y, z: Math.cos(a) * rr, ph: rnd(0, 6), sp: rnd(1, 3), s: rnd(0.5, 1.2) }); }
   im.renderOrder = -8; p.add(im);
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3();
@@ -1150,7 +1151,7 @@ export function fireworks(p, cx, cz, rx, rz, yMin = 18, yMax = 30, every = 2.5) 
   const cols = [0xff5a7a, 0xffe14a, 0x6ad8ff, 0x8aff6a, 0xd08aff, 0xffffff];
   const N = 26, shows = [0, 1, 2].map(() => {
     const m = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
-    const im = new THREE.InstancedMesh(box(0.5, 0.5, 0.5), m, N + 1); im.visible = false; p.add(im);
+    const im = new THREE.InstancedMesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), m, N + 1); im.visible = false; p.add(im);
     const dirs = []; for (let i = 0; i < N; i++) { const u = rnd(-1, 1), a = rnd(0, Math.PI * 2), r = Math.sqrt(1 - u * u); dirs.push([Math.cos(a) * r, u, Math.sin(a) * r]); }
     return { im, m, dirs, t: -1, x: 0, z: 0, y: 0 };
   });
@@ -1217,7 +1218,12 @@ export function freezeStatic(root) {
   const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(), byMat = new Map();
   for (const q of list) {
     if (q.dyn || !q.v) continue;
-    let g = q.o.geometry.index ? q.o.geometry.toNonIndexed() : q.o.geometry.clone();
+    let g = q.o.geometry.clone();
+    // un poquito de imperfección: nada queda con círculos perfectos ni ángulos rectos (ni lo chato ni el suelo grande).
+    // Se hace antes de separar los triángulos, así lo redondo sigue suave
+    g.computeBoundingBox(); const bb = g.boundingBox, sx = bb.max.x - bb.min.x, sy = bb.max.y - bb.min.y, sz = bb.max.z - bb.min.z, mn = Math.min(sx, sy, sz), mx = Math.max(sx, sy, sz);
+    if (mn > 0.06 && mx < 14 && g.attributes.position.count < 4000 && g.attributes.normal) { const ws = new THREE.Vector3().setFromMatrixPosition(q.m); organic(g, Math.min(0.09, mx * 0.035), 2.2 / Math.max(0.6, mx), ws.x * 0.37 + ws.z * 0.71); }
+    if (g.index) g = g.toNonIndexed();
     for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'uv') g.deleteAttribute(k);
     g.clearGroups();
     g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, q.m));

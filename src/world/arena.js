@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { H, R, G, SIDES, CORN } from '../config.js';
 import { scene, mat, scaleUV, add, rotT } from '../render/psx.js';
 import { TX } from '../render/textures.js';
+import { roundBox, bellyCylinder, organic } from '../render/shapes.js';
 import { world } from '../state.js';
 
 // Todo lo de esta arena queda en un grupo para poder mostrarla u ocultarla según el minijuego
@@ -36,7 +37,7 @@ export function buildArena() {
     arenaMats.pit = arenaMats.pit || mat({ map: TX.pit });
     const pm = add(pit, arenaMats.pit, s.nx * (H + 2.3), -1.2, s.nz * (H + 2.3)); pm.rotation.y = rt;
     (arenaMats.pitMeshes = arenaMats.pitMeshes || []).push(pm);
-    const wall = scaleUV(new THREE.BoxGeometry(2 * G + 2, 1.4, 0.6), 8, 1);
+    const wall = scaleUV(organic(roundBox(2 * G + 2, 1.4, 0.6, 0.2, 3), 0.05, 0.9, s.nx * 3 + s.nz), 8, 1);
     add(wall, arenaMats.rim, s.nx * (H + 4.1), -0.5, s.nz * (H + 4.1)).rotation.y = rt;
 
     const lg = new THREE.CylinderGeometry(0.1, 0.1, 2 * G, 6); lg.rotateZ(Math.PI / 2);
@@ -70,16 +71,25 @@ export function buildArena() {
   // torres de esquina con boca de lanzamiento
   CORN.forEach((c) => {
     const g = new THREE.Group(); g.position.set(c[0], 0, c[1]); scene.add(g);
-    add(scaleUV(new THREE.CylinderGeometry(R, R + 0.25, 2.4, 12), 3, 1), arenaMats.tower, 0, 1.0, 0, g);
-    add(new THREE.CylinderGeometry(R + 0.35, R + 0.45, 0.35, 12), arenaMats.towerRing, 0, 0.02, 0, g);
-    const cap = new THREE.SphereGeometry(R * 0.95, 12, 4, 0, Math.PI * 2, 0, Math.PI / 2);
-    add(cap, arenaMats.cap, 0, 2.2, 0, g).scale.y = 0.45;
-    add(new THREE.CylinderGeometry(R + 0.08, R + 0.08, 0.22, 12), arenaMats.capRim, 0, 2.25, 0, g);
+    // torre con panza (no un tubo perfecto), zócalo redondeado, cúpula alta con un remate y un borde como un aro de goma
+    add(scaleUV(organic(bellyCylinder(R * 0.97, R + 0.2, 2.4, 20, 6, 0.07), 0.04, 1.1, c[0] + c[1]), 3, 1), arenaMats.tower, 0, 1.0, 0, g);
+    const base = new THREE.TorusGeometry(R + 0.32, 0.2, 6, 24); base.rotateX(Math.PI / 2);
+    add(base, arenaMats.towerRing, 0, 0.1, 0, g);
+    const cap = new THREE.SphereGeometry(R * 0.98, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+    add(cap, arenaMats.cap, 0, 2.2, 0, g).scale.y = 0.62;
+    const rim = new THREE.TorusGeometry(R + 0.04, 0.16, 6, 24); rim.rotateX(Math.PI / 2);
+    add(rim, arenaMats.capRim, 0, 2.24, 0, g);
+    add(new THREE.CylinderGeometry(0.1, 0.16, 0.35, 8), arenaMats.capRim, 0, 2.2 + R * 0.6, 0, g);
+    add(new THREE.SphereGeometry(0.17, 8, 6), arenaMats.towerRing, 0, 2.42 + R * 0.6, 0, g);
     const l = Math.hypot(c[0], c[1]);
     const mouth = new THREE.Group(); mouth.rotation.y = Math.atan2(-c[0] / l, -c[1] / l); g.add(mouth);
     const holeM = mat({ color: 0x05070a, unlit: true });
-    add(new THREE.CircleGeometry(0.85, 6), holeM, 0, 0.8, R + 0.02, mouth);
-    add(new THREE.RingGeometry(0.85, 1.1, 6), mat({ color: 0x8a6a3c }), 0, 0.8, R + 0.03, mouth);
+    // boca en arco (redondeada arriba), con un marco que sobresale
+    const mo = new THREE.Shape(); mo.moveTo(-0.8, -0.7); mo.lineTo(0.8, -0.7); mo.lineTo(0.8, 0.1); mo.absarc(0, 0.1, 0.8, 0, Math.PI, false); mo.lineTo(-0.8, -0.7);
+    add(new THREE.ShapeGeometry(mo, 8), holeM, 0, 0.75, R + 0.12, mouth);
+    const fr = new THREE.Shape(); fr.moveTo(-1.05, -0.75); fr.lineTo(1.05, -0.75); fr.lineTo(1.05, 0.1); fr.absarc(0, 0.1, 1.05, 0, Math.PI, false); fr.lineTo(-1.05, -0.75);
+    fr.holes.push(mo);
+    add(new THREE.ExtrudeGeometry(fr, { depth: 0.18, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 1, curveSegments: 8 }), mat({ color: 0x8a6a3c }), 0, 0.75, R + 0.02, mouth);
     world.towers.push({ holeM, flash: 0 });
   });
 

@@ -1,4 +1,5 @@
 // Decorado de HEXÁGONOS: los pisos flotan en un cielo celeste con nubes, globos y un arcoíris; abajo de todo, el slime.
+import { roundBox, organic, canopy, bellyCylinder } from '../render/shapes.js';
 import * as THREE from 'three';
 import { add, mat, scaleUV, waterMat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
@@ -50,7 +51,7 @@ export function decorHexagonos(g, slimeY) {
     const env = add(new THREE.SphereGeometry(2.4, 10, 8), P.M(0xffffff, { map: TX.stripes }), 0, 3, 0, hb); env.scale.y = 1.2;
     env.material = P.M(c1, { map: TX.stripes });
     add(new THREE.ConeGeometry(1.4, 1.6, 10), P.M(c2), 0, 0.2, 0, hb).rotation.x = Math.PI;
-    add(new THREE.BoxGeometry(1, 0.8, 1), P.M(0x9a6a3a, { map: TX.wood }), 0, -1.4, 0, hb);
+    add(roundBox(1, 0.8, 1), P.M(0x9a6a3a, { map: TX.wood }), 0, -1.4, 0, hb);
     [[-0.45, -0.45], [0.45, -0.45], [-0.45, 0.45], [0.45, 0.45]].forEach(([a2, b2]) => add(new THREE.CylinderGeometry(0.02, 0.02, 1.2, 3), P.M(0x3a2a1a), a2, -0.6, b2, hb));
     P.anim(hb, (t) => { hb.position.y = y + Math.sin(t * 0.25 + k * 2) * 2.5; hb.rotation.y = t * 0.08 + k; });
   });
@@ -60,8 +61,8 @@ export function decorHexagonos(g, slimeY) {
   // mariposas gigantes de colores que revolotean cerca de los pisos
   for (let k = 0; k < 4; k++) {
     const bf = grp(g), col = [0xff8ac8, 0xffe14a, 0x8ad8ff, 0xb08aff][k];
-    const wl = [-1, 1].map((sd) => add(new THREE.BoxGeometry(1.2, 0.04, 0.9), P.M(col, { side: THREE.DoubleSide }), sd * 0.6, 0, 0, grp(bf)).parent);
-    add(new THREE.BoxGeometry(0.15, 0.15, 0.9), P.M(0x2a2a34), 0, 0, 0, bf);
+    const wl = [-1, 1].map((sd) => add(roundBox(1.2, 0.04, 0.9), P.M(col, { side: THREE.DoubleSide }), sd * 0.6, 0, 0, grp(bf)).parent);
+    add(roundBox(0.15, 0.15, 0.9), P.M(0x2a2a34), 0, 0, 0, bf);
     const a0 = (k / 4) * Math.PI * 2, d = 17 + k, y0 = -2 - k * 3;
     P.anim(bf, (t) => { const a = a0 + t * 0.15; bf.position.set(Math.sin(a) * d, y0 + Math.sin(t * 1.5 + k) * 1.2, Math.cos(a) * d); bf.rotation.y = a + Math.PI / 2; wl.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * Math.sin(t * 9 + k) * 0.8; }); });
   }
@@ -124,7 +125,7 @@ export function decorDulces(g, slimeY) {
     const d = grp(g, x, y, z);
     add(new THREE.TorusGeometry(1.3, 0.6, 8, 16), P.M(0xd8a060, { map: TX.wafer }), 0, 0, 0, d);
     const fr = add(new THREE.TorusGeometry(1.3, 0.62, 8, 16, Math.PI * 2), P.M(c, { map: TX.frosting }), 0, 0.12, 0, d); fr.scale.set(1, 1, 0.6);
-    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; add(new THREE.BoxGeometry(0.25, 0.08, 0.08), P.M([0xff3a5a, 0x3ad86a, 0xffd23a, 0x3a9aff][i % 4], { unlit: true }), Math.sin(a) * 1.3, Math.cos(a) * 1.3, 0.45, d).rotation.z = a * 2; }
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; add(roundBox(0.25, 0.08, 0.08), P.M([0xff3a5a, 0x3ad86a, 0xffd23a, 0x3a9aff][i % 4], { unlit: true }), Math.sin(a) * 1.3, Math.cos(a) * 1.3, 0.45, d).rotation.z = a * 2; }
     const ph = k * 1.4; P.anim(d, (t) => { d.rotation.set(Math.sin(t * 0.5 + ph) * 0.5 + 1.1, t * 0.3 + ph, 0); d.position.y = y + Math.sin(t * 0.7 + ph) * 0.6; });
   });
   [[17, -3, 8, 0xffb0d8], [-16.5, -10, -7, 0xb0ffd0], [3, -6, -19, 0xfff0a0]].forEach(([x, y, z, c], k) => {
@@ -187,7 +188,7 @@ export function decorNeon(g, slimeY) {
     add(base, P.M(0x14082a), 0, -0.7, 0, pg); const bl = neonLine(base, 0x3af0ff); bl.position.y = -0.7; pg.add(bl);
     for (let k = 0; k < 5; k++) { const tg = new THREE.CylinderGeometry(0.22, 0.26, 0.9, 5), seg = neonLine(tg, col); seg.position.set(k * 0.14, 0.45 + k * 0.85, 0); seg.rotation.z = -0.14; pg.add(seg); }
     for (let k = 0; k < 6; k++) {
-      const a = (k / 6) * Math.PI * 2, lg = new THREE.BoxGeometry(0.5, 0.05, 2.2), lf = neonLine(lg, 0x39ff9a);
+      const a = (k / 6) * Math.PI * 2, lg = roundBox(0.5, 0.05, 2.2), lf = neonLine(lg, 0x39ff9a);
       lf.position.set(0.7 + Math.sin(a) * 1, 4.4, Math.cos(a) * 1); lf.rotation.set(0.5, a, 0, 'YXZ'); pg.add(lf);
     }
     const ph = rnd(0, 6); P.anim(pg, (t) => { pg.position.y = y + Math.sin(t * 0.6 + ph) * 0.6; });
@@ -203,7 +204,7 @@ export function decorNeon(g, slimeY) {
   P.anim(g, (t) => beams.forEach((q) => { q.bg.rotation.x = Math.sin(t * 0.4 + q.ph) * 0.45; q.bg.rotation.z = Math.cos(t * 0.33 + q.ph) * 0.45; }));
   // cubos de neón chiquitos dando vueltas cerca
   for (let k = 0; k < 10; k++) {
-    const cg = new THREE.BoxGeometry(0.9, 0.9, 0.9), cu = neonLine(cg, [0x3af0ff, 0xff3aa8, 0xffe03a][k % 3]);
+    const cg = roundBox(0.9, 0.9, 0.9), cu = neonLine(cg, [0x3af0ff, 0xff3aa8, 0xffe03a][k % 3]);
     const a0 = (k / 10) * Math.PI * 2, d = rnd(16, 22), y0 = rnd(-14, 3), sp = rnd(0.05, 0.1); g.add(cu);
     P.anim(cu, (t) => { const a = a0 + t * sp; cu.position.set(Math.sin(a) * d, y0 + Math.sin(t + k) * 0.8, Math.cos(a) * d); cu.rotation.set(t * 0.8 + k, t * 0.6, 0); });
   }
@@ -249,14 +250,14 @@ export function decorVolcan(g, slimeY) {
   // rocas flotantes más cerca, con un hilo de lava que cae de cada una
   [[-16, -5, 5, 0.7], [16, -9, -3, 0.8], [-12, -15, -15, 0.6], [13, -13, 15, 0.7]].forEach(([x, y, z, sc]) => {
     const r = floatRock(g, x, y, z, sc, true);
-    const fall = add(new THREE.BoxGeometry(0.35, 18, 0.35), P.M(0xff8a2a, { unlit: true }), 0, -11, 0, r);
+    const fall = add(roundBox(0.35, 18, 0.35), P.M(0xff8a2a, { unlit: true }), 0, -11, 0, r);
     P.anim(fall, (t) => { fall.scale.x = 1 + Math.sin(t * 6 + x) * 0.25; });
   });
   // meteoritos de fuego que cruzan el cielo cada tanto
   const mets = [0, 1, 2].map((k) => {
     const m = grp(g); m.visible = false;
     add(new THREE.DodecahedronGeometry(0.9, 0), P.M(0xffc04a, { unlit: true }), 0, 0, 0, m);
-    for (let i = 1; i < 6; i++) add(new THREE.BoxGeometry(0.6 - i * 0.08, 0.6 - i * 0.08, 0.6 - i * 0.08), P.M(i < 3 ? 0xff7a1a : 0x8a2a1a, { unlit: true }), -i * 0.9, i * 0.5, 0, m);
+    for (let i = 1; i < 6; i++) add(roundBox(0.6 - i * 0.08, 0.6 - i * 0.08, 0.6 - i * 0.08), P.M(i < 3 ? 0xff7a1a : 0x8a2a1a, { unlit: true }), -i * 0.9, i * 0.5, 0, m);
     return { m, t: 2 + k * 3.1 };
   });
   P.anim(g, (t, dt) => mets.forEach((q) => {
@@ -274,7 +275,7 @@ export function decorVolcan(g, slimeY) {
   for (let k = 0; k < 6; k++) {
     const w = grp(g), a0 = (k / 6) * Math.PI * 2, d = rnd(15, 19), y0 = rnd(-14, 2);
     const f1 = add(new THREE.ConeGeometry(0.5, 1.4, 6), P.M(0xff7a1a, { unlit: true }), 0, 0, 0, w), f2 = add(new THREE.ConeGeometry(0.28, 0.9, 6), P.M(0xffe07a, { unlit: true }), 0, -0.15, 0, w);
-    [-0.15, 0.15].forEach((sx) => add(new THREE.BoxGeometry(0.1, 0.12, 0.05), P.M(0x2a0a0a), sx, -0.2, 0.42, w));
+    [-0.15, 0.15].forEach((sx) => add(roundBox(0.1, 0.12, 0.05), P.M(0x2a0a0a), sx, -0.2, 0.42, w));
     P.anim(w, (t) => { const a = a0 + t * 0.2; w.position.set(Math.sin(a) * d, y0 + Math.sin(t * 1.4 + k) * 1, Math.cos(a) * d); w.rotation.y = a + Math.PI; const s2 = 1 + Math.sin(t * 10 + k) * 0.15; f1.scale.set(1, s2, 1); f2.scale.set(1, 2 - s2, 1); });
   }
   return magma;

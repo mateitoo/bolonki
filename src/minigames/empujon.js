@@ -5,6 +5,7 @@
 // Las naves se mueven libres (patinan un poco, es hielo) y con el botón de golpe hacen una EMBESTIDA.
 // Gana la ronda el último que queda arriba; gana la partida el primero que llega a N rondas.
 // A los 14 s la plataforma empieza a achicarse para que nadie se quede quieto.
+import { roundBox } from '../render/shapes.js';
 import { freezeStatic } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
@@ -65,6 +66,18 @@ function surface(p) {
 }
 
 /* ---------- mundo ---------- */
+// el costado de la plataforma, irregular: arriba casi redondo (es donde se juega), abajo más desparejo
+function jag(g, h, top = 0.04, bot = 0.35, seed = 0) {
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i), y = p.getY(i), r = Math.hypot(x, z); if (r < 0.01) continue;
+    const a = Math.atan2(x, z), t = 0.5 - y / h, amt = top + (bot - top) * Math.max(0, Math.min(1, t));
+    const k = 1 + (Math.sin(a * 7 + seed) * 0.5 + Math.sin(a * 13 + seed * 2) * 0.3 + Math.sin(a * 23 + seed) * 0.2) * amt / r;
+    p.setX(i, x * k); p.setZ(i, z * k);
+  }
+  g.computeVertexNormals();
+  return g;
+}
 const W = { grp: null, maps: [], fb: [], marks: [], ic: [], icMarks: [] };
 
 function buildMap(mi) {
@@ -73,13 +86,13 @@ function buildMap(mi) {
   const M = { g: grp, plat, rocks: [] };
   if (mi === 0) {
     // GLACIAR: hielo liso con la marca del centro
-    add(scaleUV(new THREE.CylinderGeometry(R0, R0, 0.8, 28, 1), 4, 1), mat({ map: TX.ice }), 0, -0.4, 0, plat);
+    add(scaleUV(jag(new THREE.CylinderGeometry(R0, R0, 0.8, 40, 3), 0.8, 0.03, 0.3, 1), 4, 1), mat({ map: TX.ice }), 0, -0.4, 0, plat);
     // grietas en el hielo y montoncitos de nieve que el viento juntó en el borde
     const crackM = mat({ color: 0xe8f8ff, unlit: true });
     for (let k = 0; k < 7; k++) {
       let a = (k / 7) * Math.PI * 2 + rnd(-0.3, 0.3), r = R0 - 0.2;
       for (let j = 0; j < 3; j++) { const len = rnd(0.8, 1.4), a2 = a + rnd(-0.6, 0.6), r2 = r - len * 0.8, x1 = Math.sin(a) * r, z1 = Math.cos(a) * r, x2 = Math.sin(a2) * r2, z2 = Math.cos(a2) * r2;
-        const c = add(new THREE.BoxGeometry(0.06, 0.01, Math.hypot(x2 - x1, z2 - z1)), crackM, (x1 + x2) / 2, 0.006, (z1 + z2) / 2, plat); c.rotation.y = Math.atan2(x2 - x1, z2 - z1); a = a2; r = r2; }
+        const c = add(roundBox(0.06, 0.01, Math.hypot(x2 - x1, z2 - z1)), crackM, (x1 + x2) / 2, 0.006, (z1 + z2) / 2, plat); c.rotation.y = Math.atan2(x2 - x1, z2 - z1); a = a2; r = r2; }
     }
     const snowM = mat({ map: TX.snow });
     for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2 + 0.3, r = R0 - 0.5; const m = add(new THREE.SphereGeometry(0.7, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), snowM, Math.sin(a) * r, 0, Math.cos(a) * r, plat); m.scale.set(1.3, 0.22, 0.7); m.rotation.y = -a; }
@@ -130,7 +143,7 @@ function buildMap(mi) {
       add(g, M.puddleM, x, 0.012, z, plat).rotation.y = k * 1.1;
     });
     const nailM = mat({ color: 0x3a3a40 });
-    for (let k = 0; k < 40; k++) { const a = rnd(0, Math.PI * 2), r = Math.sqrt(rnd(0.02, 1)) * (R0 - 0.4); add(new THREE.BoxGeometry(0.06, 0.02, 0.06), nailM, Math.sin(a) * r, 0.012, Math.cos(a) * r, plat); }
+    for (let k = 0; k < 40; k++) { const a = rnd(0, Math.PI * 2), r = Math.sqrt(rnd(0.02, 1)) * (R0 - 0.4); add(roundBox(0.06, 0.02, 0.06), nailM, Math.sin(a) * r, 0.012, Math.cos(a) * r, plat); }
     M.rimM = mat({ map: TX.rope, unlit: false }); M.rimBase = 0xffffff;
     add(scaleUV(new THREE.CylinderGeometry(R0 + 0.05, R0 + 0.05, 0.3, 28, 1, true), 12, 1), M.rimM, 0, -0.1, 0, plat);
     // troncos debajo
@@ -143,7 +156,7 @@ function buildMap(mi) {
     { const dg = new THREE.Group(); grp.add(dg); decorTormenta(dg, R0); freezeStatic(dg); }
   } else {
     // VOLCÁN: tierra con charcos de barro, sobre un cono de roca
-    add(scaleUV(new THREE.CylinderGeometry(R0, R0 * 0.97, 0.8, 28, 1, true), 8, 1), mat({ map: TX.dirt, color: 0xc8b0a0 }), 0, -0.4, 0, plat);
+    add(scaleUV(jag(new THREE.CylinderGeometry(R0, R0 * 0.97, 0.8, 40, 3, true), 0.8, 0.03, 0.35, 3), 8, 1), mat({ map: TX.dirt, color: 0xc8b0a0 }), 0, -0.4, 0, plat);
     const topG = scaleUV(new THREE.RingGeometry(0.01, R0, 28, 6), 5, 5); topG.rotateX(-Math.PI / 2);
     add(topG, mat({ map: TX.dirt }), 0, 0, 0, plat);
     const mudM = mat({ map: TX.mud });
@@ -162,7 +175,7 @@ function buildMap(mi) {
       for (let j = 0; j < segs; j++) {
         const len = rnd(0.8, 1.6), a2 = a + rnd(-0.5, 0.5), r2 = r - len * 0.8;
         const x1 = Math.sin(a) * r, z1 = Math.cos(a) * r, x2 = Math.sin(a2) * r2, z2 = Math.cos(a2) * r2;
-        const c = add(new THREE.BoxGeometry(0.12 - j * 0.02, 0.02, Math.hypot(x2 - x1, z2 - z1)), M.crackM, (x1 + x2) / 2, 0.025, (z1 + z2) / 2, plat);
+        const c = add(roundBox(0.12 - j * 0.02, 0.02, Math.hypot(x2 - x1, z2 - z1)), M.crackM, (x1 + x2) / 2, 0.025, (z1 + z2) / 2, plat);
         c.rotation.y = Math.atan2(x2 - x1, z2 - z1);
         a = a2; r = r2;
       }
@@ -192,7 +205,7 @@ function buildWorld() {
   MAPS.forEach((_, i) => buildMap(i));
   // el rayo que cae en la balsa (tormenta): un zigzag de arriba abajo
   const bm2 = mat({ color: 0xf4f8ff, unlit: true }), bolt = new THREE.Group(); bolt.visible = false; grp.add(bolt); W.bolt = bolt;
-  { let x = 0, y = 18; for (let i = 0; i < 8; i++) { const nx = i === 7 ? 0 : x + rnd(-1.2, 1.2), ny = i === 7 ? 0 : y - rnd(2, 2.6); const len = Math.hypot(nx - x, ny - y); const sg = add(new THREE.BoxGeometry(0.28, len, 0.28), bm2, (x + nx) / 2, (y + ny) / 2, 0, bolt); sg.rotation.z = -Math.atan2(nx - x, ny - y) + Math.PI; x = nx; y = ny; } }
+  { let x = 0, y = 18; for (let i = 0; i < 8; i++) { const nx = i === 7 ? 0 : x + rnd(-1.2, 1.2), ny = i === 7 ? 0 : y - rnd(2, 2.6); const len = Math.hypot(nx - x, ny - y); const sg = add(roundBox(0.28, len, 0.28), bm2, (x + nx) / 2, (y + ny) / 2, 0, bolt); sg.rotation.z = -Math.atan2(nx - x, ny - y) + Math.PI; x = nx; y = ny; } }
   // bolas de fuego y la marca de dónde van a caer
   const fm = mat({ map: TX.fire, unlit: true }); W.fbM = fm;
   const coreM = mat({ color: 0xffe070, unlit: true });

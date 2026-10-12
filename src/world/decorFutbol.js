@@ -1,6 +1,7 @@
 // Decorado de los mapas nuevos de Futbolonki: el POTRERO (canchita de tierra del barrio, al atardecer) y el
 // LAGO HELADO (pista de hielo en un lago del bosque, de noche con aurora). La cancha mide lo mismo en todos
 // (HX × HZ); los cambios de juego (charcos de barro, hielo que patina) están en minigames/futbol.js.
+import { roundBox, organic, canopy, bellyCylinder } from '../render/shapes.js';
 import * as THREE from 'three';
 import { add, scaleUV, mat, waterMat } from '../render/psx.js';
 import { umbrella, lifeguardChair, sandcastle, parador, surfboards, beachKit, kite, boat, seagulls } from './decorBolas.js';
@@ -8,7 +9,7 @@ import { TX } from '../render/textures.js';
 import { rnd } from '../config.js';
 import * as P from './props.js';
 
-const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const box = (w, h, d) => roundBox(w, h, d);   // cantos redondeados
 const grp = (p, x = 0, y = 0, z = 0, ry = 0) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; p.add(g); return g; };
 
 /* ===================== POTRERO ===================== */

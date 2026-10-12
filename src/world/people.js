@@ -2,11 +2,12 @@
 // Usan el mismo esqueleto que los bichos redondos: el origen del piloto es el centro del torso,
 // las piernas cuelgan de la cadera (legL / legR) y los pies terminan en y = -1.25 (un poco más largos que
 // los bichos, que llegan a -1.11), así funcionan igual en la nave, a pie y en las animaciones de derrota. Los brazos (armL / armR) se animan al caminar.
+import { roundBox } from '../render/shapes.js';
 import * as THREE from 'three';
 import { add } from '../render/psx.js';
 import { TX } from '../render/textures.js';
 
-const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const box = (w, h, d) => roundBox(w, h, d);
 const HIP = -0.5;                // altura de la cadera (de ahí cuelgan las piernas, 0.75 de largo)
 
 // brazo: grupo en el hombro, manga y mano hacia abajo

@@ -1,5 +1,6 @@
 // Decorado de cada escenario (fuera de la zona de juego): tribunas, jardines, fábricas, dunas, nieve…
 // Solo adorna: no cambia nada de cómo se juega. Las piezas están en props.js.
+import { roundBox, organic, canopy, bellyCylinder } from '../render/shapes.js';
 import * as THREE from 'three';
 import { add, scaleUV, mat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
@@ -40,7 +41,7 @@ export function decorFutbol(g, HX, HZ) {
   // carteles de LED que cambian de color al costado de la cancha y detrás de los arcos
   const ledCols = [0xff3a5a, 0xffd23a, 0x35a0ff, 0x39d98a, 0xffffff].map((c) => P.M(c, { unlit: true }));
   const leds = [];
-  const ledRow = (x1, z1, x2, z2, n) => { const a2 = Math.atan2(x2 - x1, z2 - z1); for (let i = 0; i < n; i++) { const f = (i + 0.5) / n, b = add(new THREE.BoxGeometry(0.2, 0.8, Math.hypot(x2 - x1, z2 - z1) / n - 0.08), ledCols[0], x1 + (x2 - x1) * f, 0.1, z1 + (z2 - z1) * f, g); b.rotation.y = a2; leds.push(b); } };
+  const ledRow = (x1, z1, x2, z2, n) => { const a2 = Math.atan2(x2 - x1, z2 - z1); for (let i = 0; i < n; i++) { const f = (i + 0.5) / n, b = add(roundBox(0.2, 0.8, Math.hypot(x2 - x1, z2 - z1) / n - 0.08), ledCols[0], x1 + (x2 - x1) * f, 0.1, z1 + (z2 - z1) * f, g); b.rotation.y = a2; leds.push(b); } };
   ledRow(-HX + 1, -HZ - 1.7, HX - 1, -HZ - 1.7, 12);
   ledRow(-HX - 2.6, -HZ + 1, -HX - 2.6, -2.4, 4); ledRow(-HX - 2.6, 2.4, -HX - 2.6, HZ - 1, 4);
   ledRow(HX + 2.6, -HZ + 1, HX + 2.6, -2.4, 4); ledRow(HX + 2.6, 2.4, HX + 2.6, HZ - 1, 4);
@@ -50,8 +51,8 @@ export function decorFutbol(g, HX, HZ) {
     const pts = [[sd * (HX + 3.6), -4.2, -sd * Math.PI / 2], [sd * (HX + 3.6), 4.4, -sd * Math.PI / 2], [sd * (HX + 3.9), 0.2, -sd * Math.PI / 2]];
     P.fans(g, -0.75, pts, { shirts: [0x2a2a30, 0x3a4a6a, 0x1a1a24] });
     pts.forEach(([x, z], k) => {
-      const cam = add(new THREE.BoxGeometry(0.35, 0.3, 0.3), P.M(0x1a1a1e), x - sd * 0.35, 0.55, z, g);
-      const fl = add(new THREE.BoxGeometry(0.12, 0.12, 0.12), P.M(0xffffff, { unlit: true }), x - sd * 0.5, 0.75, z, g);
+      const cam = add(roundBox(0.35, 0.3, 0.3), P.M(0x1a1a1e), x - sd * 0.35, 0.55, z, g);
+      const fl = add(roundBox(0.12, 0.12, 0.12), P.M(0xffffff, { unlit: true }), x - sd * 0.5, 0.75, z, g);
       P.anim(fl, (t) => { fl.visible = ((t * 0.7 + k * 0.37 + sd) % 1.7) < 0.06; }); void cam;
     });
   });
@@ -59,9 +60,9 @@ export function decorFutbol(g, HX, HZ) {
   const mas = new THREE.Group(); g.add(mas);
   add(new THREE.SphereGeometry(0.9, 12, 8), P.M(0xffffff, { map: TX.stripes }), 0, 1.5, 0, mas);
   [-0.3, 0.3].forEach((sx) => { add(new THREE.SphereGeometry(0.2, 6, 5), P.M(0xffffff), sx, 1.8, 0.78, mas); add(new THREE.SphereGeometry(0.1, 5, 4), P.M(0x1a1a1e), sx, 1.8, 0.95, mas); });
-  add(new THREE.BoxGeometry(0.5, 0.1, 0.1), P.M(0xd83a3a), 0, 1.25, 0.85, mas);
-  const mlegs = [-0.35, 0.35].map((sx) => { const l = new THREE.Group(); l.position.set(sx, 0.7, 0); mas.add(l); add(new THREE.BoxGeometry(0.22, 0.7, 0.22), P.M(0x35a0ff), 0, -0.3, 0, l); add(new THREE.BoxGeometry(0.3, 0.15, 0.45), P.M(0xffffff), 0, -0.65, 0.08, l); return l; });
-  const marms = [-1, 1].map((sx) => { const a2 = new THREE.Group(); a2.position.set(sx * 0.85, 1.6, 0); mas.add(a2); add(new THREE.BoxGeometry(0.18, 0.7, 0.18), P.M(0x35a0ff), 0, 0.3, 0, a2); return a2; });
+  add(roundBox(0.5, 0.1, 0.1), P.M(0xd83a3a), 0, 1.25, 0.85, mas);
+  const mlegs = [-0.35, 0.35].map((sx) => { const l = new THREE.Group(); l.position.set(sx, 0.7, 0); mas.add(l); add(roundBox(0.22, 0.7, 0.22), P.M(0x35a0ff), 0, -0.3, 0, l); add(roundBox(0.3, 0.15, 0.45), P.M(0xffffff), 0, -0.65, 0.08, l); return l; });
+  const marms = [-1, 1].map((sx) => { const a2 = new THREE.Group(); a2.position.set(sx * 0.85, 1.6, 0); mas.add(a2); add(roundBox(0.18, 0.7, 0.18), P.M(0x35a0ff), 0, 0.3, 0, a2); return a2; });
   P.anim(mas, (t) => {
     const u = Math.sin(t * 0.22), x = u * (HX - 2), run = Math.abs(Math.cos(t * 0.22)) > 0.15;
     mas.position.set(x, -0.3 + (run ? Math.abs(Math.sin(t * 10)) * 0.15 : 0), -HZ - 3.0); mas.rotation.y = run ? (Math.cos(t * 0.22) > 0 ? Math.PI / 2 : -Math.PI / 2) : 0;
@@ -70,17 +71,17 @@ export function decorFutbol(g, HX, HZ) {
   });
   // cámara de TV sobre un trípode, que sigue el juego
   const tv = new THREE.Group(); tv.position.set(-HX - 1.2, -0.3, -HZ - 2.6); g.add(tv);
-  [0, 2.1, 4.2].forEach((a2) => { const l = add(new THREE.BoxGeometry(0.06, 1.5, 0.06), P.M(0x2a2a30), Math.sin(a2) * 0.3, 0.7, Math.cos(a2) * 0.3, tv); l.rotation.set(Math.cos(a2) * 0.2, 0, -Math.sin(a2) * 0.2); });
+  [0, 2.1, 4.2].forEach((a2) => { const l = add(roundBox(0.06, 1.5, 0.06), P.M(0x2a2a30), Math.sin(a2) * 0.3, 0.7, Math.cos(a2) * 0.3, tv); l.rotation.set(Math.cos(a2) * 0.2, 0, -Math.sin(a2) * 0.2); });
   const head = new THREE.Group(); head.position.y = 1.5; tv.add(head);
-  add(new THREE.BoxGeometry(0.45, 0.45, 0.9), P.M(0x3a3f4a, { map: TX.metal }), 0, 0, 0, head);
+  add(roundBox(0.45, 0.45, 0.9), P.M(0x3a3f4a, { map: TX.metal }), 0, 0, 0, head);
   add(new THREE.CylinderGeometry(0.16, 0.2, 0.4, 8), P.M(0x1a1a1e), 0, 0, 0.6, head).rotation.x = Math.PI / 2;
-  add(new THREE.BoxGeometry(0.08, 0.08, 0.08), P.M(0xff2a2a, { unlit: true }), 0.15, 0.27, 0.3, head);
+  add(roundBox(0.08, 0.08, 0.08), P.M(0xff2a2a, { unlit: true }), 0.15, 0.27, 0.3, head);
   P.anim(tv, (t) => { head.rotation.y = 0.8 + Math.sin(t * 0.4) * 0.5; });
   // dron de TV sobrevolando, el árbitro asistente con la bandera y un utilero que pasa con pelotas
   P.drone(g, 0, 7, -HZ - 3.5, 7, 0.25);
   [0xffffff, 0x35a0ff, 0xff5a4a].forEach((c) => P.drift(g, 24, -HX - 6, HX + 6, 12, -0.3, -HZ - 6, HZ + 2, c, 0.14, 1.1));   // papelitos de la hinchada
-  P.walker(g, -HX + 1, -0.3, -HZ - 0.9, HX - 1, -HZ - 0.9, { shirt: 0xffd23a, pants: 0x1a1a1e, sp: 0.25, carry: (w) => { add(new THREE.CylinderGeometry(0.02, 0.02, 0.8, 3), P.M(0x1a1a1e), 0.35, 1.1, 0.1, w); add(new THREE.BoxGeometry(0.04, 0.3, 0.4), P.M(0xff3a3a), 0.35, 1.4, 0.3, w); } });
-  P.walker(g, -HX - 2.6, -0.3, HZ + 2.4, -HX - 2.6, -HZ - 2.4, { shirt: 0x39d98a, sp: 0.18, ph: 0.6, carry: (w) => { add(new THREE.BoxGeometry(0.6, 0.4, 0.4), P.M(0x2a2a30, { map: TX.cloth }), 0, 0.75, 0.35, w); for (let i = 0; i < 3; i++) add(new THREE.SphereGeometry(0.13, 6, 4), P.M(0xffffff, { map: TX.stripes }), -0.18 + i * 0.18, 1.0, 0.35, w); } });
+  P.walker(g, -HX + 1, -0.3, -HZ - 0.9, HX - 1, -HZ - 0.9, { shirt: 0xffd23a, pants: 0x1a1a1e, sp: 0.25, carry: (w) => { add(new THREE.CylinderGeometry(0.02, 0.02, 0.8, 3), P.M(0x1a1a1e), 0.35, 1.1, 0.1, w); add(roundBox(0.04, 0.3, 0.4), P.M(0xff3a3a), 0.35, 1.4, 0.3, w); } });
+  P.walker(g, -HX - 2.6, -0.3, HZ + 2.4, -HX - 2.6, -HZ - 2.4, { shirt: 0x39d98a, sp: 0.18, ph: 0.6, carry: (w) => { add(roundBox(0.6, 0.4, 0.4), P.M(0x2a2a30, { map: TX.cloth }), 0, 0.75, 0.35, w); for (let i = 0; i < 3; i++) add(new THREE.SphereGeometry(0.13, 6, 4), P.M(0xffffff, { map: TX.stripes }), -0.18 + i * 0.18, 1.0, 0.35, w); } });
 }
 
 /* ---------- Rey de la colina: isla en el mar ---------- */
@@ -113,7 +114,7 @@ export function decorColina(g, rim) {
   P.waterSparkles(g, WY + 0.2, 0, 0, 34, 30, 90, 0xffffff, (x, z) => Math.hypot(x, z) < rim(Math.atan2(x, z)) + 1.5);
   // un velero que da vueltas lejos de la isla
   const sb = new THREE.Group(); g.add(sb);
-  add(new THREE.BoxGeometry(1.6, 0.8, 4.4), P.M(0xf4f0e8, { map: TX.wood }), 0, 0.2, 0, sb);
+  add(roundBox(1.6, 0.8, 4.4), P.M(0xf4f0e8, { map: TX.wood }), 0, 0.2, 0, sb);
   add(new THREE.ConeGeometry(0.8, 1.2, 4), P.M(0xf4f0e8, { map: TX.wood }), 0, 0.2, 2.7, sb).rotation.set(Math.PI / 2, Math.PI / 4, 0);
   add(new THREE.CylinderGeometry(0.06, 0.08, 5.5, 5), P.M(0x6b4a2a, { map: TX.wood }), 0, 3.2, 0.2, sb);
   const sail = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0.9, -1.4), new THREE.Vector3(0, 5.6, 0.15), new THREE.Vector3(0, 0.9, 0.15)]); sail.computeVertexNormals();
@@ -126,7 +127,7 @@ export function decorColina(g, rim) {
     const body = new THREE.Group(); d.add(body);
     add(new THREE.SphereGeometry(0.5, 8, 6), dm, 0, 0, 0, body).scale.set(0.8, 0.8, 2.4);
     add(new THREE.ConeGeometry(0.25, 0.6, 3), dm, 0, 0.5, -0.2, body).scale.z = 0.3;
-    add(new THREE.BoxGeometry(1.0, 0.08, 0.4), dm, 0, 0, -1.2, body);
+    add(roundBox(1.0, 0.08, 0.4), dm, 0, 0, -1.2, body);
     P.anim(d, (t) => { const u = ((t + ph) % 7) / 1.4; if (u > 1) { d.visible = false; return; } d.visible = true; body.position.set(0, WY + 0.2 + Math.sin(u * Math.PI) * 2.2 - (WY - 2), (u - 0.5) * 5); body.rotation.x = (u - 0.5) * 1.8; });
   });
   // flotador de dona, una fila de boyas y una tortuga que nada
@@ -136,7 +137,7 @@ export function decorColina(g, rim) {
   const tt = new THREE.Group(); g.add(tt);
   add(new THREE.SphereGeometry(0.55, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), P.M(0x4a7a3a, { map: TX.leaf, sway: 0 }), 0, 0, 0, tt).scale.y = 0.5;
   add(new THREE.SphereGeometry(0.18, 6, 4), P.M(0x8aa86a), 0, 0.05, 0.62, tt);
-  const flip = [[-0.4, 0.3], [0.4, 0.3], [-0.35, -0.35], [0.35, -0.35]].map(([a2, b2]) => add(new THREE.BoxGeometry(0.35, 0.05, 0.18), P.M(0x8aa86a), a2, 0, b2, tt));
+  const flip = [[-0.4, 0.3], [0.4, 0.3], [-0.35, -0.35], [0.35, -0.35]].map(([a2, b2]) => add(roundBox(0.35, 0.05, 0.18), P.M(0x8aa86a), a2, 0, b2, tt));
   P.anim(tt, (t) => { const a = -t * 0.05 + 3; tt.position.set(Math.sin(a) * 16.5, WY + 0.02, Math.cos(a) * 15); tt.rotation.y = a - Math.PI / 2; flip.forEach((f, i) => { f.rotation.y = Math.sin(t * 3 + i) * 0.5; }); });
   P.critters(g, 5, 0, 0, 10, 9, 3.5, 'butterfly', [0xffffff, 0xffe14a, 0xff9ad0]);
   // gaviotas paradas en la playa: si alguien se acerca, salen volando
@@ -146,7 +147,7 @@ export function decorColina(g, rim) {
   // una ballena que asoma el lomo lejos y tira un chorro de agua
   const wh = new THREE.Group(); wh.position.set(-34, -0.9, -22); wh.rotation.y = 0.9; g.add(wh);
   const back = add(new THREE.SphereGeometry(2.4, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), P.M(0x3a4a6a), 0, -1.2, 0, wh); back.scale.set(1, 0.6, 2.4);
-  const tail = add(new THREE.BoxGeometry(3.2, 0.2, 1.2), P.M(0x3a4a6a), 0, -1.2, -5.5, wh);
+  const tail = add(roundBox(3.2, 0.2, 1.2), P.M(0x3a4a6a), 0, -1.2, -5.5, wh);
   const spout = []; for (let i = 0; i < 8; i++) spout.push(add(new THREE.SphereGeometry(0.3, 5, 4), P.M(0xf0f8ff, { unlit: true }), 0, 0, 1.5, wh));
   P.anim(wh, (t) => {
     const u = (t % 16) / 6, up = u < 1 ? Math.sin(u * Math.PI) : 0;
@@ -155,10 +156,10 @@ export function decorColina(g, rim) {
   });
   // un cofre del tesoro en un islote
   const ch = new THREE.Group(); ch.position.set(-25.2, 0.7, -29.2); ch.rotation.y = 0.5; g.add(ch);
-  add(new THREE.BoxGeometry(1.2, 0.6, 0.8), P.M(0x8a5a2a, { map: TX.wood }), 0, 0.3, 0, ch);
+  add(roundBox(1.2, 0.6, 0.8), P.M(0x8a5a2a, { map: TX.wood }), 0, 0.3, 0, ch);
   const lid = new THREE.Group(); lid.position.set(0, 0.6, -0.4); ch.add(lid);
-  add(new THREE.BoxGeometry(1.2, 0.3, 0.8), P.M(0x8a5a2a, { map: TX.wood }), 0, 0.15, 0.4, lid);
-  add(new THREE.BoxGeometry(1.0, 0.12, 0.6), P.M(0xffd23a, { unlit: true }), 0, 0.62, 0, ch);
+  add(roundBox(1.2, 0.3, 0.8), P.M(0x8a5a2a, { map: TX.wood }), 0, 0.15, 0.4, lid);
+  add(roundBox(1.0, 0.12, 0.6), P.M(0xffd23a, { unlit: true }), 0, 0.62, 0, ch);
   P.anim(ch, (t) => { lid.rotation.x = -0.6 - Math.max(0, Math.sin(t * 0.8)) * 0.4; });
 }
 export function lighthouse(g, x, z) {
@@ -203,7 +204,7 @@ export function decorVolcan(grp, plat, R0, V) {
   [0.6, 2.4, 3.9, 5.2].forEach((a, k) => {                        // grietas de lava bajando (pegadas a la ladera)
     const r0 = 3.6, r1 = 12.2, hh = vh * (0.55 + (k % 2) * 0.25);
     const len = Math.hypot(r1 - r0, vh) * (hh / vh), ang = Math.atan2(r1 - r0, vh);
-    const cr = add(new THREE.BoxGeometry(0.5, len, 0.15), P.M(0xff7a1a, { unlit: true }), 0, 0, 0, vg);
+    const cr = add(roundBox(0.5, len, 0.15), P.M(0xff7a1a, { unlit: true }), 0, 0, 0, vg);
     const mid = vh - hh / 2, rr = r0 + (r1 - r0) * (1 - mid / vh);
     cr.position.set(Math.sin(a) * rr, mid, Math.cos(a) * rr); cr.rotation.set(Math.cos(a) * ang, 0, -Math.sin(a) * ang, 'YXZ'); cr.rotation.y = 0;
     cr.rotation.x = Math.cos(a) * ang; cr.rotation.z = -Math.sin(a) * ang;
@@ -246,7 +247,7 @@ export function decorGlaciar(grp) {
   gr.computeVertexNormals();
   add(scaleUV(gr, 30, 30), P.M(0xf0f6ff, { map: TX.snow }), 0, Y, 0, grp);
   P.frozenPond(grp, 12, Y + 1.2, 6, 7);
-  const river = add(new THREE.BoxGeometry(5, 0.3, 90), P.M(0xa8dcff, { map: TX.ice }), -12, Y + 0.6, -10, grp); river.rotation.y = 0.35;
+  const river = add(roundBox(5, 0.3, 90), P.M(0xa8dcff, { map: TX.ice }), -12, Y + 0.6, -10, grp); river.rotation.y = 0.35;
   P.house(grp, 30, Y + 1, -26, -0.6, 0x8a5a3a, 0xf4f8ff, 2.6);
   P.smoke(grp, 30.9, Y + 8.8, -26.5, 5, 1.8, 0xd8dce6);
   // el bosque: pinos nevados por todos lados (menos arriba del lago y del río)
@@ -299,7 +300,7 @@ export function decorGlaciar(grp) {
   const owl = new THREE.Group(); grp.add(owl);
   add(new THREE.SphereGeometry(0.4, 8, 6), P.M(0xf4f4f0), 0, 0, 0, owl).scale.set(0.9, 1, 1.2);
   [-0.12, 0.12].forEach((sx) => add(new THREE.SphereGeometry(0.07, 5, 4), P.M(0xffc02a, { unlit: true }), sx, 0.15, 0.4, owl));
-  const ow = [-1, 1].map((sd) => { const w = new THREE.Group(); w.position.x = sd * 0.3; owl.add(w); add(new THREE.BoxGeometry(1.2, 0.05, 0.5), P.M(0xe8e8e0), sd * 0.6, 0, 0, w); return w; });
+  const ow = [-1, 1].map((sd) => { const w = new THREE.Group(); w.position.x = sd * 0.3; owl.add(w); add(roundBox(1.2, 0.05, 0.5), P.M(0xe8e8e0), sd * 0.6, 0, 0, w); return w; });
   P.anim(owl, (t) => { const a = t * 0.25; owl.position.set(Math.sin(a) * 13, 4 + Math.sin(t * 0.7) * 1, Math.cos(a) * 11); owl.rotation.y = a + Math.PI / 2; owl.rotation.z = -0.3; ow.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * Math.sin(t * 2.5) * 0.5; }); });
 }
 
@@ -308,7 +309,7 @@ export function decorBombardeo(grp, HALF) {
   const Y = -1.7, E = HALF + 0.8;
   // líneas del piso alrededor
   const ym = P.M(0xffc02a, { unlit: true });
-  [[0, -(E + 1.4), 2 * E + 3, 0.18], [0, E + 1.4, 2 * E + 3, 0.18], [-(E + 1.4), 0, 0.18, 2 * E + 3], [E + 1.4, 0, 0.18, 2 * E + 3]].forEach(([x, z, w, d]) => add(new THREE.BoxGeometry(w, 0.04, d), ym, x, Y + 0.02, z, grp));
+  [[0, -(E + 1.4), 2 * E + 3, 0.18], [0, E + 1.4, 2 * E + 3, 0.18], [-(E + 1.4), 0, 0.18, 2 * E + 3], [E + 1.4, 0, 0.18, 2 * E + 3]].forEach(([x, z, w, d]) => add(roundBox(w, 0.04, d), ym, x, Y + 0.02, z, grp));
   // luces giratorias arriba de los postes de las esquinas
   [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => P.beacon(grp, sx * (HALF + 0.9), 3.4, sz * (HALF + 0.9)));
   // cañerías por los costados
@@ -316,25 +317,25 @@ export function decorBombardeo(grp, HALF) {
     const x = sx * (E + 3.2);
     P.pipe(grp, x, Y + 1.2, -13, x, Y + 1.2, 11, 0.45, 0x8a92a6);
     P.pipe(grp, x + sx * 1.1, Y + 0.6, -13, x + sx * 1.1, Y + 0.6, 11, 0.3, 0xc05a3a);
-    for (let z = -12; z <= 10; z += 5.5) add(new THREE.BoxGeometry(0.3, 1.2, 0.3), P.M(0x5a6070, { map: TX.metal }), x, Y + 0.6, z, grp);
+    for (let z = -12; z <= 10; z += 5.5) add(roundBox(0.3, 1.2, 0.3), P.M(0x5a6070, { map: TX.metal }), x, Y + 0.6, z, grp);
   });
   // tambores, cajones y respiraderos con vapor
   [[-13.5, -8], [-14.2, -6.8], [-12.8, -7], [14, 4.5], [13.3, 5.6], [14.6, 6]].forEach(([x, z], k) => P.barrel(grp, x, Y, z, k % 3 === 0 ? 0xd83a3a : 0x3a6ac8));
   P.crates(grp, -14, Y, 6, 3); P.crates(grp, 13.8, Y, -7.5, 2);
   [[-11.5, -12], [11.8, 10.5]].forEach(([x, z]) => {
-    add(new THREE.BoxGeometry(1.6, 0.3, 1.6), P.M(0x2a2d36, { map: TX.metal }), x, Y + 0.15, z, grp);
-    for (let i = 0; i < 4; i++) add(new THREE.BoxGeometry(1.4, 0.06, 0.12), P.M(0x15171d), x, Y + 0.32, z - 0.5 + i * 0.33, grp);
+    add(roundBox(1.6, 0.3, 1.6), P.M(0x2a2d36, { map: TX.metal }), x, Y + 0.15, z, grp);
+    for (let i = 0; i < 4; i++) add(roundBox(1.4, 0.06, 0.12), P.M(0x15171d), x, Y + 0.32, z - 0.5 + i * 0.33, grp);
     P.smoke(grp, x, Y + 0.4, z, 4, 0.8, 0xc8d0dc);
   });
   // grúa que gira allá al fondo
   const cr = new THREE.Group(); cr.position.set(-12, Y, -15); grp.add(cr);
   const cm = P.M(0xffc02a, { map: TX.metal }), dk = P.M(0x2a2d36, { map: TX.metal });
-  add(new THREE.BoxGeometry(1, 11, 1), cm, 0, 5.5, 0, cr);
+  add(roundBox(1, 11, 1), cm, 0, 5.5, 0, cr);
   const arm = new THREE.Group(); arm.position.y = 11; cr.add(arm);
-  add(new THREE.BoxGeometry(12, 0.6, 0.6), cm, 3.5, 0, 0, arm);
-  add(new THREE.BoxGeometry(2, 1.2, 1.2), dk, -2.6, 0, 0, arm);
+  add(roundBox(12, 0.6, 0.6), cm, 3.5, 0, 0, arm);
+  add(roundBox(2, 1.2, 1.2), dk, -2.6, 0, 0, arm);
   add(new THREE.CylinderGeometry(0.04, 0.04, 4, 4), dk, 8.5, -2, 0, arm);
-  add(new THREE.BoxGeometry(1.4, 1.4, 1.4), P.M(0xffffff, { map: TX.block }), 8.5, -4.6, 0, arm);
+  add(roundBox(1.4, 1.4, 1.4), P.M(0xffffff, { map: TX.block }), 8.5, -4.6, 0, arm);
   P.anim(cr, (t) => { arm.rotation.y = Math.sin(t * 0.15) * 0.9 + 0.4; });
   P.planet(grp, 30, 6, -40, 8, 0x4a7ab8, 0xa8d8ff);
   // espacio: nebulosa, asteroides, antena, contenedores y un dron que vigila
@@ -360,9 +361,9 @@ export function decorBombardeo(grp, HALF) {
   // grilla de luz tenue en el piso de afuera
   const gl = P.M(0x1a3a5a, { unlit: true });
   for (let v = -30; v <= 30; v += 6) {
-    if (Math.abs(v) < HALF + 3) { [-1, 1].forEach((sd) => { add(new THREE.BoxGeometry(0.08, 0.02, 30 - HALF - 3), gl, v, Y + 0.02, sd * (HALF + 3 + (30 - HALF - 3) / 2), grp); add(new THREE.BoxGeometry(30 - HALF - 3, 0.02, 0.08), gl, sd * (HALF + 3 + (30 - HALF - 3) / 2), Y + 0.02, v, grp); }); continue; }
-    add(new THREE.BoxGeometry(0.08, 0.02, 60), gl, v, Y + 0.02, 0, grp);
-    add(new THREE.BoxGeometry(60, 0.02, 0.08), gl, 0, Y + 0.02, v, grp);
+    if (Math.abs(v) < HALF + 3) { [-1, 1].forEach((sd) => { add(roundBox(0.08, 0.02, 30 - HALF - 3), gl, v, Y + 0.02, sd * (HALF + 3 + (30 - HALF - 3) / 2), grp); add(roundBox(30 - HALF - 3, 0.02, 0.08), gl, sd * (HALF + 3 + (30 - HALF - 3) / 2), Y + 0.02, v, grp); }); continue; }
+    add(roundBox(0.08, 0.02, 60), gl, v, Y + 0.02, 0, grp);
+    add(roundBox(60, 0.02, 0.08), gl, 0, Y + 0.02, v, grp);
   }
   P.drift(grp, 40, -16, 16, Y, 6, -16, 14, 0x8aa0c0, 0.06, 0.25);        // polvito flotando a la luz
   // robotitos de limpieza que dan la vuelta a la cancha, conos, manchas de aceite y una caja de herramientas
@@ -370,7 +371,7 @@ export function decorBombardeo(grp, HALF) {
     const rb = new THREE.Group(); grp.add(rb);
     add(new THREE.CylinderGeometry(0.55, 0.6, 0.35, 10), P.M(k ? 0xffc02a : 0xe8e8ee, { map: TX.metal }), 0, 0.2, 0, rb);
     add(new THREE.SphereGeometry(0.3, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), P.M(0x2a3a5a), 0, 0.37, 0, rb);
-    const eye = add(new THREE.BoxGeometry(0.3, 0.08, 0.05), P.M(0x35f0ff, { unlit: true }), 0, 0.5, 0.26, rb);
+    const eye = add(roundBox(0.3, 0.08, 0.05), P.M(0x35f0ff, { unlit: true }), 0, 0.5, 0.26, rb);
     const brush = add(new THREE.CylinderGeometry(0.25, 0.25, 0.06, 6), P.M(0x5a6070), 0.45, 0.04, 0.35, rb);
     P.anim(rb, (t) => {
       const u = ((t * 0.035 + ph / (Math.PI * 2)) % 1) * 4, side = Math.floor(u), f = u - side, L = HALF + 2.2;
@@ -381,21 +382,21 @@ export function decorBombardeo(grp, HALF) {
   });
   [[-11.1, 3], [-11.1, 4.2], [11.1, -3.5], [11.1, -2.3], [3.5, 11.6], [-4, -11.6]].forEach(([x, z]) => {
     add(new THREE.ConeGeometry(0.28, 0.75, 8), P.M(0xff7a1a), x, Y + 0.38, z, grp);
-    add(new THREE.BoxGeometry(0.62, 0.06, 0.62), P.M(0xff7a1a), x, Y + 0.03, z, grp);
+    add(roundBox(0.62, 0.06, 0.62), P.M(0xff7a1a), x, Y + 0.03, z, grp);
     add(new THREE.CylinderGeometry(0.19, 0.22, 0.12, 8), P.M(0xffffff, { unlit: true }), x, Y + 0.45, z, grp);
   });
   [[-10.8, -4.5, 0.8], [11.2, 7.5, 0.6], [-2, 11.5, 0.7], [6, -11.2, 0.5]].forEach(([x, z, r]) => P.patch(grp, x, Y, z, r, 0x0a0c14));
   const tb = new THREE.Group(); tb.position.set(1, Y, -11.8); tb.rotation.y = 0.1; grp.add(tb);
-  add(new THREE.BoxGeometry(1.2, 1.1, 0.6), P.M(0xd83a3a, { map: TX.metal }), 0, 0.55, 0, tb);
-  for (let i = 0; i < 3; i++) add(new THREE.BoxGeometry(1.1, 0.04, 0.02), P.M(0x1a1a1e), 0, 0.3 + i * 0.3, 0.31, tb);
-  add(new THREE.BoxGeometry(0.5, 0.06, 0.08), P.M(0xc8ccd8, { map: TX.metal }), 0.1, 1.14, 0, tb).rotation.y = 0.5;
+  add(roundBox(1.2, 1.1, 0.6), P.M(0xd83a3a, { map: TX.metal }), 0, 0.55, 0, tb);
+  for (let i = 0; i < 3; i++) add(roundBox(1.1, 0.04, 0.02), P.M(0x1a1a1e), 0, 0.3 + i * 0.3, 0.31, tb);
+  add(roundBox(0.5, 0.06, 0.08), P.M(0xc8ccd8, { map: TX.metal }), 0.1, 1.14, 0, tb).rotation.y = 0.5;
   // un mecánico con traje que camina revisando y un perro robot que lo sigue
-  const mech = P.walker(grp, -9, Y, HALF + 2.9, 9, HALF + 2.9, { shirt: 0xe8e8ee, pants: 0xe8e8ee, skin: 0x3a5a8a, sp: 0.15, carry: (w) => add(new THREE.BoxGeometry(0.3, 0.2, 0.15), P.M(0xffc02a, { map: TX.metal }), 0.35, 0.8, 0.1, w) });
+  const mech = P.walker(grp, -9, Y, HALF + 2.9, 9, HALF + 2.9, { shirt: 0xe8e8ee, pants: 0xe8e8ee, skin: 0x3a5a8a, sp: 0.15, carry: (w) => add(roundBox(0.3, 0.2, 0.15), P.M(0xffc02a, { map: TX.metal }), 0.35, 0.8, 0.1, w) });
   const rd = new THREE.Group(); grp.add(rd);
-  add(new THREE.BoxGeometry(0.4, 0.3, 0.8), P.M(0xc8ccd8, { map: TX.metal }), 0, 0.5, 0, rd);
-  add(new THREE.BoxGeometry(0.3, 0.25, 0.3), P.M(0xc8ccd8, { map: TX.metal }), 0, 0.7, 0.5, rd);
-  add(new THREE.BoxGeometry(0.2, 0.06, 0.04), P.M(0x35f0ff, { unlit: true }), 0, 0.75, 0.66, rd);
-  const rl = [[-0.15, 0.3], [0.15, 0.3], [-0.15, -0.3], [0.15, -0.3]].map(([a2, b2]) => add(new THREE.BoxGeometry(0.08, 0.4, 0.08), P.M(0x3a3f4a), a2, 0.2, b2, rd));
+  add(roundBox(0.4, 0.3, 0.8), P.M(0xc8ccd8, { map: TX.metal }), 0, 0.5, 0, rd);
+  add(roundBox(0.3, 0.25, 0.3), P.M(0xc8ccd8, { map: TX.metal }), 0, 0.7, 0.5, rd);
+  add(roundBox(0.2, 0.06, 0.04), P.M(0x35f0ff, { unlit: true }), 0, 0.75, 0.66, rd);
+  const rl = [[-0.15, 0.3], [0.15, 0.3], [-0.15, -0.3], [0.15, -0.3]].map(([a2, b2]) => add(roundBox(0.08, 0.4, 0.08), P.M(0x3a3f4a), a2, 0.2, b2, rd));
   P.anim(rd, (t) => { rd.position.set(mech.position.x + (Math.sin(mech.rotation.y) > 0 ? -1.2 : 1.2), Y, mech.position.z + 0.7); rd.rotation.y = mech.rotation.y; rl.forEach((l, i) => { l.rotation.x = Math.sin(t * 12 + (i % 2) * Math.PI) * 0.5; }); });
 }
 
@@ -425,50 +426,50 @@ export function decorPetardos(g, deco, L) {
     const spr = new THREE.Group(); spr.position.set(15.6, Y, -6.2); g.add(spr);
     add(new THREE.CylinderGeometry(0.08, 0.12, 0.5, 6), P.M(0x3a8a3a), 0, 0.25, 0, spr);
     const head = new THREE.Group(); head.position.y = 0.5; spr.add(head);
-    add(new THREE.BoxGeometry(0.8, 0.06, 0.06), P.M(0xc8ccd8, { map: TX.metal }), 0, 0, 0, head);
+    add(roundBox(0.8, 0.06, 0.06), P.M(0xc8ccd8, { map: TX.metal }), 0, 0, 0, head);
     const drops = [];
-    for (let i = 0; i < 10; i++) drops.push(add(new THREE.BoxGeometry(0.07, 0.07, 0.07), P.M(0x9ad8ff, { unlit: true }), 0, 0, 0, head));
+    for (let i = 0; i < 10; i++) drops.push(add(roundBox(0.07, 0.07, 0.07), P.M(0x9ad8ff, { unlit: true }), 0, 0, 0, head));
     P.anim(spr, (t) => { head.rotation.y = t * 2.2; drops.forEach((d, i) => { const sd = i % 2 ? 1 : -1, u = ((t * 1.6 + i * 0.2) % 1); d.position.set(sd * (0.4 + u * 1.6), Math.sin(u * Math.PI) * 0.7, 0); }); });
     const wb = new THREE.Group(); wb.position.set(-16.4, Y, -9.6); wb.rotation.y = 0.6; g.add(wb);
-    add(new THREE.BoxGeometry(0.9, 0.4, 1.2), P.M(0x3a8ad8, { map: TX.metal }), 0, 0.55, 0, wb);
-    add(new THREE.BoxGeometry(0.8, 0.1, 1.0), P.M(0x6a4a2a, { map: TX.pebble }), 0, 0.72, 0, wb);
+    add(roundBox(0.9, 0.4, 1.2), P.M(0x3a8ad8, { map: TX.metal }), 0, 0.55, 0, wb);
+    add(roundBox(0.8, 0.1, 1.0), P.M(0x6a4a2a, { map: TX.pebble }), 0, 0.72, 0, wb);
     add(new THREE.CylinderGeometry(0.25, 0.25, 0.1, 8), P.M(0x1a1a1e), 0, 0.25, 0.7, wb).rotation.z = Math.PI / 2;
-    [-0.35, 0.35].forEach((sx) => add(new THREE.BoxGeometry(0.06, 0.06, 1.3), P.M(0x6b4a2a, { map: TX.wood }), sx, 0.6, -0.8, wb));
+    [-0.35, 0.35].forEach((sx) => add(roundBox(0.06, 0.06, 1.3), P.M(0x6b4a2a, { map: TX.wood }), sx, 0.6, -0.8, wb));
     const gn = new THREE.Group(); gn.position.set(-15.2, Y, 8.6); gn.rotation.y = 1.2; g.add(gn);
     add(new THREE.CylinderGeometry(0.2, 0.26, 0.45, 7), P.M(0x3a6ad8), 0, 0.22, 0, gn);
     add(new THREE.SphereGeometry(0.17, 7, 5), P.M(0xf0c8a0), 0, 0.55, 0, gn);
     add(new THREE.ConeGeometry(0.15, 0.25, 7), P.M(0xffffff), 0, 0.45, 0.08, gn);
     add(new THREE.ConeGeometry(0.18, 0.45, 7), P.M(0xd83a3a), 0, 0.85, 0, gn);
     const cat = new THREE.Group(); g.add(cat);
-    add(new THREE.BoxGeometry(0.22, 0.22, 0.6), P.M(0x2a2a30), 0, 0.12, 0, cat);
-    add(new THREE.BoxGeometry(0.22, 0.2, 0.2), P.M(0x2a2a30), 0, 0.25, 0.36, cat);
+    add(roundBox(0.22, 0.22, 0.6), P.M(0x2a2a30), 0, 0.12, 0, cat);
+    add(roundBox(0.22, 0.2, 0.2), P.M(0x2a2a30), 0, 0.25, 0.36, cat);
     [-0.07, 0.07].forEach((sx) => add(new THREE.ConeGeometry(0.05, 0.1, 3), P.M(0x2a2a30), sx, 0.39, 0.36, cat));
-    const tail = add(new THREE.BoxGeometry(0.05, 0.4, 0.05), P.M(0x2a2a30), 0, 0.3, -0.32, cat);
+    const tail = add(roundBox(0.05, 0.4, 0.05), P.M(0x2a2a30), 0, 0.3, -0.32, cat);
     P.anim(cat, (t) => { const u = Math.sin(t * 0.12); cat.position.set(-13.6, Y + 1.0, u * 10); cat.rotation.y = Math.cos(t * 0.12) > 0 ? 0 : Math.PI; tail.rotation.x = Math.sin(t * 3) * 0.4; });
-    for (let k = 0; k < 4; k++) { const bf = new THREE.Group(); g.add(bf); const wl = [-1, 1].map((sd) => add(new THREE.BoxGeometry(0.22, 0.02, 0.18), P.M([0xff8ac8, 0xffe14a, 0x8ad8ff, 0xffffff][k], { side: THREE.DoubleSide }), sd * 0.11, 0, 0, bf));
+    for (let k = 0; k < 4; k++) { const bf = new THREE.Group(); g.add(bf); const wl = [-1, 1].map((sd) => add(roundBox(0.22, 0.02, 0.18), P.M([0xff8ac8, 0xffe14a, 0x8ad8ff, 0xffffff][k], { side: THREE.DoubleSide }), sd * 0.11, 0, 0, bf));
       P.anim(bf, (t) => { const a = t * 0.3 + k * 1.6; bf.position.set((k % 2 ? 15 : -15.5) + Math.sin(a * 1.3) * 1.5, Y + 0.8 + Math.sin(t * 2 + k) * 0.4, -3 + k * 3 + Math.cos(a) * 1.5); wl.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * Math.sin(t * 18) * 0.9; }); }); }
     // hamaca con un chico que se hamaca
     const sw = new THREE.Group(); sw.position.set(-17.5, Y, -1.2); sw.rotation.y = 0; g.add(sw);
     const fm = P.M(0xd83a3a, { map: TX.metal });
-    [-1, 1].forEach((sx) => { [-0.6, 0.6].forEach((sz) => { const l = add(new THREE.BoxGeometry(0.1, 2.6, 0.1), fm, sx * 1.1, 1.25, sz, sw); l.rotation.x = sz * 0.35; }); });
-    add(new THREE.BoxGeometry(2.4, 0.1, 0.1), fm, 0, 2.45, 0, sw);
+    [-1, 1].forEach((sx) => { [-0.6, 0.6].forEach((sz) => { const l = add(roundBox(0.1, 2.6, 0.1), fm, sx * 1.1, 1.25, sz, sw); l.rotation.x = sz * 0.35; }); });
+    add(roundBox(2.4, 0.1, 0.1), fm, 0, 2.45, 0, sw);
     const seat = new THREE.Group(); seat.position.y = 2.4; sw.add(seat);
-    [-0.3, 0.3].forEach((sx) => add(new THREE.BoxGeometry(0.03, 1.8, 0.03), P.M(0x8a92a6), sx, -0.9, 0, seat));
-    add(new THREE.BoxGeometry(0.7, 0.06, 0.35), P.M(0x3a8ad8), 0, -1.8, 0, seat);
+    [-0.3, 0.3].forEach((sx) => add(roundBox(0.03, 1.8, 0.03), P.M(0x8a92a6), sx, -0.9, 0, seat));
+    add(roundBox(0.7, 0.06, 0.35), P.M(0x3a8ad8), 0, -1.8, 0, seat);
     const kid = P.fans(seat, -2.25, [[0, 0, 0]], { shirts: [0xffd23a] })[0]; kid.g.scale.setScalar(0.6);
     P.anim(sw, (t) => { seat.rotation.x = Math.sin(t * 1.6) * 0.6; kid.g.position.y = -2.3; });
   } else if (deco === 'cajas') {                                // FÁBRICA: caños, chimeneas, tambores
     [-1, 1].forEach((sx) => {
       P.pipe(g, sx * 14.2, Y + 1.0, -12, sx * 14.2, Y + 1.0, 12, 0.42);
       P.pipe(g, sx * 15.4, Y + 0.5, -12, sx * 15.4, Y + 0.5, 12, 0.3, 0xc05a3a);
-      for (let z = -11; z <= 11; z += 5.5) add(new THREE.BoxGeometry(0.3, 1.0, 1.8), P.M(0x5a6070, { map: TX.metal }), sx * 14.8, Y + 0.5, z, g);
+      for (let z = -11; z <= 11; z += 5.5) add(roundBox(0.3, 1.0, 1.8), P.M(0x5a6070, { map: TX.metal }), sx * 14.8, Y + 0.5, z, g);
     });
     P.smokestack(g, -17.5, Y, -12.5, 8); P.smokestack(g, 17.5, Y, -13.5, 6.5);
     [[-16.5, 4], [-17.3, 5], [-16.3, 5.4], [17, -3], [16.4, -4.1], [17.6, 8], [16.9, 9]].forEach(([x, z], k) => P.barrel(g, x, Y, z, k % 2 ? 0xd8a02a : 0x3a6ac8));
     P.crates(g, -17.5, Y, -4, 3); P.crates(g, 18, Y, 2.5, 2);
     [[-13, -11.3], [13, -11.3], [-13, 11.3], [13, 11.3]].forEach(([x, z]) => P.beacon(g, x, Y, z));
     const hz = P.M(0xffffff, { map: TX.hazard, unlit: true });
-    [-1, 1].forEach((sx) => add(new THREE.BoxGeometry(0.5, 0.04, 22), hz, sx * 13.1, Y + 0.02, 0, g));
+    [-1, 1].forEach((sx) => add(roundBox(0.5, 0.04, 22), hz, sx * 13.1, Y + 0.02, 0, g));
     P.forklift(g, -17, Y, -8.5, 0.5);
     P.pallets(g, 17.2, Y, -8); P.pallets(g, -17.5, Y, 10, 2);
     P.warnSign(g, -13.3, Y, 8.5, 0.3); P.warnSign(g, 13.3, Y, -9, -0.3);
@@ -480,9 +481,9 @@ export function decorPetardos(g, deco, L) {
     { const bz = -12.9, bm = mat({ map: TX.belt, unlit: true });
       const bg = scaleUV(new THREE.PlaneGeometry(22, 1.3), 1, 14); bg.rotateX(-Math.PI / 2); bg.rotateY(Math.PI / 2);
       add(bg, bm, 0, Y + 0.62, bz, g);
-      [-1, 1].forEach((s2) => add(new THREE.BoxGeometry(22.4, 0.3, 0.12), P.M(0xffc02a, { map: TX.metal }), 0, Y + 0.62, bz + s2 * 0.7, g));
-      for (let k = -5; k <= 5; k++) add(new THREE.BoxGeometry(0.15, 0.6, 1.3), P.M(0x3a3f4a, { map: TX.metal }), k * 2.1, Y + 0.3, bz, g);
-      const boxes = []; for (let k = 0; k < 7; k++) { const c = add(new THREE.BoxGeometry(0.75, 0.6, 0.75), P.M(k % 3 ? 0xc8a070 : 0xd8b888, { map: TX.cardboard }), 0, Y + 0.95, bz, g); boxes.push({ c, u: k / 7 }); }
+      [-1, 1].forEach((s2) => add(roundBox(22.4, 0.3, 0.12), P.M(0xffc02a, { map: TX.metal }), 0, Y + 0.62, bz + s2 * 0.7, g));
+      for (let k = -5; k <= 5; k++) add(roundBox(0.15, 0.6, 1.3), P.M(0x3a3f4a, { map: TX.metal }), k * 2.1, Y + 0.3, bz, g);
+      const boxes = []; for (let k = 0; k < 7; k++) { const c = add(roundBox(0.75, 0.6, 0.75), P.M(k % 3 ? 0xc8a070 : 0xd8b888, { map: TX.cardboard }), 0, Y + 0.95, bz, g); boxes.push({ c, u: k / 7 }); }
       P.anim(g, (t) => { bm.uniforms.uOff.value.set(0, (-t * 0.6) % 1); boxes.forEach((q) => { const u = (q.u + t * 0.03) % 1; q.c.position.x = -10.8 + u * 21.6; q.c.visible = u > 0.02 && u < 0.98; }); });
       P.beacon(g, 11.4, Y + 0.6, bz + 0.9); }
     // brazos robot que sueldan (chispas), operarios con casco y manchas de aceite
@@ -491,17 +492,17 @@ export function decorPetardos(g, deco, L) {
       const om = P.M(0xff8a1a, { map: TX.metal }), dk = P.M(0x2a2d36, { map: TX.metal });
       add(new THREE.CylinderGeometry(0.6, 0.7, 0.4, 8), dk, 0, 0.2, 0, ra);
       const base = new THREE.Group(); base.position.y = 0.4; ra.add(base);
-      add(new THREE.BoxGeometry(0.5, 1.6, 0.5), om, 0, 0.8, 0, base);
+      add(roundBox(0.5, 1.6, 0.5), om, 0, 0.8, 0, base);
       const el = new THREE.Group(); el.position.y = 1.6; base.add(el);
-      add(new THREE.BoxGeometry(0.4, 1.4, 0.4), om, 0, 0.7, 0, el);
+      add(roundBox(0.4, 1.4, 0.4), om, 0, 0.7, 0, el);
       add(new THREE.ConeGeometry(0.15, 0.4, 6), dk, 0, 1.55, 0, el).rotation.x = Math.PI;
-      const sparks = []; for (let i = 0; i < 6; i++) sparks.push(add(new THREE.BoxGeometry(0.06, 0.06, 0.06), P.M(i % 2 ? 0xffe07a : 0xffffff, { unlit: true }), 0, 1.4, 0, el));
+      const sparks = []; for (let i = 0; i < 6; i++) sparks.push(add(roundBox(0.06, 0.06, 0.06), P.M(i % 2 ? 0xffe07a : 0xffffff, { unlit: true }), 0, 1.4, 0, el));
       P.anim(ra, (t) => { base.rotation.y = Math.sin(t * 0.7 + k) * 0.7; el.rotation.x = 0.9 + Math.sin(t * 1.1 + k) * 0.3; const on = Math.sin(t * 2 + k) > 0;
         sparks.forEach((sp, i) => { const u = (t * 3 + i / 6) % 1; sp.visible = on; sp.position.set(Math.sin(i * 2.1) * u * 0.6, 1.35 + Math.sin(u * Math.PI) * 0.4 - u * 0.5, Math.cos(i * 2.1) * u * 0.6); }); });
     });
     P.fans(g, Y, [[-16.2, -1.6, 1.4], [16.4, 0.2, -1.2], [15.6, 11.4, -2.4]], { shirts: [0x3a6ad8, 0xff8a1a, 0x3a6ad8], hats: [0xffd23a, 0xffd23a, 0xffffff] });
     [[-15.6, 7.5, 0.7], [16, -1.5, 0.6], [-3, -13.9, 0.8]].forEach(([x, z, r]) => P.patch(g, x, Y, z, r, 0x14161c));
-    P.walker(g, -16.4, Y, -11, -16.4, 11, { shirt: 0xff8a1a, hat: 0xffd23a, sp: 0.16, carry: (w) => add(new THREE.BoxGeometry(0.6, 0.5, 0.5), P.M(0xc8a070, { map: TX.crate }), 0, 1.0, 0.35, w) });
+    P.walker(g, -16.4, Y, -11, -16.4, 11, { shirt: 0xff8a1a, hat: 0xffd23a, sp: 0.16, carry: (w) => add(roundBox(0.6, 0.5, 0.5), P.M(0xc8a070, { map: TX.crate }), 0, 1.0, 0.35, w) });
   } else if (deco === 'cactus') {                               // DESIERTO: dunas, cactus, huesos, oasis
     [[-17, -6, 5, 4], [18, -9, 6, 4], [-18, 8, 5, 5], [17, 4, 4, 5], [-4, -16, 8, 3], [9, -15.5, 6, 3]].forEach(([x, z, sx, sz]) => P.dune(g, x, Y - 0.1, z, sx, sz, 0xecc888));
     P.mesa(g, -25, Y, -17, 7, 6, 5); P.mesa(g, 26, Y, -13, 6, 4.5, 5, 0xb86a3a); P.mesa(g, -27, Y, 9, 5, 3.5, 4, 0xd08a4a);
@@ -519,20 +520,20 @@ export function decorPetardos(g, deco, L) {
     // buitres dando vueltas, una carreta vieja, un camello echado y una lagartija que corre
     P.flyers(g, 0, 9, -2, 12, 3, 0x2a1a1a, 0.7);
     const wg = new THREE.Group(); wg.position.set(-17.4, Y, -2); wg.rotation.y = 1.3; g.add(wg);
-    add(new THREE.BoxGeometry(1.6, 0.6, 2.6), P.M(0x9a6a3a, { map: TX.wood }), 0, 0.8, 0, wg);
+    add(roundBox(1.6, 0.6, 2.6), P.M(0x9a6a3a, { map: TX.wood }), 0, 0.8, 0, wg);
     [[-0.9, -0.8], [0.9, -0.8], [-0.9, 0.8]].forEach(([a2, b2]) => add(new THREE.TorusGeometry(0.5, 0.08, 4, 10), P.M(0x6b4a2a, { map: TX.wood }), a2, 0.5, b2, wg).rotation.y = Math.PI / 2);
     const wh = add(new THREE.TorusGeometry(0.5, 0.08, 4, 10), P.M(0x6b4a2a, { map: TX.wood }), 1.2, 0.08, 1.1, wg); wh.rotation.x = Math.PI / 2;
-    add(new THREE.BoxGeometry(1.4, 0.06, 2.4), P.M(0xf0e0c0, { map: TX.cloth }), 0, 1.6, 0, wg).rotation.z = 0.08;
+    add(roundBox(1.4, 0.06, 2.4), P.M(0xf0e0c0, { map: TX.cloth }), 0, 1.6, 0, wg).rotation.z = 0.08;
     const cm = new THREE.Group(); cm.position.set(16.6, Y, -8.4); cm.rotation.y = -0.8; g.add(cm);
     const cc = P.M(0xc89a5a);
-    add(new THREE.BoxGeometry(0.9, 0.6, 1.8), cc, 0, 0.35, 0, cm);
+    add(roundBox(0.9, 0.6, 1.8), cc, 0, 0.35, 0, cm);
     add(new THREE.SphereGeometry(0.4, 7, 5), cc, 0, 0.85, -0.1, cm).scale.y = 0.9;
     const neck = new THREE.Group(); neck.position.set(0, 0.5, 0.85); cm.add(neck);
-    add(new THREE.BoxGeometry(0.28, 1.0, 0.28), cc, 0, 0.45, 0.15, neck).rotation.x = 0.3;
-    add(new THREE.BoxGeometry(0.32, 0.3, 0.55), cc, 0, 0.95, 0.38, neck);
+    add(roundBox(0.28, 1.0, 0.28), cc, 0, 0.45, 0.15, neck).rotation.x = 0.3;
+    add(roundBox(0.32, 0.3, 0.55), cc, 0, 0.95, 0.38, neck);
     P.anim(cm, (t) => { neck.rotation.x = Math.sin(t * 0.6) * 0.15; neck.rotation.y = Math.sin(t * 0.25) * 0.4; });
     const lz = new THREE.Group(); g.add(lz);
-    add(new THREE.BoxGeometry(0.14, 0.06, 0.5), P.M(0x6aa83a), 0, 0.04, 0, lz); add(new THREE.BoxGeometry(0.04, 0.03, 0.4), P.M(0x6aa83a), 0, 0.03, -0.42, lz);
+    add(roundBox(0.14, 0.06, 0.5), P.M(0x6aa83a), 0, 0.04, 0, lz); add(roundBox(0.04, 0.03, 0.4), P.M(0x6aa83a), 0, 0.03, -0.42, lz);
     const sn = new THREE.Group(); g.add(sn);
     const segs = []; for (let i = 0; i < 8; i++) segs.push(add(new THREE.SphereGeometry(0.13 - i * 0.008, 6, 4), P.M(i % 2 ? 0xc8a03a : 0x8a6a2a), 0, 0.1, 0, sn));
     P.anim(sn, (t) => segs.forEach((sg, i) => { const u = t * 0.4 - i * 0.06; sg.position.set(-15 + Math.sin(u) * 1.5 + Math.sin(u * 8) * 0.2, Y + 0.1, -6 + Math.cos(u) * 1.5); }));
@@ -554,12 +555,12 @@ export function decorPetardos(g, deco, L) {
     P.anim(sk.g, (t) => { const a = t * 0.9; sk.g.position.x = -16.8 + Math.sin(a) * 1.3; sk.g.position.z = -5.6 + Math.cos(a) * 1.3; sk.g.rotation.y = a + Math.PI / 2; });
     const dr = new THREE.Group(); dr.position.set(17.6, Y, -1.5); dr.rotation.y = -1.9; g.add(dr);
     const dm = P.M(0x9a6a3a);
-    add(new THREE.BoxGeometry(0.5, 0.5, 1.2), dm, 0, 1.0, 0, dr);
-    [[-0.18, 0.45], [0.18, 0.45], [-0.18, -0.45], [0.18, -0.45]].forEach(([a2, b2]) => add(new THREE.BoxGeometry(0.1, 0.8, 0.1), dm, a2, 0.4, b2, dr));
+    add(roundBox(0.5, 0.5, 1.2), dm, 0, 1.0, 0, dr);
+    [[-0.18, 0.45], [0.18, 0.45], [-0.18, -0.45], [0.18, -0.45]].forEach(([a2, b2]) => add(roundBox(0.1, 0.8, 0.1), dm, a2, 0.4, b2, dr));
     const dh = new THREE.Group(); dh.position.set(0, 1.25, 0.6); dr.add(dh);
-    add(new THREE.BoxGeometry(0.22, 0.6, 0.22), dm, 0, 0.25, 0.05, dh); add(new THREE.BoxGeometry(0.26, 0.26, 0.45), dm, 0, 0.6, 0.15, dh);
-    add(new THREE.BoxGeometry(0.08, 0.08, 0.08), P.M(0x1a1a1e), 0, 0.6, 0.4, dh);
-    [-1, 1].forEach((sd) => { add(new THREE.BoxGeometry(0.04, 0.4, 0.04), P.M(0x6b4a2a), sd * 0.12, 0.9, 0.08, dh).rotation.z = sd * 0.5; add(new THREE.BoxGeometry(0.04, 0.2, 0.04), P.M(0x6b4a2a), sd * 0.22, 1.0, 0.1, dh).rotation.z = -sd * 0.4; });
+    add(roundBox(0.22, 0.6, 0.22), dm, 0, 0.25, 0.05, dh); add(roundBox(0.26, 0.26, 0.45), dm, 0, 0.6, 0.15, dh);
+    add(roundBox(0.08, 0.08, 0.08), P.M(0x1a1a1e), 0, 0.6, 0.4, dh);
+    [-1, 1].forEach((sd) => { add(roundBox(0.04, 0.4, 0.04), P.M(0x6b4a2a), sd * 0.12, 0.9, 0.08, dh).rotation.z = sd * 0.5; add(roundBox(0.04, 0.2, 0.04), P.M(0x6b4a2a), sd * 0.22, 1.0, 0.1, dh).rotation.z = -sd * 0.4; });
     P.anim(dr, (t) => { const graze = Math.sin(t * 0.4) > 0.2; dh.rotation.x = graze ? 1.1 : 0; dh.rotation.y = graze ? 0 : Math.sin(t * 1.3) * 0.4; });
     [[15.2, 9.6], [-15.6, 2.2]].forEach(([x, z]) => { for (let i = 0; i < 6; i++) add(new THREE.SphereGeometry(0.2, 6, 5), P.M(0xffffff, { map: TX.snow }), x + (i % 3) * 0.36 - 0.36, Y + 0.18 + (i >= 3 ? 0.3 : 0), z + (i >= 3 ? 0.1 : 0), g); P.snowPile(g, x, Y, z - 0.9, 0.9); });
     P.stringLights(g, -13.6, Y + 3, -11.6, 13.6, Y + 3, -11.6, 18, [0xff5a5a, 0x5aff8a, 0xffe14a, 0x5ab0ff]);
@@ -572,21 +573,21 @@ function cancha(g, deco, L) {
   const { TS, GW, GH, cx, cz, wallCol, wallTex } = L;
   const top = TS * 0.9, capM = P.M(new THREE.Color(wallCol).lerp(new THREE.Color(0xffffff), 0.2).getHex(), { map: wallTex });
   const W2 = GW * TS, H2 = GH * TS;
-  add(new THREE.BoxGeometry(W2 + 0.1, 0.14, TS * 1.06), capM, 0, top + 0.07, cz(0), g);
-  add(new THREE.BoxGeometry(W2 + 0.1, 0.14, TS * 1.06), capM, 0, top + 0.07, cz(GH - 1), g);
-  add(new THREE.BoxGeometry(TS * 1.06, 0.14, H2 + 0.1), capM, cx(0), top + 0.07, 0, g);
-  add(new THREE.BoxGeometry(TS * 1.06, 0.14, H2 + 0.1), capM, cx(GW - 1), top + 0.07, 0, g);
+  add(roundBox(W2 + 0.1, 0.14, TS * 1.06), capM, 0, top + 0.07, cz(0), g);
+  add(roundBox(W2 + 0.1, 0.14, TS * 1.06), capM, 0, top + 0.07, cz(GH - 1), g);
+  add(roundBox(TS * 1.06, 0.14, H2 + 0.1), capM, cx(0), top + 0.07, 0, g);
+  add(roundBox(TS * 1.06, 0.14, H2 + 0.1), capM, cx(GW - 1), top + 0.07, 0, g);
   if (deco === 'pinos') {                                       // nieve acumulada arriba del muro
     const sn = P.M(0xffffff, { map: TX.snow });
-    add(new THREE.BoxGeometry(W2 - 0.2, 0.12, TS * 0.8), sn, 0, top + 0.2, cz(0), g);
-    add(new THREE.BoxGeometry(W2 - 0.2, 0.12, TS * 0.8), sn, 0, top + 0.2, cz(GH - 1), g);
-    add(new THREE.BoxGeometry(TS * 0.8, 0.12, H2 - 0.2), sn, cx(0), top + 0.2, 0, g);
-    add(new THREE.BoxGeometry(TS * 0.8, 0.12, H2 - 0.2), sn, cx(GW - 1), top + 0.2, 0, g);
+    add(roundBox(W2 - 0.2, 0.12, TS * 0.8), sn, 0, top + 0.2, cz(0), g);
+    add(roundBox(W2 - 0.2, 0.12, TS * 0.8), sn, 0, top + 0.2, cz(GH - 1), g);
+    add(roundBox(TS * 0.8, 0.12, H2 - 0.2), sn, cx(0), top + 0.2, 0, g);
+    add(roundBox(TS * 0.8, 0.12, H2 - 0.2), sn, cx(GW - 1), top + 0.2, 0, g);
   }
   [[0, 0], [GW - 1, 0], [0, GH - 1], [GW - 1, GH - 1]].forEach(([c, r]) => {
     const x = cx(c), z = cz(r);
-    add(new THREE.BoxGeometry(TS * 1.16, TS * 1.35, TS * 1.16), capM, x, TS * 0.675, z, g);
-    add(new THREE.BoxGeometry(TS * 1.3, 0.2, TS * 1.3), capM, x, TS * 1.4, z, g);
+    add(roundBox(TS * 1.16, TS * 1.35, TS * 1.16), capM, x, TS * 0.675, z, g);
+    add(roundBox(TS * 1.3, 0.2, TS * 1.3), capM, x, TS * 1.4, z, g);
     const yy = TS * 1.5;
     if (deco === 'arboles') {                                   // maceta con flores
       add(new THREE.CylinderGeometry(0.42, 0.32, 0.5, 8), P.M(0xc0643a, { map: TX.brick }), x, yy + 0.25, z, g);
@@ -621,13 +622,13 @@ export function decorFiesta(grp, start) {
   [[-15, 4.5], [-13.8, 5.4], [15.3, -5.5], [-1, -10.8], [9, 10.8]].forEach(([x, z]) => {
     add(new THREE.CylinderGeometry(0.1, 0.13, 0.4, 6), st, x, 0.2, z, grp);
     add(new THREE.SphereGeometry(0.3, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), cap, x, 0.38, z, grp);
-    add(new THREE.BoxGeometry(0.08, 0.04, 0.08), dot, x + 0.12, 0.62, z, grp);
+    add(roundBox(0.08, 0.04, 0.08), dot, x + 0.12, 0.62, z, grp);
   });
   // estanque con cascada que cae por el borde de la isla
   P.pond(grp, -10.6, 0, 9.2, 1.5);
   const wmat = P.M(0xcfe8ff, { map: TX.water, unlit: true, side: THREE.DoubleSide });
   const ex = -0.76, ez = 0.65, er = 16.45;                                // punto del borde hacia donde cae
-  add(new THREE.BoxGeometry(0.9, 0.1, 3.2), wmat, (-10.6 + ex * er) / 2 + 0.3, 0.2, (9.2 + ez * er) / 2 + 0.3, grp).rotation.y = Math.atan2(ex, ez);
+  add(roundBox(0.9, 0.1, 3.2), wmat, (-10.6 + ex * er) / 2 + 0.3, 0.2, (9.2 + ez * er) / 2 + 0.3, grp).rotation.y = Math.atan2(ex, ez);
   const wf = add(new THREE.PlaneGeometry(1.2, 14, 1, 4), wmat, ex * (er + 0.15), -6.9, ez * (er + 0.15), grp); wf.rotation.y = Math.atan2(ex, ez);
   P.anim(grp, (t) => wmat.uniforms.uOff.value.set(0, (t * 0.6) % 1));
   // nubes que pasan por abajo y pájaros dando vueltas
@@ -655,7 +656,7 @@ export function decorTormenta(g, R0) {
   // olas: bloques de espuma que suben y bajan alrededor
   const fm = P.M(0x8a9aac);
   for (let k = 0; k < 16; k++) {
-    const a = rnd(0, Math.PI * 2), d = rnd(R0 + 3, 30), w = add(new THREE.BoxGeometry(rnd(2, 4), 0.12, 0.35), fm, Math.sin(a) * d, -2.75, Math.cos(a) * d, g);
+    const a = rnd(0, Math.PI * 2), d = rnd(R0 + 3, 30), w = add(roundBox(rnd(2, 4), 0.12, 0.35), fm, Math.sin(a) * d, -2.75, Math.cos(a) * d, g);
     w.rotation.y = a + Math.PI / 2; const ph = rnd(0, 6);
     P.anim(w, (t) => { w.position.y = -2.75 + Math.sin(t * 1.2 + ph) * 0.35; w.scale.x = 0.6 + Math.abs(Math.sin(t * 0.6 + ph)) * 0.8; });
   }
@@ -669,7 +670,7 @@ export function decorTormenta(g, R0) {
   [[18, -22, 3], [22, -18, 2], [-20, 18, 2.5], [26, 14, 1.8]].forEach(([x, z, s]) => P.rock(g, x, -3, z, s, 0x4a4a54));
   const wr = new THREE.Group(); wr.position.set(20, -3, 20); wr.rotation.z = 0.35; g.add(wr);
   add(new THREE.CylinderGeometry(0.25, 0.35, 10, 6), P.M(0x5a3a1a, { map: TX.wood }), 0, 4, 0, wr);
-  add(new THREE.BoxGeometry(4, 0.2, 0.2), P.M(0x5a3a1a, { map: TX.wood }), 0, 7, 0, wr);
+  add(roundBox(4, 0.2, 0.2), P.M(0x5a3a1a, { map: TX.wood }), 0, 7, 0, wr);
   add(new THREE.PlaneGeometry(3.4, 2.4), P.M(0xc8c0a8, { side: THREE.DoubleSide }), 0.4, 5.6, 0.1, wr).rotation.y = 0.3;
   const finM = P.M(0x4a5468);
   for (let k = 0; k < 3; k++) {
@@ -683,7 +684,7 @@ export function decorTormenta(g, R0) {
   [[R0 + 3.5, 0.6], [R0 + 5, 2.1], [R0 + 3, 3.3], [R0 + 6.5, 4.4], [R0 + 4, 5.5], [R0 + 7, 1.2]].forEach(([d, a], k) => {
     const o = new THREE.Group(); o.position.set(Math.sin(a) * d, -2.8, Math.cos(a) * d); g.add(o);
     if (k % 3 === 0) { add(new THREE.CylinderGeometry(0.5, 0.5, 1.2, 8), P.M(k % 2 ? 0x8a5a2a : 0x3a6ac8, { map: TX.wood }), 0, 0, 0, o).rotation.z = Math.PI / 2; }
-    else if (k % 3 === 1) add(new THREE.BoxGeometry(1.1, 0.9, 1.1), P.M(0xc8a070, { map: TX.crate }), 0, 0.1, 0, o).rotation.y = rnd(0, 3);
+    else if (k % 3 === 1) add(roundBox(1.1, 0.9, 1.1), P.M(0xc8a070, { map: TX.crate }), 0, 0.1, 0, o).rotation.y = rnd(0, 3);
     else { const ring = add(new THREE.TorusGeometry(0.55, 0.2, 5, 12), P.M(0xff6a2a, { map: TX.stripes }), 0, 0.1, 0, o); ring.rotation.x = Math.PI / 2; }
     bob(o, -2.8, k * 1.7); drifters.push({ o, a, d, sp: rnd(0.01, 0.025) * (k % 2 ? 1 : -1) });
   });
@@ -698,22 +699,22 @@ export function decorTormenta(g, R0) {
   // un barco pirata medio hundido, escorado y meciéndose, con la vela rota
   const sh = new THREE.Group(); sh.position.set(-17, -3.2, -20); sh.rotation.set(0.12, 0.7, 0.18); g.add(sh);
   const hw = P.M(0x4a3020, { map: TX.wood }), hd = P.M(0x2a1a10, { map: TX.wood });
-  add(new THREE.BoxGeometry(4, 2.4, 12), hw, 0, 0.6, 0, sh); add(new THREE.BoxGeometry(4.2, 0.4, 12.2), hd, 0, 1.9, 0, sh);
-  add(new THREE.BoxGeometry(3.6, 1.6, 3), hw, 0, 2.6, -4.2, sh);
-  [[0, 2], [0, -2]].forEach(([x, z], k) => { add(new THREE.CylinderGeometry(0.18, 0.24, 9 - k * 2, 6), hd, x, 6.4 - k, z, sh); add(new THREE.BoxGeometry(4, 0.15, 0.15), hd, x, 8.6 - k * 2, z, sh); });
+  add(roundBox(4, 2.4, 12), hw, 0, 0.6, 0, sh); add(roundBox(4.2, 0.4, 12.2), hd, 0, 1.9, 0, sh);
+  add(roundBox(3.6, 1.6, 3), hw, 0, 2.6, -4.2, sh);
+  [[0, 2], [0, -2]].forEach(([x, z], k) => { add(new THREE.CylinderGeometry(0.18, 0.24, 9 - k * 2, 6), hd, x, 6.4 - k, z, sh); add(roundBox(4, 0.15, 0.15), hd, x, 8.6 - k * 2, z, sh); });
   const sail = add(new THREE.PlaneGeometry(3.6, 3, 3, 2), P.M(0xc8c0a8, { side: THREE.DoubleSide }), 0, 6.6, 2.15, sh);
   const sp2 = sail.geometry.attributes.position; sp2.setY(0, sp2.getY(0) - 0.8); sp2.setX(11, sp2.getX(11) - 0.6);
-  add(new THREE.BoxGeometry(0.8, 0.5, 0.05), P.M(0x1a1a1e), 0, 9.6, 2, sh);                       // bandera negra
+  add(roundBox(0.8, 0.5, 0.05), P.M(0x1a1a1e), 0, 9.6, 2, sh);                       // bandera negra
   for (let k = 0; k < 3; k++) add(new THREE.CircleGeometry(0.28, 6), P.M(0x14100c), 2.11, 0.9, -2.5 + k * 2.5, sh).rotation.y = Math.PI / 2;   // ojos de buey
-  const lamp = add(new THREE.BoxGeometry(0.4, 0.5, 0.4), P.M(0xffc86a, { unlit: true }), 0, 3.7, -5.6, sh);
+  const lamp = add(roundBox(0.4, 0.5, 0.4), P.M(0xffc86a, { unlit: true }), 0, 3.7, -5.6, sh);
   P.anim(sh, (t) => { sh.rotation.x = 0.12 + Math.sin(t * 0.7) * 0.05; sh.rotation.z = 0.18 + Math.sin(t * 0.5) * 0.06; sh.position.y = -3.2 + Math.sin(t * 0.8) * 0.2; lamp.visible = Math.sin(t * 9) > -0.8; });
   // más espuma, y tablas sueltas de otra balsa
   for (let k = 0; k < 14; k++) {
-    const a = rnd(0, Math.PI * 2), d = rnd(R0 + 1.5, 16), w = add(new THREE.BoxGeometry(rnd(1, 2.4), 0.1, 0.3), fm, Math.sin(a) * d, -2.75, Math.cos(a) * d, g);
+    const a = rnd(0, Math.PI * 2), d = rnd(R0 + 1.5, 16), w = add(roundBox(rnd(1, 2.4), 0.1, 0.3), fm, Math.sin(a) * d, -2.75, Math.cos(a) * d, g);
     w.rotation.y = a + Math.PI / 2; const ph = rnd(0, 6);
     P.anim(w, (t) => { w.position.y = -2.78 + Math.sin(t * 1.6 + ph) * 0.25; w.scale.x = 0.5 + Math.abs(Math.sin(t * 0.8 + ph)); });
   }
-  for (let k = 0; k < 5; k++) { const a = rnd(0, 6), d = rnd(R0 + 2, 14); const pl = add(new THREE.BoxGeometry(0.5, 0.12, rnd(1.8, 3)), P.M(0x6a4a2a, { map: TX.wood }), Math.sin(a) * d, -2.7, Math.cos(a) * d, g); pl.rotation.y = rnd(0, 3); bob(pl, -2.7, k * 1.3, 0.5); }
+  for (let k = 0; k < 5; k++) { const a = rnd(0, 6), d = rnd(R0 + 2, 14); const pl = add(roundBox(0.5, 0.12, rnd(1.8, 3)), P.M(0x6a4a2a, { map: TX.wood }), Math.sin(a) * d, -2.7, Math.cos(a) * d, g); pl.rotation.y = rnd(0, 3); bob(pl, -2.7, k * 1.3, 0.5); }
   // tentáculos de un pulpo gigante que asoman del agua cada tanto
   const tm = P.M(0x8a3a6a), sm = P.M(0xe8b0c8);
   const tents = [[-R0 - 6, 6], [R0 + 7, -3], [3, R0 + 8]].map(([x, z], k) => {
@@ -733,7 +734,7 @@ export function decorTormenta(g, R0) {
   const bolts = [0, 1].map(() => {
     const b = new THREE.Group(); b.visible = false; g.add(b);
     let x = 0, y = 26;
-    for (let i = 0; i < 7; i++) { const nx = x + rnd(-2.5, 2.5), ny = y - rnd(3.5, 5); const len = Math.hypot(nx - x, ny - y); const seg = add(new THREE.BoxGeometry(0.35, len, 0.35), boltM, (x + nx) / 2, (y + ny) / 2, 0, b); seg.rotation.z = Math.atan2(-(nx - x), ny - y) + Math.PI; x = nx; y = ny; }
+    for (let i = 0; i < 7; i++) { const nx = x + rnd(-2.5, 2.5), ny = y - rnd(3.5, 5); const len = Math.hypot(nx - x, ny - y); const seg = add(roundBox(0.35, len, 0.35), boltM, (x + nx) / 2, (y + ny) / 2, 0, b); seg.rotation.z = Math.atan2(-(nx - x), ny - y) + Math.PI; x = nx; y = ny; }
     return { b, t: rnd(2, 6) };
   });
   P.anim(g, (t, dt) => bolts.forEach((q) => {
@@ -793,7 +794,7 @@ export function decorColinaNoche(g, rim) {
   for (let k = 0; k < 10; k++) {
     const a = (k / 10) * Math.PI * 2 + 0.2, r = rim(a) + rnd(2.5, 7), c = [0xffb04a, 0xff6a5a, 0xffe07a][k % 3];
     const lg = new THREE.Group(); lg.position.set(Math.sin(a) * r, WY, Math.cos(a) * r); g.add(lg);
-    add(new THREE.BoxGeometry(0.45, 0.4, 0.45), P.M(c, { unlit: true }), 0, 0.2, 0, lg); P.halo(lg, 0, 0.3, 0, c, 2);
+    add(roundBox(0.45, 0.4, 0.45), P.M(c, { unlit: true }), 0, 0.2, 0, lg); P.halo(lg, 0, 0.3, 0, c, 2);
     const ph = rnd(0, 6); P.anim(lg, (t) => { lg.position.y = WY + Math.sin(t * 1.2 + ph) * 0.06; lg.rotation.y = t * 0.2 + ph; });
   }
   P.critters(g, 14, 0, 0, 10, 9, 1.6, 'firefly', [0xd8ff6a, 0xffe07a]);

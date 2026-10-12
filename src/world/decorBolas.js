@@ -1,6 +1,7 @@
 // Decorado de los mapas nuevos de Bola Brava (CIRCO, PLAYA, TERRAZA; la FERIA quedó sin usar). La arena es la misma (piso de 20×20 con
 // torres en las esquinas); cada mapa cambia las texturas de la arena (bolas.js), el piso de afuera y todo esto
 // de alrededor. El suelo de afuera está a y = -2.2 (ver world/arena.js).
+import { roundBox, organic, canopy, bellyCylinder } from '../render/shapes.js';
 import * as THREE from 'three';
 import { add, scaleUV, mat, waterMat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
@@ -8,7 +9,7 @@ import { rnd } from '../config.js';
 import * as P from './props.js';
 
 const Y = -2.2;
-const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const box = (w, h, d) => roundBox(w, h, d);   // cantos redondeados
 const grp = (p, x = 0, y = 0, z = 0, ry = 0) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; p.add(g); return g; };
 const ry0 = (x, z) => Math.atan2(-x, -z);            // girado mirando al centro de la arena
 
@@ -287,9 +288,16 @@ export function decorCirco(g) {
    ===================================================================== */
 export function umbrella(p, x, z, a = 0xff5a4a, b = 0xffffff) {
   const g = grp(p, x, Y, z, rnd(0, 6));
-  add(new THREE.CylinderGeometry(0.06, 0.06, 2.6, 5), P.M(0xe8e8e8), 0, 1.3, 0, g).rotation.z = 0.12;
-  const n = 8;
-  for (let k = 0; k < n; k++) add(new THREE.ConeGeometry(1.7, 0.6, n, 1, true, (k / n) * Math.PI * 2, (Math.PI * 2) / n), P.M(k % 2 ? a : b, { side: THREE.DoubleSide }), 0.15, 2.55, 0, g);
+  // palo un poco inclinado con regatón y empalme; toldo de gajos que caen y borde festoneado; varillas y botoncito arriba
+  const tilt = new THREE.Group(); tilt.rotation.z = rnd(0.06, 0.16); tilt.rotation.x = rnd(-0.06, 0.06); g.add(tilt);
+  const pm = P.M(0xe8e4dc, { map: TX.wood });
+  add(new THREE.CylinderGeometry(0.045, 0.06, 2.7, 6), pm, 0, 1.35, 0, tilt);
+  add(new THREE.CylinderGeometry(0.075, 0.075, 0.12, 6), P.M(0x8a8a90), 0, 1.4, 0, tilt);
+  add(new THREE.ConeGeometry(0.07, 0.25, 6), P.M(0x8a8a90), 0, 0.05, 0, tilt).rotation.x = Math.PI;
+  const n = 8, R2 = rnd(1.55, 1.85);
+  for (let k = 0; k < n; k++) add(canopy(R2, 0.75, n, 3, k), P.M(k % 2 ? a : b, { side: THREE.DoubleSide }), 0, 2.15, 0, tilt);
+  for (let k = 0; k < n; k++) { const ang = (k / n) * Math.PI * 2, rib = add(new THREE.CylinderGeometry(0.018, 0.018, R2 * 0.95, 3), P.M(0x6a6a70), Math.cos(ang) * R2 * 0.45, 2.55, Math.sin(ang) * R2 * 0.45, tilt); rib.rotation.set(0, -ang, Math.PI / 2 - 0.42); rib.rotation.order = 'YZX'; }
+  add(new THREE.SphereGeometry(0.08, 6, 5), P.M(a), 0, 2.93, 0, tilt);
   const tw = add(box(1.0, 0.04, 1.9), P.M([0x3a7aff, 0xffe14a, 0x39d98a, 0xff5fa2][(Math.random() * 4) | 0]), 1.2, 0.03, 0.4, g); tw.rotation.y = 0.3;
 }
 export function lifeguardChair(p, x, z) {
@@ -330,7 +338,7 @@ export function seagulls(p, cx, cy, cz, r, n = 4) {
     const b = add(new THREE.SphereGeometry(0.32, 7, 5), wm, 0, 0, 0, g); b.scale.set(0.8, 0.7, 1.7);
     add(new THREE.SphereGeometry(0.2, 6, 5), wm, 0, 0.12, 0.55, g);
     add(new THREE.ConeGeometry(0.07, 0.26, 4), bm, 0, 0.1, 0.8, g).rotation.x = Math.PI / 2;
-    add(new THREE.BoxGeometry(0.02, 0.05, 0.05), km, 0.12, 0.17, 0.62, g); add(new THREE.BoxGeometry(0.02, 0.05, 0.05), km, -0.12, 0.17, 0.62, g);
+    add(roundBox(0.02, 0.05, 0.05), km, 0.12, 0.17, 0.62, g); add(roundBox(0.02, 0.05, 0.05), km, -0.12, 0.17, 0.62, g);
     add(box(0.3, 0.05, 0.35), gm, 0, 0, -0.62, g);
     const wings = [-1, 1].map((sd) => {
       const inner = grp(g, sd * 0.18, 0.06, 0);
@@ -571,11 +579,11 @@ export function decorTerraza(g) {
 }
 function pelopincho(p, x, z) {                                // pileta de lona con agua, una pelota y el patito
   const g = grp(p, x, Y, z, 0.3);
-  add(new THREE.BoxGeometry(3.4, 0.8, 2.4), P.M(0x3a8ad8, { map: TX.metal }), 0, 0.4, 0, g);
+  add(roundBox(3.4, 0.8, 2.4), P.M(0x3a8ad8, { map: TX.metal }), 0, 0.4, 0, g);
   const wm = mat({ map: TX.water, color: 0x8ad8ff, unlit: true });
-  add(new THREE.BoxGeometry(3.1, 0.06, 2.1), wm, 0, 0.72, 0, g);
+  add(roundBox(3.1, 0.06, 2.1), wm, 0, 0.72, 0, g);
   P.anim(g, (t) => wm.uniforms.uOff.value.set((t * 0.04) % 1, (t * 0.03) % 1));
-  [[-1.75, -1.25], [1.75, -1.25], [-1.75, 1.25], [1.75, 1.25]].forEach(([a, b]) => add(new THREE.BoxGeometry(0.1, 0.9, 0.1), P.M(0xe8e8ee), a, 0.45, b, g));
+  [[-1.75, -1.25], [1.75, -1.25], [-1.75, 1.25], [1.75, 1.25]].forEach(([a, b]) => add(roundBox(0.1, 0.9, 0.1), P.M(0xe8e8ee), a, 0.45, b, g));
   const duck = grp(g, 0.6, 0.78, 0.3);
   add(new THREE.SphereGeometry(0.2, 6, 5), P.M(0xffd23a), 0, 0.1, 0, duck).scale.set(1, 0.8, 1.3);
   add(new THREE.SphereGeometry(0.12, 6, 5), P.M(0xffd23a), 0, 0.3, 0.15, duck);
@@ -585,17 +593,17 @@ function pelopincho(p, x, z) {                                // pileta de lona 
 }
 function reposera(p, x, z, ry, col) {                         // reposera de lona
   const g = grp(p, x, Y, z, ry), fm = P.M(0xd8d8e0, { map: TX.metal }), cm = P.M(col, { map: TX.stripes });
-  add(new THREE.BoxGeometry(0.7, 0.06, 1.3), cm, 0, 0.35, 0.2, g);
-  add(new THREE.BoxGeometry(0.7, 0.06, 0.9), cm, 0, 0.7, -0.6, g).rotation.x = -0.9;
-  [[-0.35, 0.8], [0.35, 0.8], [-0.35, -0.8], [0.35, -0.8]].forEach(([a, b]) => add(new THREE.BoxGeometry(0.05, 0.4, 0.05), fm, a, 0.2, b, g));
+  add(roundBox(0.7, 0.06, 1.3), cm, 0, 0.35, 0.2, g);
+  add(roundBox(0.7, 0.06, 0.9), cm, 0, 0.7, -0.6, g).rotation.x = -0.9;
+  [[-0.35, 0.8], [0.35, 0.8], [-0.35, -0.8], [0.35, -0.8]].forEach(([a, b]) => add(roundBox(0.05, 0.4, 0.05), fm, a, 0.2, b, g));
 }
 function sleepyDog(p, x, z) {                                 // perro durmiendo que respira (y mueve la cola)
   const g = grp(p, x, Y, z, -0.8), m = P.M(0xc89a5a), dk = P.M(0x6a4a2a);
   const body = add(new THREE.SphereGeometry(0.5, 8, 6), m, 0, 0.3, 0, g); body.scale.set(0.9, 0.55, 1.4);
   add(new THREE.SphereGeometry(0.28, 7, 5), m, 0.05, 0.25, 0.75, g);
-  [-0.18, 0.18].forEach((sx) => add(new THREE.BoxGeometry(0.12, 0.05, 0.25), dk, sx + 0.05, 0.42, 0.7, g).rotation.z = sx * 2);
-  const tail = add(new THREE.BoxGeometry(0.08, 0.08, 0.4), m, 0, 0.25, -0.8, g);
-  const z0 = add(new THREE.BoxGeometry(0.16, 0.16, 0.02), P.M(0xffffff, { unlit: true }), 0.1, 0.9, 0.8, g);
+  [-0.18, 0.18].forEach((sx) => add(roundBox(0.12, 0.05, 0.25), dk, sx + 0.05, 0.42, 0.7, g).rotation.z = sx * 2);
+  const tail = add(roundBox(0.08, 0.08, 0.4), m, 0, 0.25, -0.8, g);
+  const z0 = add(roundBox(0.16, 0.16, 0.02), P.M(0xffffff, { unlit: true }), 0.1, 0.9, 0.8, g);
   P.anim(g, (t) => { body.scale.y = 0.55 + Math.sin(t * 1.6) * 0.04; tail.rotation.y = Math.sin(t * 6) * Math.max(0, Math.sin(t * 0.4)) * 0.6; const u = (t * 0.5) % 1; z0.position.set(0.1 + u * 0.4, 0.8 + u * 0.8, 0.8); z0.scale.setScalar(0.6 + u); z0.visible = u < 0.85; });
 }
 function parrilla(p, x, z, ry) {                                // parrilla de ladrillo con brasas y humo
@@ -804,7 +812,7 @@ export function decorEspacio(g) {
   planet('ice', [64, -52, 26], 9);
   // la base de la arena (se ve al girar la cámara): plataforma de metal con propulsores que brillan
   const base = grp(g, 0, -2.2, 0), mm = P.M(0x3a4458, { map: TX.metal });
-  add(new THREE.BoxGeometry(29, 1.6, 29), mm, 0, -0.8, 0, base);
+  add(roundBox(29, 1.6, 29), mm, 0, -0.8, 0, base);
   add(new THREE.CylinderGeometry(12, 5, 7, 8), mm, 0, -5, 0, base).rotation.y = Math.PI / 8;
   const glowM = P.M(0x35f0ff, { unlit: true });
   [[-10, -10], [10, -10], [10, 10], [-10, 10]].forEach(([x, z]) => {
@@ -822,8 +830,8 @@ export function decorEspacio(g) {
   P.ufo(g, 0, 7, -30, 26, 0.1, 0x6aff9a);
   P.drift(g, 50, -24, 24, -10, 8, -24, 20, 0xb8d8ff, 0.08, 0.4);          // polvo de estrellas que sube despacio
   const dock = grp(g, -17.6, -2.4, -6);
-  add(new THREE.BoxGeometry(4, 0.4, 3.2), P.M(0x3a4458, { map: TX.metal }), 0, 0, 0, dock);
-  add(new THREE.BoxGeometry(3.4, 0.4, 0.4), P.M(0x2a3040, { map: TX.metal }), 1.8, -0.1, 0, dock).rotation.z = 0.1;
+  add(roundBox(4, 0.4, 3.2), P.M(0x3a4458, { map: TX.metal }), 0, 0, 0, dock);
+  add(roundBox(3.4, 0.4, 0.4), P.M(0x2a3040, { map: TX.metal }), 1.8, -0.1, 0, dock).rotation.z = 0.1;
   [[-1.8, -1.4], [1.8, -1.4], [-1.8, 1.4], [1.8, 1.4]].forEach(([a2, b2], k) => { const l = add(new THREE.SphereGeometry(0.14, 5, 4), P.M(k % 2 ? 0x35f0ff : 0xff3a8a, { unlit: true }), a2, 0.3, b2, dock); P.anim(l, (t) => { l.visible = ((t * 2 + k * 0.5) % 1) < 0.6; }); });
   P.spaceship(dock, 0, 0.8, 0, Math.PI / 2, 0.45);
   [[16.5, -8], [16.5, 8], [-16.5, 8], [8, -16.5], [-8, -16.5]].forEach(([x, z], k) => {
@@ -833,12 +841,12 @@ export function decorEspacio(g) {
     P.anim(bc, (t) => { bc.position.y = -2.6 + Math.sin(t * 0.8 + k) * 0.3; l.scale.setScalar(0.8 + Math.abs(Math.sin(t * 3 + k)) * 0.4); });
   });
   const astro = grp(g, 17.5, 1, 4);
-  add(new THREE.BoxGeometry(0.7, 0.8, 0.45), P.M(0xf0f0f4), 0, 0, 0, astro);
+  add(roundBox(0.7, 0.8, 0.45), P.M(0xf0f0f4), 0, 0, 0, astro);
   add(new THREE.SphereGeometry(0.38, 8, 6), P.M(0xf0f0f4), 0, 0.65, 0, astro);
   add(new THREE.CircleGeometry(0.24, 8), P.M(0x2a4a8a, { unlit: true }), 0, 0.65, 0.37, astro);
-  add(new THREE.BoxGeometry(0.5, 0.6, 0.3), P.M(0xc8ccd8, { map: TX.metal }), 0, 0.05, -0.36, astro);
-  const wave = grp(astro, 0.45, 0.25, 0); add(new THREE.BoxGeometry(0.2, 0.6, 0.2), P.M(0xf0f0f4), 0, 0.25, 0, wave);
-  [-0.18, 0.18].forEach((sx) => add(new THREE.BoxGeometry(0.22, 0.55, 0.22), P.M(0xf0f0f4), sx, -0.65, 0, astro));
+  add(roundBox(0.5, 0.6, 0.3), P.M(0xc8ccd8, { map: TX.metal }), 0, 0.05, -0.36, astro);
+  const wave = grp(astro, 0.45, 0.25, 0); add(roundBox(0.2, 0.6, 0.2), P.M(0xf0f0f4), 0, 0.25, 0, wave);
+  [-0.18, 0.18].forEach((sx) => add(roundBox(0.22, 0.55, 0.22), P.M(0xf0f0f4), sx, -0.65, 0, astro));
   const teth = add(new THREE.CylinderGeometry(0.02, 0.02, 6, 3), P.M(0xffd23a), 0, 0, 0, g);
   P.anim(astro, (t) => {
     astro.position.set(17.5 + Math.sin(t * 0.3) * 1.5, 1 + Math.sin(t * 0.5) * 1.2, 4 + Math.cos(t * 0.25) * 2); astro.rotation.set(Math.sin(t * 0.4) * 0.5, t * 0.2, Math.sin(t * 0.3) * 0.4);

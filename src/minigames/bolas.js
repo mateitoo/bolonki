@@ -1,4 +1,5 @@
 // Minijuego 1: BOLA BRAVA. Cada uno defiende su arco; las pelotas salen de las torres.
+import { roundBox } from '../render/shapes.js';
 import { freezeStatic } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
@@ -67,7 +68,7 @@ function buildMaps() {
   MG.windM = mat({ color: 0xffe14a, unlit: true });
   const cg = chevGeo();
   for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(cg, MG.windM); c.position.set(0, 0.03, -1.4 + k * 1.5); c.scale.setScalar(1.9); wg.add(c); }
-  const n = 40, im = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 0.08, 1.2), mat({ color: 0xfff0c8, unlit: true }), n);
+  const n = 40, im = new THREE.InstancedMesh(roundBox(0.08, 0.08, 1.2), mat({ color: 0xfff0c8, unlit: true }), n);
   MG.sand = { im, ps: Array.from({ length: n }, () => ({ u: Math.random() * 30 - 15, v: Math.random() * 22 - 11, y: 0.2 + Math.random() * 1.6, sp: 0.7 + Math.random() * 0.6 })) };
   im.visible = false; MG.groups[2].add(im);
   // pelotas de playa

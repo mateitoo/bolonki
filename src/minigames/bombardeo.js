@@ -7,6 +7,7 @@
 // Cajas especiales: RESORTE (verde; si caés encima te lanza unas tres cajas de alto)
 // y EXPLOSIVA (roja; al caer vuela la caja de arriba de las 4 pilas de al lado).
 // Gana la ronda el último que queda; gana la partida el primero que llega a N rondas.
+import { roundBox } from '../render/shapes.js';
 import { freezeStatic } from '../world/props.js';
 import * as THREE from 'three';
 import { register, fixedMap } from './registry.js';
@@ -85,14 +86,14 @@ const W = { grp: null, shadows: [], falling: [], stack: [], coils: [], stackGeo:
 function buildWorld() {
   const grp = new THREE.Group(); grp.visible = false; scene.add(grp); W.grp = grp;
   W.baseM = mat({ map: TX.metal, color: 0x6a7288 });
-  add(scaleUV(new THREE.BoxGeometry(GN * TS + 1.6, 1.2, GN * TS + 1.6), 6, 1), W.baseM, 0, -1.1, 0, grp);
+  add(scaleUV(roundBox(GN * TS + 1.6, 1.2, GN * TS + 1.6), 6, 1), W.baseM, 0, -1.1, 0, grp);
   const out = scaleUV(new THREE.PlaneGeometry(140, 140, 10, 10), 24); out.rotateX(-Math.PI / 2);
   W.outer = add(out, mat({ map: TX.outer }), 0, -1.7, 0, grp);
   W.tileMats = [];
-  const tg = scaleUV(new THREE.BoxGeometry(TS - 0.08, 0.5, TS - 0.08), 1, 1);
+  const tg = scaleUV(roundBox(TS - 0.08, 0.5, TS - 0.08), 1, 1);
   const sg = new THREE.PlaneGeometry(CS, CS); sg.rotateX(-Math.PI / 2);
   // baldosas: la plataforma de aterrizaje en las 4 del medio, alguna rejilla y marcas amarillas en las esquinas
-  const padG = scaleUV(new THREE.BoxGeometry(TS - 0.08, 0.5, TS - 0.08), 0.5, 0.5), mid = GN / 2;
+  const padG = scaleUV(roundBox(TS - 0.08, 0.5, TS - 0.08), 0.5, 0.5), mid = GN / 2;
   const hsh = (k) => { const v = Math.sin(k * 91.7 + 13.1) * 43758.5453; return v - Math.floor(v); };
   for (let k = 0; k < GN * GN; k++) {
     const c = k % GN, r = (k / GN) | 0, dark = (c + r) % 2 === 1, tint = dark ? 0xc4cad8 : 0xffffff;
@@ -113,21 +114,21 @@ function buildWorld() {
   // baranda alrededor (no te podés caer de la grilla)
   const hz = mat({ map: TX.hazard, unlit: true }), len = GN * TS + 1.6; W.railM = hz;
   [[0, HALF + 0.55, 0], [0, -HALF - 0.55, 0], [HALF + 0.55, 0, Math.PI / 2], [-HALF - 0.55, 0, Math.PI / 2]].forEach(([x, z, r]) => {
-    add(scaleUV(new THREE.BoxGeometry(len, 0.55, 0.5), len / 1.2, 1), hz, x, 0.2, z, grp).rotation.y = r;
+    add(scaleUV(roundBox(len, 0.55, 0.5), len / 1.2, 1), hz, x, 0.2, z, grp).rotation.y = r;
   });
   const postM = mat({ map: TX.metal, color: 0x8890a6 }), lampM = mat({ color: 0xff5a2a, unlit: true }); W.lampM = lampM;
   [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
     add(new THREE.CylinderGeometry(0.22, 0.28, 3.4, 6), postM, sx * (HALF + 0.9), 1.2, sz * (HALF + 0.9), grp);
-    add(new THREE.BoxGeometry(0.5, 0.5, 0.5), lampM, sx * (HALF + 0.9), 3.1, sz * (HALF + 0.9), grp);
+    add(roundBox(0.5, 0.5, 0.5), lampM, sx * (HALF + 0.9), 3.1, sz * (HALF + 0.9), grp);
   });
   // decorado de cada mapa (el del hangar incluye estos cajones sueltos)
   W.maps = MAPS.map((m) => { const g = new THREE.Group(); g.visible = false; grp.add(g); return g; });
   const bm = mat({ map: TX.block });
   [[-12, -4, 2], [-11.5, 3, 1], [12, -2, 3], [11.8, 5, 1], [-6, -12.5, 2], [7, -12, 1], [-13, 10, 1], [13, 11, 2]].forEach(([x, z, n]) => {
-    for (let h = 0; h < n; h++) add(new THREE.BoxGeometry(CS, CS, CS), bm, x + rnd(-0.2, 0.2), -1.7 + CS / 2 + h * CS, z + rnd(-0.2, 0.2), W.maps[0]).rotation.y = rnd(-0.3, 0.3);
+    for (let h = 0; h < n; h++) add(roundBox(CS, CS, CS), bm, x + rnd(-0.2, 0.2), -1.7 + CS / 2 + h * CS, z + rnd(-0.2, 0.2), W.maps[0]).rotation.y = rnd(-0.3, 0.3);
   });
   // cajas: las que caen y las apiladas (mallas reutilizables)
-  const bg = new THREE.BoxGeometry(CS, CS, CS), fm = mat({ map: TX.block });
+  const bg = roundBox(CS, CS, CS), fm = mat({ map: TX.block });
   W.fallMats = { n: fm, s: mat({ map: TX.block, color: 0x7dff8a }), x: mat({ map: TX.block, color: 0xff6a5a, emissive: 0x401000 }) };
   for (let n = 0; n < 40; n++) { const b = add(bg, fm, 0, -20, 0, grp); b.visible = false; W.falling.push(b); }
   // resortes: una tapa verde con un espiral, arriba de la pila
@@ -136,7 +137,7 @@ function buildWorld() {
   for (let n = 0; n < 24; n++) {
     const sg = new THREE.Group(); sg.visible = false; grp.add(sg);
     for (let i = 0; i < 3; i++) { const t = new THREE.TorusGeometry(0.42, 0.07, 4, 10); t.rotateX(Math.PI / 2); add(t, coilM, 0, 0.12 + i * 0.16, 0, sg); }
-    add(new THREE.BoxGeometry(CS * 0.7, 0.14, CS * 0.7), padM, 0, 0.56, 0, sg);
+    add(roundBox(CS * 0.7, 0.14, CS * 0.7), padM, 0, 0.56, 0, sg);
     W.coils.push(sg);
   }
   W.stackGeo = bg; W.stackMat = mat({ map: TX.block, color: 0xd6dae6 });
@@ -152,7 +153,7 @@ function buildWorld() {
     for (let k = 0; k < 9; k++) {
       const it = new THREE.Group(); fg.add(it);
       const a = (k / 9) * Math.PI * 2 + rnd(-0.3, 0.3), r = rnd(2, HALF + 0.3);
-      if (mi === 1) { if (k % 3) add(new THREE.BoxGeometry(0.7, 0.4, 0.7), mat({ map: TX.crate }), 0, 0.05, 0, it); else { add(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 6), mat({ color: 0x3a8a4a }), 0, 0.05, 0, it).rotation.z = Math.PI / 2; } }
+      if (mi === 1) { if (k % 3) add(roundBox(0.7, 0.4, 0.7), mat({ map: TX.crate }), 0, 0.05, 0, it); else { add(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 6), mat({ color: 0x3a8a4a }), 0, 0.05, 0, it).rotation.z = Math.PI / 2; } }
       else if (mi === 3) { const lg = new THREE.CircleGeometry(rnd(0.3, 0.5), 7, 0.4, Math.PI * 1.8); lg.rotateX(-Math.PI / 2); add(lg, mat({ color: 0x4aa03a }), 0, 0.02, 0, it); if (k % 3 === 0) add(new THREE.ConeGeometry(0.12, 0.2, 5), mat({ color: 0xff9ad0, unlit: true }), 0, 0.12, 0, it); }
       else if (mi === 2) add(new THREE.DodecahedronGeometry(rnd(0.25, 0.45), 0), mat({ color: 0xffffff, map: TX.snow }), 0, 0.05, 0, it).scale.y = 0.5;
       else { add(new THREE.DodecahedronGeometry(rnd(0.25, 0.4), 0), mat({ color: 0x2a1a14 }), 0, 0.05, 0, it).scale.y = 0.5; }   // costras de lava

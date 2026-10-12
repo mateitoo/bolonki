@@ -1,5 +1,6 @@
 // Decorado de los mapas nuevos de Bombardeo: PUERTO (muelle al atardecer, sube la marea) y NEVADA
 // (refugio en la montaña, sube la nieve). La grilla es la misma; el piso de afuera está a y = -1.7.
+import { roundBox, organic, canopy, bellyCylinder } from '../render/shapes.js';
 import * as THREE from 'three';
 import { add, scaleUV, mat, waterMat } from '../render/psx.js';
 import { TX } from '../render/textures.js';
@@ -9,7 +10,7 @@ import { seagulls } from './decorBolas.js';
 import { lighthouse } from './decor.js';
 
 const Y = -1.7;
-const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const box = (w, h, d) => roundBox(w, h, d);   // cantos redondeados
 const grp = (p, x = 0, y = 0, z = 0, ry = 0) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; p.add(g); return g; };
 
 /* ===================== PUERTO ===================== */
@@ -241,7 +242,7 @@ export function decorSelva(g, HALF) {
   P.lightShafts(g, [[-13, Y + 14, -6, 0.3], [12, Y + 14, 8, 0.25], [-4, Y + 15, -14, 0.2], [9, Y + 13, -13, 0.3]], 14, 0xfff8c8, 0.1);
   // monos hamacándose de las lianas y tucanes que pasan volando
   P.monkey(g, -14.5, Y + 5.5, -11.5, 2.4, 0); P.monkey(g, 14.8, Y + 6, 11.2, 2.8, 1.7); P.monkey(g, 13.2, Y + 5, -13.8, 2.2, 3.1);
-  [[-14.5, Y + 5.5, -11.5], [14.8, Y + 6, 11.2], [13.2, Y + 5, -13.8]].forEach(([x, y, z]) => add(new THREE.BoxGeometry(2.4, 0.3, 0.3), P.M(0x6b4a2a, { map: TX.wood }), x, y + 0.1, z, g));
+  [[-14.5, Y + 5.5, -11.5], [14.8, Y + 6, 11.2], [13.2, Y + 5, -13.8]].forEach(([x, y, z]) => add(roundBox(2.4, 0.3, 0.3), P.M(0x6b4a2a, { map: TX.wood }), x, y + 0.1, z, g));
   P.flyers(g, 0, 7, 0, 16, 3, 0x1a1a1e, 0.6);
   P.critters(g, 5, 0, 0, 9, 9, 3.5, 'dragonfly', [0x6af0ff, 0x8aff6a]);
   const frog = grp(g, 11.4, Y + 0.34, 2.1);

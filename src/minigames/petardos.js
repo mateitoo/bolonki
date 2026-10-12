@@ -10,6 +10,7 @@
 //   que va largando una máquina)
 //   · desierto: arenas movedizas que te frenan · nieve: hielo, si soltás seguís resbalando
 // Gana la ronda el último que queda. Al minuto empieza la muerte súbita: las paredes se cierran en espiral.
+import { roundBox } from '../render/shapes.js';
 import { scorch, burst, P } from '../fx/particles.js';
 import { freezeStatic, blob } from '../world/props.js';
 import * as THREE from 'three';
@@ -212,34 +213,34 @@ function innerWall(g, C, c, r, wm) {
   const x = cxOf(c), z = czOf(r), hh = hashCell(c, r);
   if (C.style === 'hedge') {
     // patio: cerco de ligustro podado en una maceta de ladrillo
-    add(scaleUV(new THREE.BoxGeometry(TS, TS * 0.3, TS), 1, 1), wmat('planter', { map: TX.planter }), x, TS * 0.15, z, g);
-    add(new THREE.BoxGeometry(TS * 0.8, TS * 0.62, TS * 0.8), wmat('hedge', { map: TX.hedge, color: 0xb8d8a8 }), x, TS * 0.61, z, g);
-    if (hh < 0.3) add(new THREE.BoxGeometry(0.16, 0.12, 0.16), wmat('hedgeFl', { color: hh < 0.15 ? 0xffffff : 0xff7aa0, unlit: true }), x + (hh - 0.15) * 3, TS * 0.93, z - 0.2, g);   // alguna flor arriba
+    add(scaleUV(roundBox(TS, TS * 0.3, TS), 1, 1), wmat('planter', { map: TX.planter }), x, TS * 0.15, z, g);
+    add(roundBox(TS * 0.8, TS * 0.62, TS * 0.8), wmat('hedge', { map: TX.hedge, color: 0xb8d8a8 }), x, TS * 0.61, z, g);
+    if (hh < 0.3) add(roundBox(0.16, 0.12, 0.16), wmat('hedgeFl', { color: hh < 0.15 ? 0xffffff : 0xff7aa0, unlit: true }), x + (hh - 0.15) * 3, TS * 0.93, z - 0.2, g);   // alguna flor arriba
   } else if (C.style === 'metal') {
     // fábrica: bloques con franja y algunos paneles de máquina con una lucecita arriba
     if (hh < 0.35) {
-      add(new THREE.BoxGeometry(TS, TS * 0.9, TS), wmat('panel', { map: TX.panel }), x, TS * 0.45, z, g);
-      add(new THREE.BoxGeometry(0.22, 0.14, 0.22), wmat('panelLamp', { color: 0x39d98a, unlit: true }), x + 0.35, TS * 0.97, z + 0.35, g);
+      add(roundBox(TS, TS * 0.9, TS), wmat('panel', { map: TX.panel }), x, TS * 0.45, z, g);
+      add(roundBox(0.22, 0.14, 0.22), wmat('panelLamp', { color: 0x39d98a, unlit: true }), x + 0.35, TS * 0.97, z + 0.35, g);
       add(new THREE.CylinderGeometry(0.12, 0.12, 0.35, 6), wmat('pipeS', { map: TX.metal, color: 0x8a92a6 }), x - 0.3, TS * 1.05, z - 0.3, g);
-    } else add(new THREE.BoxGeometry(TS, TS * 0.9, TS), wm, x, TS * 0.45, z, g);
+    } else add(roundBox(TS, TS * 0.9, TS), wm, x, TS * 0.45, z, g);
   } else if (C.style === 'sandstone') {
     // desierto: bloques de arenisca con una losa arriba; algunos son columnas viejas
     const stone = wmat('sandstone', { map: TX.sandstone });
     if (hh < 0.25) {
-      add(new THREE.BoxGeometry(TS, TS * 0.16, TS), stone, x, TS * 0.08, z, g);
+      add(roundBox(TS, TS * 0.16, TS), stone, x, TS * 0.08, z, g);
       add(new THREE.CylinderGeometry(TS * 0.36, TS * 0.4, TS * 0.66, 8), stone, x, TS * 0.49, z, g);
-      add(new THREE.BoxGeometry(TS * 0.94, TS * 0.12, TS * 0.94), wmat('sandcap', { map: TX.sandstone, color: 0xd8b080 }), x, TS * 0.88, z, g).rotation.y = hh * 3;
+      add(roundBox(TS * 0.94, TS * 0.12, TS * 0.94), wmat('sandcap', { map: TX.sandstone, color: 0xd8b080 }), x, TS * 0.88, z, g).rotation.y = hh * 3;
     } else {
-      add(new THREE.BoxGeometry(TS * 0.96, TS * 0.8, TS * 0.96), stone, x, TS * 0.4, z, g);
-      add(new THREE.BoxGeometry(TS, TS * 0.12, TS), wmat('sandcap', { map: TX.sandstone, color: 0xd8b080 }), x, TS * 0.86, z, g);
+      add(roundBox(TS * 0.96, TS * 0.8, TS * 0.96), stone, x, TS * 0.4, z, g);
+      add(roundBox(TS, TS * 0.12, TS), wmat('sandcap', { map: TX.sandstone, color: 0xd8b080 }), x, TS * 0.86, z, g);
     }
   } else if (C.style === 'ice') {
     // nieve: bloque de hielo con nieve arriba y carámbanos
-    add(new THREE.BoxGeometry(TS * 0.96, TS * 0.8, TS * 0.96), wmat('iceBlock', { map: TX.iceBlock }), x, TS * 0.4, z, g);
-    add(new THREE.BoxGeometry(TS * 1.02, TS * 0.14, TS * 1.02), wmat('snowCap', { map: TX.snow }), x, TS * 0.86, z, g);
+    add(roundBox(TS * 0.96, TS * 0.8, TS * 0.96), wmat('iceBlock', { map: TX.iceBlock }), x, TS * 0.4, z, g);
+    add(roundBox(TS * 1.02, TS * 0.14, TS * 1.02), wmat('snowCap', { map: TX.snow }), x, TS * 0.86, z, g);
     const ic = wmat('icicle', { color: 0xd8f2ff, unlit: true });
     for (let k = 0; k < 3; k++) { const m = add(new THREE.ConeGeometry(0.06, 0.26 + ((hh * 7 + k) % 1) * 0.2, 4), ic, x - 0.45 + k * 0.42, TS * 0.72, z + TS * 0.5, g); m.rotation.x = Math.PI; }
-  } else add(new THREE.BoxGeometry(TS, TS * 0.9, TS), wm, x, TS * 0.45, z, g);
+  } else add(roundBox(TS, TS * 0.9, TS), wm, x, TS * 0.45, z, g);
 }
 // cosas chatitas en el piso (no molestan): piedras del camino, manchas de aceite, grietas, montoncitos de nieve
 function floorBits(g, ci) {
@@ -249,12 +250,12 @@ function floorBits(g, ci) {
     const h = hashCell(c + ci * 17, r), x = cxOf(c) + (hashCell(r, c) - 0.5) * 0.6, z = czOf(r) + (hashCell(c * 3, r * 5) - 0.5) * 0.6;
     if (C.style === 'hedge') {
       if (h < 0.16) { const m = add(new THREE.CylinderGeometry(TS * 0.24, TS * 0.26, 0.05, 7), wmat('step', { map: TX.stone, color: 0xd0ccc4 }), x, 0.025, z, g); m.rotation.y = h * 20; }
-      else if (h < 0.24) [[0, 0], [0.18, 0.1], [-0.12, 0.16]].forEach(([dx, dz], k) => add(new THREE.BoxGeometry(0.1, 0.06, 0.1), wmat('daisy' + (k % 2), { color: k % 2 ? 0xffe14a : 0xffffff, unlit: true }), x + dx, 0.05, z + dz, g));
+      else if (h < 0.24) [[0, 0], [0.18, 0.1], [-0.12, 0.16]].forEach(([dx, dz], k) => add(roundBox(0.1, 0.06, 0.1), wmat('daisy' + (k % 2), { color: k % 2 ? 0xffe14a : 0xffffff, unlit: true }), x + dx, 0.05, z + dz, g));
     } else if (C.style === 'metal') {
       if (h < 0.1) { const m = add(new THREE.CircleGeometry(TS * (0.2 + h), 8), wmat('oil', { color: 0x16161c }), x, 0.014, z, g); m.rotation.x = -Math.PI / 2; }
-      else if (h < 0.15) add(new THREE.BoxGeometry(TS * 0.5, 0.03, TS * 0.5), wmat('grate', { map: TX.panel, color: 0x6a7080 }), cxOf(c), 0.015, czOf(r), g);
+      else if (h < 0.15) add(roundBox(TS * 0.5, 0.03, TS * 0.5), wmat('grate', { map: TX.panel, color: 0x6a7080 }), cxOf(c), 0.015, czOf(r), g);
     } else if (C.style === 'sandstone') {
-      if (h < 0.14) for (let k = 0; k < 4; k++) add(new THREE.BoxGeometry(0.05, 0.02, 0.32), wmat('crack', { color: 0x8a6030 }), x + k * 0.1, 0.012, z + (k % 2) * 0.12, g).rotation.y = (k % 2 ? 0.6 : -0.5) + h;
+      if (h < 0.14) for (let k = 0; k < 4; k++) add(roundBox(0.05, 0.02, 0.32), wmat('crack', { color: 0x8a6030 }), x + k * 0.1, 0.012, z + (k % 2) * 0.12, g).rotation.y = (k % 2 ? 0.6 : -0.5) + h;
       else if (h < 0.22) add(new THREE.DodecahedronGeometry(0.14, 0), wmat('pebbleD', { map: TX.pebble, color: 0xc89a6a }), x, 0.06, z, g).scale.set(1, 0.5, 1);
     } else if (C.style === 'ice') {
       if (h < 0.12) add(new THREE.SphereGeometry(TS * 0.22, 7, 3, 0, Math.PI * 2, 0, Math.PI / 2), wmat('snowMound', { map: TX.snow }), x, 0, z, g).scale.set(1, 0.3, 0.8);
@@ -268,14 +269,14 @@ function crateLook(ci) {
   const C = CANCHAS[ci], k = 'crate-' + C.crate;
   if (WM[k]) return WM[k];
   let look;
-  if (C.crate === 'cardboard') look = { geo: new THREE.BoxGeometry(TS * 0.86, TS * 0.76, TS * 0.86), m: mat({ map: TX.cardboard }), y: TS * 0.38 };
+  if (C.crate === 'cardboard') look = { geo: roundBox(TS * 0.86, TS * 0.76, TS * 0.86), m: mat({ map: TX.cardboard }), y: TS * 0.38 };
   else if (C.crate === 'pot') {
     const pts = [[0.2, -0.4], [0.34, -0.32], [0.43, -0.12], [0.42, 0.08], [0.32, 0.26], [0.22, 0.32], [0.27, 0.4], [0.2, 0.4]].map(([rr, y]) => new THREE.Vector2(rr * TS, y * TS));
     look = { geo: new THREE.LatheGeometry(pts, 10), m: mat({ map: TX.clay, side: THREE.DoubleSide }), y: TS * 0.4 };
   } else if (C.crate === 'snow') {
     const cm = mat({ map: TX.crate, color: 0xc8d4e8 }), sm = mat({ map: TX.crateSnow });
-    look = { geo: new THREE.BoxGeometry(TS * 0.92, TS * 0.8, TS * 0.92), m: [cm, cm, sm, cm, cm, cm], y: TS * 0.4 };
-  } else look = { geo: new THREE.BoxGeometry(TS * 0.92, TS * 0.8, TS * 0.92), m: mat({ map: TX.crate }), y: TS * 0.4 };
+    look = { geo: roundBox(TS * 0.92, TS * 0.8, TS * 0.92), m: [cm, cm, sm, cm, cm, cm], y: TS * 0.4 };
+  } else look = { geo: roundBox(TS * 0.92, TS * 0.8, TS * 0.92), m: mat({ map: TX.crate }), y: TS * 0.4 };
   return (WM[k] = look);
 }
 function applyCrateLook() {
@@ -292,10 +293,10 @@ function buildCancha(ci) {
   const C = CANCHAS[ci], g = new THREE.Group(); g.visible = false; W.grp.add(g);
   const fl = scaleUV(new THREE.PlaneGeometry(GW * TS, GH * TS, GW, GH), GW, GH); fl.rotateX(-Math.PI / 2);
   add(fl, mat({ map: TX[C.floor] }), 0, 0, 0, g);
-  add(scaleUV(new THREE.BoxGeometry(GW * TS + 1, 1.4, GH * TS + 1), 8, 1), mat({ map: TX[C.wall], color: new THREE.Color(C.wallCol).multiplyScalar(0.7) }), 0, -0.72, 0, g);
+  add(scaleUV(roundBox(GW * TS + 1, 1.4, GH * TS + 1), 8, 1), mat({ map: TX[C.wall], color: new THREE.Color(C.wallCol).multiplyScalar(0.7) }), 0, -0.72, 0, g);
   const out = scaleUV(new THREE.PlaneGeometry(160, 160, 10, 10), 30); out.rotateX(-Math.PI / 2);
   add(out, mat({ map: TX[C.floor], color: C.out }), 0, -1.4, 0, g);
-  const wg = scaleUV(new THREE.BoxGeometry(TS, TS * 0.9, TS), 1, 1), wm = mat({ map: TX[C.wall], color: C.wallCol });
+  const wg = scaleUV(roundBox(TS, TS * 0.9, TS), 1, 1), wm = mat({ map: TX[C.wall], color: C.wallCol });
   // paredes: las del borde son de la cancha; las de adentro tienen la forma de cada lugar
   C.innerM = wm;
   const sg = new THREE.Group(); g.add(sg);                        // lo fijo de la cancha (paredes y detalles del piso): se junta en pocas mallas
@@ -315,12 +316,12 @@ function buildCancha(ci) {
     const mg = new THREE.Group(); mg.position.set(x, 0, z); g.add(mg);
     const bodyM = mat({ map: TX.metal, color: 0xffc02a }), hz = mat({ map: TX.hazard, unlit: true }), rubber = mat({ color: 0x15151a });
     const darkM = mat({ color: 0x2a2d36 });
-    [-1, 1].forEach((sz) => add(new THREE.BoxGeometry(TS * 1.1, TS * 1.35, 0.3), bodyM, 0, TS * 0.675, sz * TS * 0.58, mg));
-    add(new THREE.BoxGeometry(TS * 1.15, TS * 0.5, TS * 1.46), bodyM, 0, TS * 1.55, 0, mg);
-    add(new THREE.BoxGeometry(TS * 1.17, TS * 0.14, TS * 1.48), hz, 0, TS * 1.28, 0, mg);
-    add(new THREE.BoxGeometry(TS * 0.9, TS * 0.08, TS * 1.0), darkM, 0, TS * 1.81, 0, mg);            // tapa oscura
-    for (let i = 0; i < 5; i++) add(new THREE.BoxGeometry(0.05, TS * 0.8, TS * 0.2), rubber, dc * TS * 0.55, TS * 0.88, (i - 2) * TS * 0.21, mg);
-    W.machineLamp = add(new THREE.BoxGeometry(0.34, 0.34, 0.34), mat({ color: 0xff3a1a, unlit: true }), 0, TS * 1.98, 0, mg);
+    [-1, 1].forEach((sz) => add(roundBox(TS * 1.1, TS * 1.35, 0.3), bodyM, 0, TS * 0.675, sz * TS * 0.58, mg));
+    add(roundBox(TS * 1.15, TS * 0.5, TS * 1.46), bodyM, 0, TS * 1.55, 0, mg);
+    add(roundBox(TS * 1.17, TS * 0.14, TS * 1.48), hz, 0, TS * 1.28, 0, mg);
+    add(roundBox(TS * 0.9, TS * 0.08, TS * 1.0), darkM, 0, TS * 1.81, 0, mg);            // tapa oscura
+    for (let i = 0; i < 5; i++) add(roundBox(0.05, TS * 0.8, TS * 0.2), rubber, dc * TS * 0.55, TS * 0.88, (i - 2) * TS * 0.21, mg);
+    W.machineLamp = add(roundBox(0.34, 0.34, 0.34), mat({ color: 0xff3a1a, unlit: true }), 0, TS * 1.98, 0, mg);
   }
   // lo propio del piso: hielo, arena movediza, cintas y arbustos
   const pg = new THREE.PlaneGeometry(TS, TS); pg.rotateX(-Math.PI / 2);
@@ -351,7 +352,7 @@ function buildWorld() {
   W.iceM = mat({ map: TX.ice }); W.sandM = mat({ map: TX.quicksand }); W.beltM = mat({ map: TX.belt, unlit: true });
   CANCHAS.forEach((_, ci) => buildCancha(ci));
   // cajones (uno por celda posible), petardos, fuego y poderes
-  const cg = new THREE.BoxGeometry(TS * 0.92, TS * 0.8, TS * 0.92), cm = mat({ map: TX.crate });
+  const cg = roundBox(TS * 0.92, TS * 0.8, TS * 0.92), cm = mat({ map: TX.crate });
   for (let k = 0; k < N; k++) { const m = add(cg, cm, cxOf(k % GW), TS * 0.4, czOf((k / GW) | 0), grp); m.visible = false; W.crates.push(m); }
   const bodyM = mat({ color: 0x22222c }), fuseM = mat({ color: 0xc8a060 }), shineM = mat({ color: 0xffffff, unlit: true });
   for (let n = 0; n < 40; n++) {
@@ -359,12 +360,12 @@ function buildWorld() {
     add(new THREE.SphereGeometry(TS * 0.34, 10, 8), bodyM, 0, TS * 0.34, 0, g);
     add(new THREE.CylinderGeometry(TS * 0.12, TS * 0.14, TS * 0.12, 8), bodyM, 0, TS * 0.7, 0, g);
     add(new THREE.CylinderGeometry(0.04, 0.04, TS * 0.2, 4), fuseM, 0.05, TS * 0.84, 0, g).rotation.z = -0.4;
-    add(new THREE.BoxGeometry(0.1, 0.1, 0.05), shineM, -TS * 0.14, TS * 0.48, TS * 0.28, g);
+    add(roundBox(0.1, 0.1, 0.05), shineM, -TS * 0.14, TS * 0.48, TS * 0.28, g);
     const spark = add(new THREE.SphereGeometry(0.11, 5, 4), mat({ color: 0xffd23a, unlit: true }), 0.1, TS * 0.96, 0, g);
     g.userData.spark = spark;
     W.bombs.push(g);
   }
-  const fg = new THREE.BoxGeometry(TS * 0.94, TS * 0.5, TS * 0.94), fm = mat({ map: TX.fire, unlit: true });
+  const fg = roundBox(TS * 0.94, TS * 0.5, TS * 0.94), fm = mat({ map: TX.fire, unlit: true });
   W.flameM = fm;
   // celdas de peligro (un cuadrado con borde, apenas sobre el piso)
   const dg = new THREE.RingGeometry(TS * 0.3, TS * 0.46, 4, 1, Math.PI / 4); dg.rotateX(-Math.PI / 2);
@@ -374,19 +375,19 @@ function buildWorld() {
   for (let k = 0; k < N; k++) { const m = add(fg, fm, cxOf(k % GW), TS * 0.25, czOf((k / GW) | 0), grp); m.visible = false; W.flames.push(m); }
   W.puMats = [TX.puBomb, TX.puFire, TX.puSpeed, TX.puBoots, TX.puShield, TX.puKick, TX.puSkull].map((t) => mat({ map: t, unlit: true }));
   // muerte súbita: una pared por celda de adentro, y unas que caen
-  const sg = scaleUV(new THREE.BoxGeometry(TS, TS * 0.9, TS), 1, 1), sm = mat({ map: TX.block });
+  const sg = scaleUV(roundBox(TS, TS * 0.9, TS), 1, 1), sm = mat({ map: TX.block });
   for (let k = 0; k < N; k++) { const m = add(sg, sm, cxOf(k % GW), TS * 0.45, czOf((k / GW) | 0), grp); m.visible = false; W.sdWalls.push(m); }
   for (let n = 0; n < 6; n++) { const m = add(sg, sm, 0, -10, 0, grp); m.visible = false; W.sdFall.push(m); }
   // calavera flotando arriba de la cabeza del maldito
   const boneM = mat({ color: 0xf0ece0, unlit: true }), eyeM = mat({ color: 0x5a1a7a, unlit: true });
   for (let i = 0; i < 4; i++) {
     const g = new THREE.Group(); g.visible = false; grp.add(g);
-    add(new THREE.BoxGeometry(0.6, 0.5, 0.5), boneM, 0, 0, 0, g);
-    add(new THREE.BoxGeometry(0.4, 0.2, 0.4), boneM, 0, -0.3, 0, g);
-    [-0.14, 0.14].forEach((ex) => add(new THREE.BoxGeometry(0.14, 0.14, 0.05), eyeM, ex, 0.02, 0.26, g));
+    add(roundBox(0.6, 0.5, 0.5), boneM, 0, 0, 0, g);
+    add(roundBox(0.4, 0.2, 0.4), boneM, 0, -0.3, 0, g);
+    [-0.14, 0.14].forEach((ex) => add(roundBox(0.14, 0.14, 0.05), eyeM, ex, 0.02, 0.26, g));
     W.skulls.push(g);
   }
-  const pg = new THREE.BoxGeometry(TS * 0.55, TS * 0.55, TS * 0.55);
+  const pg = roundBox(TS * 0.55, TS * 0.55, TS * 0.55);
   for (let n = 0; n < 40; n++) { const m = add(pg, W.puMats[0], 0, 0, 0, grp); m.visible = false; W.pups.push(m); }
   // escudo: dos anillos que giran alrededor del personaje
   const ringG = new THREE.TorusGeometry(TS * 0.5, 0.05, 4, 16), ringM = mat({ color: 0x6ff6ff, unlit: true });
